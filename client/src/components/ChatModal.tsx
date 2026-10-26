@@ -100,30 +100,64 @@ const ChatModal: React.FC<ChatModalProps> = ({ suspectId, sessionId, onClose }) 
 
 const styles = {
   overlay: {
-    position: 'fixed' as const, top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 100,
-    display: 'flex', justifyContent: 'center', alignItems: 'center'
+    position: 'fixed' as const, 
+    top: 0, 
+    left: 0, 
+    right: 0, 
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.85)', /* Darker overlay to focus on the full-screen chat */
+    zIndex: 2000, /* Ensure it sits above the navigation bar */
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    padding: '20px'
   },
   modal: {
-    width: '500px', height: '600px', display: 'flex', flexDirection: 'column' as const,
-    transform: 'rotate(0deg)' // override the tilt for readability
+    width: '100%', 
+    maxWidth: '1200px', /* Wide proportion matching the reference layout */
+    height: '90vh', /* Takes up most of the vertical screen space */
+    display: 'flex', 
+    flexDirection: 'column' as const,
+    transform: 'none', /* Remove any tilt for a clean full-screen reading experience */
+    position: 'relative' as const
   },
   closeBtn: {
-    position: 'absolute' as const, top: '10px', right: '15px',
-    background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', fontWeight: 'bold'
+    position: 'absolute' as const, 
+    top: '20px', 
+    right: '25px',
+    background: 'none', 
+    border: 'none', 
+    fontSize: '1.5rem', 
+    cursor: 'pointer', 
+    fontWeight: 'bold',
+    color: '#8b3a3a'
   },
   chatHistory: {
-    flex: 1, overflowY: 'auto' as const, padding: '10px',
-    border: '1px solid #ccc', marginTop: '15px', marginBottom: '15px', backgroundColor: '#fff'
+    flex: 1, 
+    overflowY: 'auto' as const, 
+    padding: '20px',
+    border: '1px solid #ccc', 
+    marginTop: '20px', 
+    marginBottom: '20px', 
+    backgroundColor: '#fffdf9', /* Slightly warm paper color */
+    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)'
   },
   inputArea: {
-    display: 'flex', gap: '10px'
+    display: 'flex', 
+    gap: '15px'
   },
   input: {
-    flex: 1, padding: '10px', fontFamily: 'monospace', border: '1px solid #ccc'
+    flex: 1, 
+    padding: '15px', 
+    fontFamily: 'monospace', 
+    fontSize: '1.1rem',
+    border: '2px solid #ccc',
+    borderRadius: '4px'
   },
   sendBtn: {
-    marginTop: 0, width: 'auto'
+    marginTop: 0, 
+    width: '120px',
+    fontSize: '1.1rem'
   }
 };
 

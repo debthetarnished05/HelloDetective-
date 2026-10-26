@@ -7,26 +7,33 @@
 }
 
 body {
-  /* Corkboard background */
-  background-color: #b08d6a; 
-  background-image: url('https://www.transparenttextures.com/patterns/cork-board.png');
+  /* Dark wood base color */
+  background-color: #634027;
+  
+  /* Layered Backgrounds:
+     1. Radial gradient for the cinematic spotlight hitting the top center
+     2. Vertical lines to simulate the wood paneling gaps
+     3. A transparent wood texture overlay */
+  background-image: 
+    radial-gradient(circle at 50% -20%, rgba(255, 220, 150, 0.25) 0%, rgba(0, 0, 0, 0.85) 100%),
+    repeating-linear-gradient(to right, transparent, transparent 150px, rgba(0, 0, 0, 0.5) 150px, rgba(0, 0, 0, 0.5) 153px),
+    url('https://www.transparenttextures.com/patterns/wood-pattern.png');
+    
   font-family: 'Roboto', sans-serif;
   color: #333;
+  margin: 0;
   min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  background-attachment: fixed; /* Keeps the lighting fixed when scrolling */
 }
 
 /* Base style for paper elements */
 .paper-note {
-  background: #fdfbf7;
+  background: #c9d6b8; /* Changed to faded green */
   padding: 20px;
-  box-shadow: 2px 4px 10px rgba(0, 0, 0, 0.2);
+  box-shadow: 2px 4px 10px rgba(0, 0, 0, 0.4); /* Darkened shadow slightly for the dark wood */
   position: relative;
   max-width: 300px;
 }
-
 /* The tape effect */
 .paper-note::before {
   content: '';
@@ -155,9 +162,9 @@ body {
 
 /* --- DIAGONAL TAPE TITLE CARD --- */
 .taped-title {
-  background: #fdfbf7; /* Classic paper color */
+  background: #c9d6b8; /* Changed to faded green */
   padding: 15px 40px;
-  box-shadow: 2px 4px 10px rgba(0, 0, 0, 0.2);
+  box-shadow: 2px 4px 10px rgba(0, 0, 0, 0.4); /* Darkened shadow slightly */
   position: relative;
   text-align: center;
   font-size: 2.5rem;

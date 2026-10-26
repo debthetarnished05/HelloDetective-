@@ -32,31 +32,46 @@ export default function OfficerDesk() {
 
   return (
     <div className="page-wrapper">
-      <div className="taped-title handwritten">
-        Submit Deductions
-      </div>
+      {/* The taped-title div has been completely removed here */}
       
-      <div className="paper-note notebook" style={{ width: '600px', minHeight: '400px', marginTop: '20px' }}>
-        <h2 className="handwritten">Officer Davis's Desk</h2>
-        <p style={{ fontSize: '0.9rem', marginBottom: '20px' }}>
+      <div className=" notebook" style={{ 
+        width: '100%', 
+        maxWidth: '1200px', 
+        height: '80vh',     
+        display: 'flex', 
+        flexDirection: 'column',
+        marginTop: '-12px' 
+      }}>
+        <h2 className="handwritten" style={{ fontSize: '2.5rem' }}>Officer Davis's Desk</h2>
+        <p style={{ fontSize: '1.1rem', marginBottom: '20px' }}>
           "What do you have for me, Detective? If you've found a solid lead or a hole in someone's story, lay it out."
         </p>
 
         {response && (
-          <div style={{ background: '#e3f2fd', padding: '15px', marginBottom: '20px', borderRadius: '4px', fontStyle: 'italic' }}>
+          <div style={{ background: '#e3f2fd', padding: '15px', marginBottom: '20px', borderRadius: '4px', fontStyle: 'italic', fontSize: '1.1rem' }}>
             Davis: "{response}"
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
           <textarea
             value={deduction}
             onChange={(e) => setDeduction(e.target.value)}
             placeholder="Type your deduction here... (e.g., 'Marcus is lying about the coffee shop')"
-            style={{ width: '100%', height: '100px', padding: '10px', marginBottom: '15px', fontFamily: 'monospace' }}
+            style={{ 
+              flex: 1, 
+              padding: '20px', 
+              marginBottom: '20px', 
+              fontFamily: 'monospace', 
+              fontSize: '1.1rem',
+              border: '2px solid #ccc',
+              borderRadius: '4px',
+              resize: 'none', 
+              backgroundColor: 'rgba(255, 255, 255, 0.6)' 
+            }}
             disabled={loading}
           />
-          <button type="submit" className="action-button" disabled={loading}>
+          <button type="submit" className="action-button" style={{ padding: '15px', fontSize: '1.1rem' }} disabled={loading}>
             {loading ? 'Reviewing...' : 'Submit Deduction'}
           </button>
         </form>
