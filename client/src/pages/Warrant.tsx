@@ -6,13 +6,20 @@ export default function Warrant() {
   const [weapon, setWeapon] = useState('');
   const [epilogue, setEpilogue] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!suspect || !motive || !weapon) return;
     
-    setEpilogue("The District Attorney has received your warrant request. Based on your written deductions, a tactical team is being dispatched. The investigation is now closed.");
+    // Optional: Add a loading state here if you want to show "The Jury is deliberating..."
+    try {
+      // sessionId needs to be pulled from useGameStore() at the top of the component
+      const result = await gameApi.submitWarrant(sessionId!, { suspect, motive, weapon });
+      setEpilogue(result.epilogue);
+    } catch (error) {
+      console.error(error);
+      setEpilogue("The court proceedings were interrupted due to a technical error.");
+    }
   };
-
   if (epilogue) {
     return (
       <div className="page-wrapper">

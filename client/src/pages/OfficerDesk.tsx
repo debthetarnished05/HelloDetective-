@@ -7,25 +7,25 @@ export default function OfficerDesk() {
   const [response, setResponse] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!deduction.trim() || !sessionId) return;
 
     setLoading(true);
     try {
-      setTimeout(() => {
-        if (currentStage === 1 && deduction.toLowerCase().includes('coffee')) {
-          setResponse("Good catch, Detective. I'll get a warrant for the coffee shop immediately.");
-          advanceStage(2);
-          unlockItems(['threatening_email'], ['riverside_brews']);
-        } else {
-          setResponse("I'm not seeing the connection yet, Detective. We need something more concrete.");
-        }
-        setLoading(false);
-        setDeduction('');
-      }, 1000);
+      const result = await gameApi.submitDeduction(sessionId, deduction);
+      
+      setResponse(result.dialogue);
+      
+      if (result.isApproved) {
+        advanceStage(currentStage + 1);
+        unlockItems(result.unlockEvidence, result.unlockLocations);
+      }
+      setDeduction('');
     } catch (error) {
       console.error(error);
+      setResponse("I can't hear you right now, Detective. (Server Error)");
+    } finally {
       setLoading(false);
     }
   };

@@ -1,15 +1,11 @@
 import { Router } from 'express';
-import { startGame, getGameStatus, submitWarrant } from '../controllers/gameController.js';
-import { submitDeduction } from '../controllers/officerController.js';
+import { startNewGame, chatSuspect, submitDeduction, submitWarrant } from '../controllers/GameController';
 
 const router = Router();
 
-// Core Game Flow
-router.post('/start', startGame);
-router.get('/:sessionId/status', getGameStatus);
-router.post('/:sessionId/warrant', submitWarrant);
-
-// Officer & Deduction Gate
+router.post('/start', startNewGame);
+router.post('/chat', chatSuspect);
 router.post('/deduction', submitDeduction);
+router.post('/warrant', submitWarrant);
 
 export default router;

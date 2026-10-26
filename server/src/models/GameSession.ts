@@ -1,53 +1,39 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
-export interface IMessage {
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  timestamp: Date;
-}
-
 export interface ISuspectState {
   suspectId: string;
   trustScore: number;
-  stressLevel: number;
-  revealedFacts: string[]; // Facts the suspect has admitted to
-  chatHistory: IMessage[];
+  revealedFacts: string[]; // The Revealed Facts Ledger
 }
 
 export interface IGameSession extends Document {
-  playerId: string;
-  status: 'active' | 'solved' | 'failed';
-  currentStage: number; // Stages 1 to 4
+  currentStage: number;
   unlockedEvidence: string[];
   unlockedLocations: string[];
-  suspectStates: ISuspectState[];
-  officerChatHistory: IMessage[]; // Chat history with Officer Davis
-  createdAt: Date;
-  updatedAt: Date;
+  suspects: Map<string, ISuspectState>;
+  groundTruth: Record<string, any>; // The actual murder details for the Judge AI
 }
-
-const MessageSchema = new Schema({
-  role: { type: String, enum: ['user', 'assistant', 'system'], required: true },
-  content: { type: String, required: true },
-  timestamp: { type: Date, default: Date.now }
-});
 
 const SuspectStateSchema = new Schema({
   suspectId: { type: String, required: true },
   trustScore: { type: Number, default: 50 },
-  stressLevel: { type: Number, default: 0 },
-  revealedFacts: [{ type: String }],
-  chatHistory: [MessageSchema]
+  revealedFacts: [{ type: String }]
 });
 
 const GameSessionSchema = new Schema({
-  playerId: { type: String, required: true },
-  status: { type: String, enum: ['active', 'solved', 'failed'], default: 'active' },
-  currentStage: { type: Number, default: 1, min: 1, max: 4 },
+  currentStage: { type: Number, default: 1 },
   unlockedEvidence: [{ type: String }],
   unlockedLocations: [{ type: String }],
-  suspectStates: [SuspectStateSchema],
-  officerChatHistory: [MessageSchema]
-}, { timestamps: true });
+  suspects: {
+    type: Map,
+    of: SuspectStateSchema,
+    default: () => ({
+      marcus_chen: { suspectId: 'marcus_chen', trustScore: 50, revealedFacts: [] },
+      sarah_reynolds: { suspectId: 'sarah_reynolds', trustScore: 40, revealedFacts: [] },
+      diana_wilkins: { suspectId: 'diana_wilkins', trustScore: 60, revealedFacts: [] }
+    })
+  },
+  groundTruth: { type: Object, required: true }
+});
 
 export default mongoose.model<IGameSession>('GameSession', GameSessionSchema);
