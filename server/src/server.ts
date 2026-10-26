@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './config/db.js';
 import gameRoutes from './routes/gameRoutes.js';
+import chatRoutes from './routes/chatRoutes.js'; // Added chat routes
 
 dotenv.config();
 
@@ -15,11 +16,10 @@ app.use(express.json());
 await connectDB();
 
 app.use('/api/game', gameRoutes);
-
-// Next: app.use('/api/chat', chatRoutes);
+app.use('/api/chat', chatRoutes); // Mounted chat routes
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'Server is running', stage: 'Backend shell complete' });
+  res.json({ status: 'Server is running', stage: 'Backend controllers complete' });
 });
 
 app.listen(PORT, () => {
