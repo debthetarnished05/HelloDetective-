@@ -2,25 +2,44 @@ import { Request, Response } from 'express';
 import GameSession from '../models/GameSession';
 import Story from '../models/StoryData';
 import { DEFAULT_STORY } from '../data/defaultStory';
+import { OPERA_STORY, ARCTIC_STORY } from '../data/seedStories';
 import { GroqService } from '../services/GroqService';
 import { IStory, ISuspectRuntimeState } from '../types/index';
 
-async function ensureDefaultStory() {
-  const count = await Story.countDocuments();
-  if (count === 0) {
-    const seeded = new Story(DEFAULT_STORY);
-    await seeded.save();
-    return seeded;
+export async function seedDefaultStories() {
+  // 1. Ensure DEFAULT_STORY (Silicon Alibi)
+  let defaultStory = await Story.findOne({ caseNumber: DEFAULT_STORY.caseNumber });
+  if (!defaultStory) {
+    defaultStory = await Story.findOne({ isDefault: true });
   }
-  let defaultStory = await Story.findOne({ isDefault: true });
-  if (defaultStory) {
+  if (!defaultStory) {
+    defaultStory = new Story(DEFAULT_STORY);
+    await defaultStory.save();
+    console.log('Seeded default story: Silicon Alibi');
+  } else {
     if (!defaultStory.suspects || defaultStory.suspects.length < DEFAULT_STORY.suspects.length) {
       defaultStory.suspects = DEFAULT_STORY.suspects as any;
       await defaultStory.save();
     }
-    return defaultStory;
   }
-  return await Story.findOne();
+
+  // 2. Ensure OPERA_STORY (The Gilded Aria)
+  let operaStory = await Story.findOne({ caseNumber: OPERA_STORY.caseNumber });
+  if (!operaStory) {
+    operaStory = new Story(OPERA_STORY);
+    await operaStory.save();
+    console.log('Seeded story: The Gilded Aria');
+  }
+
+  // 3. Ensure ARCTIC_STORY (The Frostbite Protocol)
+  let arcticStory = await Story.findOne({ caseNumber: ARCTIC_STORY.caseNumber });
+  if (!arcticStory) {
+    arcticStory = new Story(ARCTIC_STORY);
+    await arcticStory.save();
+    console.log('Seeded story: The Frostbite Protocol');
+  }
+
+  return defaultStory;
 }
 
 export const startNewGame = async (req: Request, res: Response) => {
@@ -32,7 +51,7 @@ export const startNewGame = async (req: Request, res: Response) => {
       story = await Story.findById(storyId);
     }
     if (!story) {
-      story = await ensureDefaultStory();
+      story = await seedDefaultStories();
     }
     if (!story) {
       return res.status(500).json({ error: 'Failed to find or seed detective story.' });
@@ -372,8 +391,8 @@ export const recordClue = async (req: Request, res: Response) => {
 
 export const listStories = async (req: Request, res: Response) => {
   try {
-    await ensureDefaultStory();
-    const stories = await Story.find().select('title caseNumber leadDetective status isDefault createdAt');
+    await seedDefaultStories();
+    const stories = await Story.find().select('title caseNumber leadDetective status isDefault createdAt victimProfile briefing suspects locations evidence');
     res.status(200).json({ stories });
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Failed to list stories' });

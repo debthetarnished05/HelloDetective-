@@ -133,45 +133,78 @@ export default function StoryCreator() {
             Select any case file to immediately launch an active investigation without changing any application code.
           </p>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {stories.map((s) => {
               const isCurrent = currentStory?._id === s._id;
+              const victim = s.victimProfile;
+              const briefingSnippet = s.briefing?.initialBriefing;
+              const suspectCount = s.suspects?.length || 0;
+              const evidenceCount = s.evidence?.length || 0;
+              const locationCount = s.locations?.length || 0;
+
               return (
                 <div
                   key={s._id}
                   style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.75)',
-                    borderLeft: `5px solid ${isCurrent ? '#2e7d32' : '#8b3a3a'}`,
-                    padding: '20px',
-                    borderRadius: '4px',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+                    borderLeft: `6px solid ${isCurrent ? '#2e7d32' : '#8b3a3a'}`,
+                    padding: '24px',
+                    borderRadius: '6px',
+                    boxShadow: '0 3px 8px rgba(0,0,0,0.12)',
                     display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
-                    gap: '15px'
+                    flexDirection: 'column',
+                    gap: '14px'
                   }}
                 >
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <strong style={{ fontSize: '1.4rem', color: '#2c3e50' }}>{s.title}</strong>
-                      {isCurrent && (
-                        <span style={styles.activeBadge}>ACTIVE PLAYTHROUGH</span>
-                      )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '15px' }}>
+                    <div style={{ flex: '1 1 500px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                        <strong style={{ fontSize: '1.45rem', color: '#2c3e50', fontFamily: 'Georgia, serif' }}>{s.title}</strong>
+                        {isCurrent && (
+                          <span style={styles.activeBadge}>ACTIVE PLAYTHROUGH</span>
+                        )}
+                      </div>
+                      <p style={{ margin: '6px 0 0 0', fontFamily: 'monospace', fontSize: '0.85rem', color: '#666' }}>
+                        Case #: <strong>{s.caseNumber}</strong> · Lead: <strong>{s.leadDetective}</strong> · Status: <span style={{ color: '#8b3a3a' }}>{s.status}</span>
+                      </p>
                     </div>
-                    <p style={{ margin: '6px 0 0 0', fontFamily: 'monospace', fontSize: '0.9rem', color: '#666' }}>
-                      Case #: {s.caseNumber} · Lead: {s.leadDetective} · Status: {s.status}
-                    </p>
+
+                    <button
+                      onClick={() => s._id && handleStartGameWithStory(s._id)}
+                      className="action-button"
+                      style={{ width: 'auto', padding: '10px 24px', margin: 0, alignSelf: 'center' }}
+                      disabled={loading}
+                    >
+                      {isCurrent ? 'Restart Case ➔' : 'Play This Case ➔'}
+                    </button>
                   </div>
 
-                  <button
-                    onClick={() => s._id && handleStartGameWithStory(s._id)}
-                    className="action-button"
-                    style={{ width: 'auto', padding: '10px 24px', margin: 0 }}
-                    disabled={loading}
-                  >
-                    {isCurrent ? 'Restart Case ➔' : 'Play This Case ➔'}
-                  </button>
+                  {victim && (
+                    <div style={{ backgroundColor: 'rgba(240, 235, 220, 0.6)', padding: '10px 14px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '0.88rem', fontFamily: 'monospace' }}>
+                      <strong>Victim:</strong> {victim.name} ({victim.age ? `${victim.age} y/o, ` : ''}{victim.occupation})
+                      {victim.causeOfDeath && (
+                        <span> · <strong>Cause:</strong> {victim.causeOfDeath}</span>
+                      )}
+                    </div>
+                  )}
+
+                  {briefingSnippet && (
+                    <p style={{ margin: 0, fontSize: '0.92rem', color: '#333', lineHeight: '1.5', fontStyle: 'italic', fontFamily: 'Georgia, serif' }}>
+                      "{briefingSnippet.length > 220 ? `${briefingSnippet.slice(0, 220)}...` : briefingSnippet}"
+                    </p>
+                  )}
+
+                  <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', paddingTop: '6px', borderTop: '1px dashed #ccc' }}>
+                    <span style={{ fontSize: '0.8rem', fontFamily: 'monospace', color: '#444' }}>
+                      👥 <strong>{suspectCount}</strong> Suspects & Witnesses
+                    </span>
+                    <span style={{ fontSize: '0.8rem', fontFamily: 'monospace', color: '#444' }}>
+                      🔍 <strong>{evidenceCount}</strong> Forensic Clues
+                    </span>
+                    <span style={{ fontSize: '0.8rem', fontFamily: 'monospace', color: '#444' }}>
+                      📍 <strong>{locationCount}</strong> Investigation Locations
+                    </span>
+                  </div>
                 </div>
               );
             })}
