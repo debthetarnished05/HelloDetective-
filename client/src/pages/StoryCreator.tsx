@@ -368,6 +368,7 @@ export default function StoryCreator() {
   const [aiGenerating, setAiGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState<'manage' | 'ai' | 'form'>('manage');
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const [inspectedStory, setInspectedStory] = useState<IStory | null>(null);
 
   // Form State
   const [formData, setFormData] = useState<CaseFormData>(BLANK_TEMPLATE);
@@ -692,92 +693,581 @@ export default function StoryCreator() {
         </div>
       )}
 
-      {/* TAB 1: ALL SAVED CASES */}
+      {/* TAB 1: ALL SAVED CASES (ALAN WAKE 2 STYLE MIND PLACE CASE BOARD) */}
       {activeTab === 'manage' && (
-        <div style={styles.container}>
-          <h2 className="handwritten" style={{ fontSize: '2.5rem', color: '#2c3e50', marginBottom: '15px' }}>
-            Available Case Files in Database
-          </h2>
-          <p style={{ fontFamily: 'monospace', color: '#555', marginBottom: '25px' }}>
-            Select any case file to immediately launch an active investigation without changing any application code.
-          </p>
+        <div style={{
+          width: '100%',
+          maxWidth: '1200px',
+          backgroundColor: '#1c140e',
+          backgroundImage: `
+            radial-gradient(circle at 50% 12%, rgba(65, 48, 36, 0.5) 0%, rgba(14, 10, 8, 0.98) 100%),
+            repeating-linear-gradient(90deg, transparent, transparent 135px, rgba(0, 0, 0, 0.4) 135px, rgba(0, 0, 0, 0.4) 138px)
+          `,
+          border: '4px solid #100b08',
+          boxShadow: 'inset 0 0 80px rgba(0,0,0,0.85), 0 12px 36px rgba(0,0,0,0.7)',
+          borderRadius: '8px',
+          padding: '35px 25px 60px',
+          boxSizing: 'border-box'
+        }}>
+          {/* Board Header Plaque */}
+          <div style={{ textAlign: 'center', marginBottom: '45px' }}>
+            <div style={{
+              display: 'inline-block',
+              backgroundColor: 'rgba(10, 7, 5, 0.75)',
+              border: '1px solid rgba(210, 180, 150, 0.25)',
+              padding: '10px 32px',
+              borderRadius: '4px',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.6)'
+            }}>
+              <h2 className="handwritten" style={{
+                fontSize: '2.6rem',
+                color: '#ebdccb',
+                margin: 0,
+                letterSpacing: '2px',
+                textShadow: '2px 2px 6px rgba(0,0,0,0.9)'
+              }}>
+                Mind Place // Active Case Files
+              </h2>
+              <p style={{
+                margin: '5px 0 0 0',
+                fontFamily: "'Courier New', monospace",
+                fontSize: '0.82rem',
+                color: '#ba9f88',
+                letterSpacing: '2px',
+                textTransform: 'uppercase'
+              }}>
+                FEDERAL BUREAU OF INVESTIGATION • CRIMINAL INVESTIGATIVE DIVISION
+              </p>
+            </div>
+          </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Grid of Manila Dossier Folders hanging from pins & red string */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 360px))',
+            gap: '50px 35px',
+            justifyContent: 'center',
+            padding: '10px 10px 30px'
+          }}>
             {stories.map((s) => {
               const isCurrent = currentStory?._id === s._id;
               const victim = s.victimProfile;
-              const briefingSnippet = s.briefing?.initialBriefing;
               const suspectCount = s.suspects?.length || 0;
               const evidenceCount = s.evidence?.length || 0;
               const locationCount = s.locations?.length || 0;
+
+              // Compute clean short title for folder tab tape
+              let tabText = s.title;
+              if (tabText.includes(':')) {
+                tabText = tabText.split(':')[1].trim();
+              }
+              if (tabText.length > 28) {
+                tabText = tabText.slice(0, 25) + '...';
+              }
 
               return (
                 <div
                   key={s._id}
                   style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.85)',
-                    borderLeft: `6px solid ${isCurrent ? '#2e7d32' : '#8b3a3a'}`,
-                    padding: '24px',
-                    borderRadius: '6px',
-                    boxShadow: '0 3px 8px rgba(0,0,0,0.12)',
+                    position: 'relative',
+                    width: '100%',
+                    maxWidth: '350px',
+                    margin: '0 auto',
+                    minHeight: '530px',
+                    backgroundColor: '#dec9b8',
+                    backgroundImage: 'linear-gradient(145deg, #e5d4c3 0%, #dbcaa0 45%, #ceb7a1 100%)',
+                    borderRadius: '3px 18px 4px 4px',
+                    boxShadow: '0 12px 28px rgba(0,0,0,0.65), 0 2px 6px rgba(0,0,0,0.4), inset 0 0 35px rgba(110, 70, 40, 0.09)',
+                    border: '1px solid #bba490',
+                    padding: '24px 20px 20px 34px',
+                    boxSizing: 'border-box',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '14px'
+                    justifyContent: 'space-between',
+                    transition: 'transform 0.25s ease, box-shadow 0.25s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-8px) rotate(-0.5deg)';
+                    e.currentTarget.style.boxShadow = '0 22px 42px rgba(0,0,0,0.8), 0 4px 10px rgba(0,0,0,0.5), inset 0 0 35px rgba(110, 70, 40, 0.14)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'none';
+                    e.currentTarget.style.boxShadow = '0 12px 28px rgba(0,0,0,0.65), 0 2px 6px rgba(0,0,0,0.4), inset 0 0 35px rgba(110, 70, 40, 0.09)';
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '15px' }}>
-                    <div style={{ flex: '1 1 500px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                        <strong style={{ fontSize: '1.45rem', color: '#2c3e50', fontFamily: 'Georgia, serif' }}>{s.title}</strong>
-                        {isCurrent && (
-                          <span style={styles.activeBadge}>ACTIVE PLAYTHROUGH</span>
-                        )}
-                      </div>
-                      <p style={{ margin: '6px 0 0 0', fontFamily: 'monospace', fontSize: '0.85rem', color: '#666' }}>
-                        Case #: <strong>{s.caseNumber}</strong> · Lead: <strong>{s.leadDetective}</strong> · Status: <span style={{ color: '#8b3a3a' }}>{s.status}</span>
-                      </p>
+                  {/* Top Red Crime String & 2 Push Pins */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '0px',
+                    left: '26px',
+                    right: '32px',
+                    height: '2px',
+                    backgroundColor: '#b32415',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
+                    zIndex: 5
+                  }} />
+                  <div style={{
+                    position: 'absolute',
+                    left: '22px',
+                    top: '-7px',
+                    width: '14px',
+                    height: '14px',
+                    borderRadius: '50%',
+                    backgroundColor: '#b32415',
+                    background: 'radial-gradient(circle at 35% 35%, #ff5e5e 0%, #b32415 75%, #5a0a02 100%)',
+                    boxShadow: '1px 2px 5px rgba(0,0,0,0.6)',
+                    zIndex: 10
+                  }} />
+                  <div style={{
+                    position: 'absolute',
+                    right: '28px',
+                    top: '-7px',
+                    width: '14px',
+                    height: '14px',
+                    borderRadius: '50%',
+                    backgroundColor: '#b32415',
+                    background: 'radial-gradient(circle at 35% 35%, #ff5e5e 0%, #b32415 75%, #5a0a02 100%)',
+                    boxShadow: '1px 2px 5px rgba(0,0,0,0.6)',
+                    zIndex: 10
+                  }} />
+
+                  {/* 3 Debossed Crease Lines on Left Spine */}
+                  <div style={{
+                    position: 'absolute',
+                    left: '14px',
+                    top: 0,
+                    bottom: 0,
+                    width: '10px',
+                    display: 'flex',
+                    gap: '3px'
+                  }}>
+                    <div style={{ width: '1.5px', height: '100%', backgroundColor: 'rgba(125, 90, 65, 0.35)' }} />
+                    <div style={{ width: '1.5px', height: '100%', backgroundColor: 'rgba(125, 90, 65, 0.35)' }} />
+                    <div style={{ width: '1.5px', height: '100%', backgroundColor: 'rgba(125, 90, 65, 0.35)' }} />
+                  </div>
+
+                  {/* Right Manila Tab with Mint Green Label Tape */}
+                  <div style={{
+                    position: 'absolute',
+                    right: '-28px',
+                    top: '115px',
+                    width: '28px',
+                    height: '165px',
+                    backgroundColor: '#d0ba9f',
+                    borderRadius: '0 12px 12px 0',
+                    border: '1px solid #bba490',
+                    borderLeft: 'none',
+                    boxShadow: '3px 4px 8px rgba(0,0,0,0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 6
+                  }}>
+                    <div style={{
+                      position: 'absolute',
+                      left: '3px',
+                      top: '8px',
+                      bottom: '8px',
+                      width: '20px',
+                      backgroundColor: '#def0dd',
+                      border: '1px solid rgba(0,0,0,0.12)',
+                      borderRadius: '2px',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.08)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      overflow: 'hidden'
+                    }}>
+                      <span style={{
+                        writingMode: 'vertical-rl',
+                        transform: 'rotate(180deg)',
+                        fontFamily: "'Courier New', monospace",
+                        fontWeight: 'bold',
+                        fontSize: '0.72rem',
+                        letterSpacing: '1.5px',
+                        color: '#2a3b2a',
+                        whiteSpace: 'nowrap',
+                        textTransform: 'uppercase'
+                      }}>
+                        {tabText}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* FOLDER COVER CONTENTS */}
+                  <div>
+                    {/* Official Bureau Seal SVG */}
+                    <div style={{ textAlign: 'center', marginBottom: '12px', marginTop: '4px' }}>
+                      <svg width="86" height="86" viewBox="0 0 120 120" style={{ margin: '0 auto', display: 'block', opacity: 0.85 }}>
+                        <circle cx="60" cy="60" r="56" fill="none" stroke="#44352b" strokeWidth="2.5" />
+                        <circle cx="60" cy="60" r="51.5" fill="none" stroke="#44352b" strokeWidth="1" strokeDasharray="2.5,2.5" />
+                        <circle cx="60" cy="60" r="47" fill="none" stroke="#44352b" strokeWidth="1.5" />
+                        <defs>
+                          <path id={`sealTop_${s._id}`} d="M 19,60 A 41,41 0 0,1 101,60" fill="none" />
+                          <path id={`sealBot_${s._id}`} d="M 101,60 A 41,41 0 0,1 19,60" fill="none" />
+                        </defs>
+                        <text fill="#44352b" fontSize="7.2" fontWeight="bold" fontFamily="monospace" letterSpacing="1.2">
+                          <textPath href={`#sealTop_${s._id}`} startOffset="50%" textAnchor="middle">
+                            FEDERAL BUREAU OF INVESTIGATION
+                          </textPath>
+                        </text>
+                        <text fill="#44352b" fontSize="6.8" fontWeight="bold" fontFamily="monospace" letterSpacing="1">
+                          <textPath href={`#sealBot_${s._id}`} startOffset="50%" textAnchor="middle">
+                            CRIMINAL INVESTIGATIVE DIV.
+                          </textPath>
+                        </text>
+                        <circle cx="60" cy="60" r="32" fill="none" stroke="#44352b" strokeWidth="1.2" />
+                        <path d="M 46,45 L 74,45 L 74,62 C 74,72 60,78 60,78 C 60,78 46,72 46,62 Z" fill="none" stroke="#44352b" strokeWidth="1.8" />
+                        <rect x="47" y="46" width="26" height="6.5" fill="#44352b" opacity="0.35" />
+                        <circle cx="52" cy="49.5" r="1.3" fill="#44352b" />
+                        <circle cx="60" cy="49.5" r="1.3" fill="#44352b" />
+                        <circle cx="68" cy="49.5" r="1.3" fill="#44352b" />
+                        <line x1="53" y1="52.5" x2="53" y2="70" stroke="#44352b" strokeWidth="1.5" />
+                        <line x1="60" y1="52.5" x2="60" y2="75" stroke="#44352b" strokeWidth="1.5" />
+                        <line x1="67" y1="52.5" x2="67" y2="70" stroke="#44352b" strokeWidth="1.5" />
+                        <path d="M 50,42 Q 60,37 70,42 Q 60,44 50,42 Z" fill="#44352b" />
+                        <circle cx="60" cy="38" r="2.2" fill="#44352b" />
+                      </svg>
                     </div>
 
+                    {/* Black Banner: INTERNAL DISSEMINATION ONLY */}
+                    <div style={{
+                      backgroundColor: '#181412',
+                      color: '#ffffff',
+                      fontFamily: "'Courier New', monospace",
+                      fontSize: '0.66rem',
+                      fontWeight: 'bold',
+                      letterSpacing: '2px',
+                      padding: '4px 10px',
+                      textAlign: 'center',
+                      borderRadius: '2px',
+                      margin: '0 auto 10px auto',
+                      maxWidth: '240px',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
+                    }}>
+                      INTERNAL DISSEMINATION ONLY
+                    </div>
+
+                    {/* Heading: CONFIDENTIAL */}
+                    <div style={{
+                      fontFamily: "'Courier New', Georgia, serif",
+                      fontSize: '1.25rem',
+                      fontWeight: 900,
+                      letterSpacing: '5px',
+                      color: '#221b16',
+                      textAlign: 'center',
+                      marginBottom: '8px'
+                    }}>
+                      CONFIDENTIAL
+                    </div>
+
+                    {/* Official Legal Disclaimer Paragraph */}
+                    <p style={{
+                      fontFamily: "'Courier New', monospace",
+                      fontSize: '0.48rem',
+                      lineHeight: '1.35',
+                      color: '#463a32',
+                      textAlign: 'justify',
+                      margin: '0 auto 14px auto',
+                      maxWidth: '260px',
+                      letterSpacing: '0.2px',
+                      opacity: 0.92
+                    }}>
+                      ALL INDIVIDUALS HANDLING THIS INFORMATION ARE DESIGNATED TO PROTECT IT FROM UNAUTHORIZED DISCLOSURES IN THE INTEREST OF THE NATIONAL SECURITY OF THE UNITED STATES. HANDLING, STORAGE, DISSEMINATION AND REPRODUCTION OF THIS CLASSIFIED MATERIAL SHALL BE IN ACCORDANCE WITH APPLICABLE STATUTORY GUIDELINES.
+                    </p>
+
+                    {/* Stamped Typewriter Case Details Block */}
+                    <div style={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.42)',
+                      border: '1px solid rgba(140, 105, 80, 0.3)',
+                      borderRadius: '3px',
+                      padding: '9px 12px',
+                      margin: '0 auto 12px auto',
+                      fontFamily: "'Courier New', monospace",
+                      fontSize: '0.74rem',
+                      color: '#241a14',
+                      lineHeight: '1.45',
+                      maxWidth: '265px'
+                    }}>
+                      <div><strong>CASE NO:</strong> {s.caseNumber}</div>
+                      <div style={{ color: '#8b261b', fontWeight: 'bold', marginTop: '2px' }}>{s.title}</div>
+                      {victim && (
+                        <div style={{ marginTop: '4px', fontSize: '0.70rem', color: '#382b22' }}>
+                          <strong>VICTIM:</strong> {victim.name}
+                        </div>
+                      )}
+                      <div style={{ fontSize: '0.67rem', color: '#554236', marginTop: '3px' }}>
+                        👥 {suspectCount} Suspects · 🔍 {evidenceCount} Clues · 📍 {locationCount} Locs
+                      </div>
+                    </div>
+
+                    {/* Active Investigation Stamp if Current */}
+                    {isCurrent && (
+                      <div style={{ textAlign: 'center', marginBottom: '10px' }}>
+                        <div style={{
+                          display: 'inline-block',
+                          border: '2.5px solid #2e7d32',
+                          color: '#2e7d32',
+                          fontFamily: "'Courier New', monospace",
+                          fontWeight: 'bold',
+                          fontSize: '0.74rem',
+                          letterSpacing: '1px',
+                          padding: '3px 10px',
+                          borderRadius: '3px',
+                          transform: 'rotate(-4deg)',
+                          backgroundColor: 'rgba(255, 255, 255, 0.65)'
+                        }}>
+                          ★ ACTIVE PLAYTHROUGH ★
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* FOLDER ACTIONS */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', zIndex: 10, marginTop: '8px' }}>
                     <button
                       onClick={() => s._id && handleStartGameWithStory(s._id)}
                       className="action-button"
-                      style={{ width: 'auto', padding: '10px 24px', margin: 0, alignSelf: 'center' }}
+                      style={{
+                        margin: 0,
+                        padding: '10px 16px',
+                        fontSize: '0.92rem',
+                        letterSpacing: '1px',
+                        backgroundColor: isCurrent ? '#2e7d32' : '#8b261b',
+                        boxShadow: '0 3px 6px rgba(0,0,0,0.35)'
+                      }}
                       disabled={loading}
                     >
-                      {isCurrent ? 'Restart Case ➔' : 'Play This Case ➔'}
+                      {isCurrent ? 'CONTINUE CASE ➔' : 'OPEN CASE FILE ➔'}
                     </button>
-                  </div>
 
-                  {victim && (
-                    <div style={{ backgroundColor: 'rgba(240, 235, 220, 0.6)', padding: '10px 14px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '0.88rem', fontFamily: 'monospace' }}>
-                      <strong>Victim:</strong> {victim.name} ({victim.age ? `${victim.age} y/o, ` : ''}{victim.occupation})
-                      {victim.causeOfDeath && (
-                        <span> · <strong>Cause:</strong> {victim.causeOfDeath}</span>
-                      )}
-                    </div>
-                  )}
-
-                  {briefingSnippet && (
-                    <p style={{ margin: 0, fontSize: '0.92rem', color: '#333', lineHeight: '1.5', fontStyle: 'italic', fontFamily: 'Georgia, serif' }}>
-                      "{briefingSnippet.length > 220 ? `${briefingSnippet.slice(0, 220)}...` : briefingSnippet}"
-                    </p>
-                  )}
-
-                  <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', paddingTop: '6px', borderTop: '1px dashed #ccc' }}>
-                    <span style={{ fontSize: '0.8rem', fontFamily: 'monospace', color: '#444' }}>
-                      👥 <strong>{suspectCount}</strong> Suspects & Witnesses
-                    </span>
-                    <span style={{ fontSize: '0.8rem', fontFamily: 'monospace', color: '#444' }}>
-                      🔍 <strong>{evidenceCount}</strong> Forensic Clues
-                    </span>
-                    <span style={{ fontSize: '0.8rem', fontFamily: 'monospace', color: '#444' }}>
-                      📍 <strong>{locationCount}</strong> Investigation Locations
-                    </span>
+                    <button
+                      onClick={() => setInspectedStory(s)}
+                      type="button"
+                      style={{
+                        backgroundColor: 'rgba(50, 40, 32, 0.85)',
+                        color: '#ebd8c5',
+                        border: '1px solid #7c6250',
+                        borderRadius: '4px',
+                        fontFamily: "'Courier New', monospace",
+                        fontSize: '0.78rem',
+                        fontWeight: 'bold',
+                        padding: '7px 12px',
+                        cursor: 'pointer',
+                        letterSpacing: '0.5px'
+                      }}
+                    >
+                      INSPECT DOSSIER 🔍
+                    </button>
                   </div>
                 </div>
               );
             })}
           </div>
+
+          {/* INSPECTION DOSSIER MODAL */}
+          {inspectedStory && (
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.85)',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 9999,
+              padding: '20px',
+              boxSizing: 'border-box'
+            }}>
+              <div style={{
+                maxWidth: '850px',
+                width: '100%',
+                maxHeight: '90vh',
+                overflowY: 'auto',
+                backgroundColor: '#f6f1e6',
+                backgroundImage: 'linear-gradient(to bottom, #faf6ee 0%, #f1e9da 100%)',
+                borderRadius: '6px',
+                border: '2px solid #bda893',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.9)',
+                padding: '30px 35px',
+                position: 'relative',
+                boxSizing: 'border-box'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                  borderBottom: '2px solid #8b3a3a',
+                  paddingBottom: '15px',
+                  marginBottom: '20px'
+                }}>
+                  <div>
+                    <span style={{
+                      backgroundColor: '#1a1410',
+                      color: '#fff',
+                      fontFamily: 'monospace',
+                      fontSize: '0.72rem',
+                      letterSpacing: '2px',
+                      padding: '3px 8px',
+                      borderRadius: '2px',
+                      fontWeight: 'bold'
+                    }}>
+                      CONFIDENTIAL HOMICIDE DOSSIER
+                    </span>
+                    <h2 style={{ fontFamily: 'Georgia, serif', color: '#2c3e50', fontSize: '1.8rem', margin: '8px 0 4px 0' }}>
+                      {inspectedStory.title}
+                    </h2>
+                    <p style={{ margin: 0, fontFamily: 'monospace', fontSize: '0.85rem', color: '#666' }}>
+                      CASE #: <strong>{inspectedStory.caseNumber}</strong> · LEAD: <strong>{inspectedStory.leadDetective}</strong> · STATUS: <span style={{ color: '#8b3a3a' }}>{inspectedStory.status}</span>
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setInspectedStory(null)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      fontSize: '1.6rem',
+                      cursor: 'pointer',
+                      color: '#8b3a3a',
+                      fontWeight: 'bold',
+                      padding: '4px 8px'
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {/* Victim Profile */}
+                {inspectedStory.victimProfile && (
+                  <div style={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.75)',
+                    border: '1px solid #dcd5c9',
+                    borderRadius: '4px',
+                    padding: '16px',
+                    marginBottom: '20px',
+                    fontFamily: 'monospace',
+                    fontSize: '0.88rem'
+                  }}>
+                    <strong style={{ color: '#8b3a3a', fontSize: '1rem', display: 'block', marginBottom: '8px', borderBottom: '1px dashed #ccc', paddingBottom: '4px' }}>
+                      📋 OFFICIAL AUTOPSY & VICTIM PROFILE
+                    </strong>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+                      <div><strong>Victim:</strong> {inspectedStory.victimProfile.name}</div>
+                      <div><strong>Age:</strong> {inspectedStory.victimProfile.age} y/o</div>
+                      <div><strong>Occupation:</strong> {inspectedStory.victimProfile.occupation}</div>
+                      <div><strong>Discovered:</strong> {inspectedStory.victimProfile.discovered}</div>
+                      <div style={{ gridColumn: 'span 2' }}><strong>Cause of Death:</strong> {inspectedStory.victimProfile.causeOfDeath}</div>
+                      <div style={{ gridColumn: 'span 2' }}><strong>Est. Time of Death:</strong> {inspectedStory.victimProfile.timeOfDeath}</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Briefing */}
+                {inspectedStory.briefing && (
+                  <div style={{ marginBottom: '20px' }}>
+                    <strong style={{ fontFamily: 'Georgia, serif', color: '#2c3e50', fontSize: '1.05rem', display: 'block', marginBottom: '6px' }}>
+                      Scene Briefing:
+                    </strong>
+                    <p style={{
+                      fontFamily: 'Georgia, serif',
+                      fontStyle: 'italic',
+                      color: '#333',
+                      lineHeight: '1.6',
+                      margin: '0 0 12px 0',
+                      backgroundColor: 'rgba(255,255,255,0.6)',
+                      padding: '12px 16px',
+                      borderRadius: '4px',
+                      borderLeft: '4px solid #8b3a3a'
+                    }}>
+                      "{inspectedStory.briefing.initialBriefing}"
+                    </p>
+                    <strong style={{ fontFamily: 'Georgia, serif', color: '#2c3e50', fontSize: '1.05rem', display: 'block', marginBottom: '6px' }}>
+                      Detective Insights:
+                    </strong>
+                    <p style={{
+                      fontFamily: 'monospace',
+                      color: '#444',
+                      lineHeight: '1.5',
+                      margin: 0,
+                      backgroundColor: 'rgba(255,255,255,0.6)',
+                      padding: '10px 14px',
+                      borderRadius: '4px'
+                    }}>
+                      {inspectedStory.briefing.detectiveInsights}
+                    </p>
+                  </div>
+                )}
+
+                {/* Suspects & Evidence Summary */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '15px', marginBottom: '25px' }}>
+                  <div style={{ backgroundColor: 'rgba(255,255,255,0.7)', padding: '14px', borderRadius: '4px', border: '1px solid #ddd' }}>
+                    <strong style={{ fontFamily: 'monospace', color: '#2c3e50', display: 'block', marginBottom: '8px' }}>
+                      👥 SUSPECTS ({inspectedStory.suspects?.length || 0}):
+                    </strong>
+                    <ul style={{ margin: 0, paddingLeft: '18px', fontFamily: 'monospace', fontSize: '0.82rem', color: '#444' }}>
+                      {(inspectedStory.suspects || []).map((s, idx) => (
+                        <li key={idx} style={{ marginBottom: '4px' }}>
+                          <strong>{s.name}</strong> ({s.role}) {s.isPrimeSuspect && <span style={{ color: '#8b3a3a' }}>[Prime Suspect]</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div style={{ backgroundColor: 'rgba(255,255,255,0.7)', padding: '14px', borderRadius: '4px', border: '1px solid #ddd' }}>
+                    <strong style={{ fontFamily: 'monospace', color: '#2c3e50', display: 'block', marginBottom: '8px' }}>
+                      🔍 EVIDENCE ITEMS ({inspectedStory.evidence?.length || 0}):
+                    </strong>
+                    <ul style={{ margin: 0, paddingLeft: '18px', fontFamily: 'monospace', fontSize: '0.82rem', color: '#444' }}>
+                      {(inspectedStory.evidence || []).map((e, idx) => (
+                        <li key={idx} style={{ marginBottom: '4px' }}>
+                          <strong>{e.title}</strong> — <span style={{ color: '#8b3a3a' }}>[{e.priority}]</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Action buttons in modal */}
+                <div style={{ display: 'flex', gap: '15px', justifyContent: 'flex-end', borderTop: '1px solid #ddd', paddingTop: '15px', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => setInspectedStory(null)}
+                    style={{
+                      padding: '10px 20px',
+                      backgroundColor: '#555',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '4px',
+                      fontFamily: 'monospace',
+                      fontWeight: 'bold',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    ✕ Return to Case Board
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (inspectedStory._id) {
+                        handleStartGameWithStory(inspectedStory._id);
+                      }
+                    }}
+                    className="action-button"
+                    style={{
+                      margin: 0,
+                      padding: '10px 24px',
+                      backgroundColor: '#8b3a3a',
+                      fontSize: '1rem',
+                      letterSpacing: '1px'
+                    }}
+                    disabled={loading}
+                  >
+                    🚨 Launch Active Playthrough With This Case ➔
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
