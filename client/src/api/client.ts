@@ -82,8 +82,8 @@ export const gameApi = {
     return response.data.story as IStory;
   },
 
-  generateAiStory: async (promptTheme: string) => {
-    const response = await axios.post(`${API_URL}/stories/generate`, { promptTheme });
+  generateAiStory: async (promptTheme: string, archetype?: string) => {
+    const response = await axios.post(`${API_URL}/stories/generate`, { promptTheme, archetype });
     return response.data.story as IStory;
   }
 };

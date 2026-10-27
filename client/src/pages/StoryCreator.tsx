@@ -1,8 +1,66 @@
 import { useState, useEffect } from 'react';
 import { gameApi } from '../api/client';
 import { useGameStore } from '../store/gameStore';
-import type { IStory } from '../types/index';
+import type { IStory, MysteryArchetype } from '../types/index';
 import { useNavigate } from 'react-router-dom';
+
+export const ARCHETYPE_OPTIONS: {
+  value: MysteryArchetype;
+  label: string;
+  icon: string;
+  tagline: string;
+  description: string;
+  trap: string;
+}[] = [
+  {
+    value: 'classic_procedural',
+    label: '1. The Classic Procedural (Fair-Play Direct)',
+    icon: '🔍',
+    tagline: 'Pure deduction noir',
+    description: 'The killer attempted to cover their tracks, but forensic evidence and timeline contradictions trace directly to them. Suspects hide personal secrets, but only the real culprit committed murder.',
+    trap: 'Subtle forensic details: alibis check out unless cross-referenced with physical evidence.'
+  },
+  {
+    value: 'multi_crime_convergence',
+    label: '2. The Multi-Crime Convergence (Guilty of Another Crime)',
+    icon: '💼',
+    tagline: 'The Burglar / Embezzler Trap',
+    description: 'A secondary crime (safe burglary, embezzlement, or blackmail) occurred at the same time. The thief lies, panics, and sweats, appearing guilty of murder—even though they never touched the victim.',
+    trap: 'Hasty detectives arrest the burglar because they broke in and lied, letting the true poisoner/killer walk free.'
+  },
+  {
+    value: 'deliberate_frame_job',
+    label: '3. The Deliberate Frame Job (The Planted Patsy)',
+    icon: '🎭',
+    tagline: 'The "Too Convenient" Clue',
+    description: 'The true killer deliberately planted physical evidence (badge, weapon, clothing fibers) pointing screamingly at an innocent Fall Guy (Patsy).',
+    trap: 'The case against the Patsy looks airtight, but contains a physical contradiction (e.g., mismatched hand size, fabricated security timestamps).'
+  },
+  {
+    value: 'cause_of_death_twist',
+    label: '4. The Cause-of-Death Twist (The Stunner vs. The Killer)',
+    icon: '🧪',
+    tagline: 'The Assault Confession Trap',
+    description: 'A suspect confesses to striking the victim with a blunt object and fleeing in panic. But the coroner discovers the blow was merely a stunner—the true fatal cause was lethal poison or asphyxiation!',
+    trap: 'Detectives arrest the person who "confessed to the assault" without checking toxicology, while the real assassin escapes.'
+  },
+  {
+    value: 'false_confession',
+    label: '5. The False Confession / Coerced Scapegoat',
+    icon: '⚖️',
+    tagline: 'Coerced Under Maximum Stress',
+    description: 'Under aggressive interrogation, a terrified or protective suspect breaks down and falsely admits guilt to protect family or end the pressure. Their story contradicts physical crime scene forensics.',
+    trap: 'Submitting a warrant based on a coerced confession causes the AI Judge to dismiss charges and cite police misconduct.'
+  },
+  {
+    value: 'non_linear_web',
+    label: '6. The Non-Linear Web of Lies (Multi-Path Mesh)',
+    icon: '🕸️',
+    tagline: '3 Guilty Suspects, 1 Lethal Window',
+    description: 'All 3 suspects have broken alibis, motives, and access. Advancing stages strips away their collective lies, leaving all three looking guilty. Detective must deduce the exact lethal window.',
+    trap: 'No suspect is obviously innocent by Stage 4; player must pinpoint the exact 5-minute lethal window rather than relying on order of discovery.'
+  }
+];
 
 interface FormLocation {
   id: string;
@@ -75,6 +133,10 @@ interface CaseFormData {
   groundWeapon: string;
   groundKeyContradiction: string;
   groundTimelineSummary: string;
+  groundArchetype: MysteryArchetype;
+  groundFallGuy: string;
+  groundRedHerringCrime: string;
+  groundTrueFatalMechanism: string;
 }
 
 const EXAMPLE_TEMPLATE: CaseFormData = {
@@ -261,7 +323,11 @@ const EXAMPLE_TEMPLATE: CaseFormData = {
   groundMotive: 'divorce_and_insurance_estate',
   groundWeapon: 'cyanide_whiskey_glass',
   groundKeyContradiction: 'silver_powder_compact',
-  groundTimelineSummary: "Delilah Moretti obtained industrial cyanide from Salvatore Vance. During the extended trumpet solo at 1:42 AM, she slipped off stage, went into Vincent's VIP room, poisoned his rye glass, and returned to the stage to sing the finale before anyone discovered the body."
+  groundTimelineSummary: "Delilah Moretti obtained industrial cyanide from Salvatore Vance. During the extended trumpet solo at 1:42 AM, she slipped off stage, went into Vincent's VIP room, poisoned his rye glass, and returned to the stage to sing the finale before anyone discovered the body.",
+  groundArchetype: 'classic_procedural',
+  groundFallGuy: '',
+  groundRedHerringCrime: '',
+  groundTrueFatalMechanism: 'Acute potassium cyanide poisoning via rye highball'
 };
 
 const BLANK_TEMPLATE: CaseFormData = {
@@ -358,13 +424,18 @@ const BLANK_TEMPLATE: CaseFormData = {
   groundMotive: '',
   groundWeapon: 'evidence_clue_1',
   groundKeyContradiction: '',
-  groundTimelineSummary: ''
+  groundTimelineSummary: '',
+  groundArchetype: 'classic_procedural',
+  groundFallGuy: '',
+  groundRedHerringCrime: '',
+  groundTrueFatalMechanism: ''
 };
 
 export default function StoryCreator() {
   const [stories, setStories] = useState<IStory[]>([]);
   const [loading, setLoading] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
+  const [aiArchetype, setAiArchetype] = useState<string>('random');
   const [aiGenerating, setAiGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState<'manage' | 'ai' | 'form'>('manage');
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
@@ -412,7 +483,7 @@ export default function StoryCreator() {
     setMessage(null);
 
     try {
-      const generated = await gameApi.generateAiStory(aiPrompt);
+      const generated = await gameApi.generateAiStory(aiPrompt, aiArchetype);
       setMessage({ text: `Successfully generated "${generated.title}" with 4 stages!`, type: 'success' });
       await loadStories();
       setActiveTab('manage');
@@ -628,7 +699,11 @@ export default function StoryCreator() {
         motive: formData.groundMotive.trim() || 'Undetermined motive',
         weapon: formData.groundWeapon.trim() || formData.evidence[0]?.id || 'evidence_1',
         keyContradiction: formData.groundKeyContradiction.trim() || 'Timeline inconsistency',
-        timelineSummary: formData.groundTimelineSummary.trim() || 'Timeline summary pending.'
+        timelineSummary: formData.groundTimelineSummary.trim() || 'Timeline summary pending.',
+        archetype: formData.groundArchetype || 'classic_procedural',
+        fallGuy: formData.groundFallGuy?.trim() || undefined,
+        redHerringCrime: formData.groundRedHerringCrime?.trim() || undefined,
+        trueFatalMechanism: formData.groundTrueFatalMechanism?.trim() || undefined
       },
       isDefault: false
     };
@@ -875,6 +950,11 @@ export default function StoryCreator() {
                           <strong>VICTIM:</strong> {victim.name}
                         </div>
                       )}
+                      {s.groundTruth?.archetype && (
+                        <div style={{ marginTop: '4px', fontSize: '0.67rem', color: '#5a4638' }}>
+                          <strong>TROPE:</strong> {ARCHETYPE_OPTIONS.find(a => a.value === s.groundTruth.archetype)?.tagline || s.groundTruth.archetype}
+                        </div>
+                      )}
                     </div>
 
                     {/* Active Investigation Stamp if Current */}
@@ -979,6 +1059,21 @@ export default function StoryCreator() {
                     <p style={{ margin: 0, fontFamily: 'monospace', fontSize: '0.85rem', color: '#666' }}>
                       CASE #: <strong>{inspectedStory.caseNumber}</strong> · LEAD: <strong>{inspectedStory.leadDetective}</strong> · STATUS: <span style={{ color: '#8b3a3a' }}>{inspectedStory.status}</span>
                     </p>
+                    {inspectedStory.groundTruth?.archetype && (
+                      <div style={{
+                        marginTop: '6px',
+                        display: 'inline-block',
+                        backgroundColor: '#2e2620',
+                        color: '#f6eedb',
+                        fontFamily: 'monospace',
+                        fontSize: '0.74rem',
+                        letterSpacing: '1px',
+                        padding: '4px 10px',
+                        borderRadius: '3px'
+                      }}>
+                        MYSTERY ARCHETYPE: {ARCHETYPE_OPTIONS.find(a => a.value === inspectedStory.groundTruth.archetype)?.label || inspectedStory.groundTruth.archetype}
+                      </div>
+                    )}
                   </div>
                   <button
                     onClick={() => setInspectedStory(null)}
@@ -1139,6 +1234,79 @@ export default function StoryCreator() {
           </p>
 
           <form onSubmit={handleAiGenerate} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* ARCHETYPE SELECTOR */}
+            <div>
+              <label style={styles.formLabel}>Mystery Archetype & Deduction Trap:</label>
+              <select
+                value={aiArchetype}
+                onChange={(e) => setAiArchetype(e.target.value)}
+                style={{
+                  ...styles.textArea,
+                  padding: '12px',
+                  fontWeight: 'bold',
+                  fontFamily: 'monospace',
+                  cursor: 'pointer'
+                }}
+                disabled={aiGenerating}
+              >
+                <option value="random">🎲 Random / Detective Surprise (Recommended - Agent Picks Random Archetype)</option>
+                {ARCHETYPE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.icon} {opt.label} — {opt.tagline}
+                  </option>
+                ))}
+              </select>
+
+              {/* Dynamic preview card of the selected archetype */}
+              {(() => {
+                const selected = ARCHETYPE_OPTIONS.find((a) => a.value === aiArchetype);
+                if (selected) {
+                  return (
+                    <div style={{
+                      marginTop: '12px',
+                      backgroundColor: 'rgba(255, 255, 255, 0.85)',
+                      borderLeft: '4px solid #8b3a3a',
+                      borderRadius: '4px',
+                      padding: '14px 18px',
+                      fontFamily: 'monospace'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                        <span style={{ fontSize: '1.3rem' }}>{selected.icon}</span>
+                        <strong style={{ color: '#2c3e50', fontSize: '1.05rem' }}>{selected.label}</strong>
+                      </div>
+                      <p style={{ margin: '0 0 8px 0', fontSize: '0.86rem', color: '#333', lineHeight: '1.5' }}>
+                        {selected.description}
+                      </p>
+                      <div style={{
+                        backgroundColor: '#fff4e5',
+                        border: '1px solid #ffe0b2',
+                        borderRadius: '3px',
+                        padding: '8px 12px',
+                        fontSize: '0.80rem',
+                        color: '#b75800'
+                      }}>
+                        <strong>⚠️ The Deduction Trap:</strong> {selected.trap}
+                      </div>
+                    </div>
+                  );
+                }
+                return (
+                  <div style={{
+                    marginTop: '12px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.75)',
+                    borderLeft: '4px solid #34495e',
+                    borderRadius: '4px',
+                    padding: '12px 16px',
+                    fontFamily: 'monospace',
+                    fontSize: '0.84rem',
+                    color: '#444'
+                  }}>
+                    🎲 <strong>Detective Surprise Mode:</strong> Groq will randomly pick one of the 6 archetypes (Classic Noir, Multi-Crime Convergence, Deliberate Frame Job, Cause-of-Death Twist, False Confession, or Non-Linear Web of Lies). You won't know which trap is in play until you investigate!
+                  </div>
+                );
+              })()}
+            </div>
+
             <div>
               <label style={styles.formLabel}>Case Theme or Custom Premise (Optional):</label>
               <textarea
@@ -1791,8 +1959,195 @@ export default function StoryCreator() {
             {/* SECTION 8: GROUND TRUTH & AI JUDGE SOLUTION */}
             <div style={formStyles.sectionCard}>
               <div style={formStyles.sectionTitle}>
-                <span>8. Ground Truth & Solution (Evaluated by AI Judge)</span>
+                <span>8. Ground Truth & AI Judge Solution Architecture</span>
               </div>
+              <p style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: '#555', marginTop: 0 }}>
+                Configure the case architecture and the forensic ground truth evaluated by the AI Judge in the courtroom trial.
+              </p>
+
+              {/* ARCHETYPE SELECTOR */}
+              <div style={{ marginBottom: '16px' }}>
+                <label style={formStyles.label}>Mystery Archetype & Case Architecture *</label>
+                <select
+                  style={{ ...formStyles.input, fontWeight: 'bold' }}
+                  value={formData.groundArchetype}
+                  onChange={(e) => setFormData({ ...formData, groundArchetype: e.target.value as MysteryArchetype })}
+                >
+                  {ARCHETYPE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.icon} {opt.label}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Archetype Description Box */}
+                {(() => {
+                  const arch = ARCHETYPE_OPTIONS.find((a) => a.value === formData.groundArchetype);
+                  if (!arch) return null;
+                  return (
+                    <div style={{
+                      marginTop: '10px',
+                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                      borderLeft: '4px solid #8b3a3a',
+                      borderRadius: '4px',
+                      padding: '12px 16px',
+                      fontFamily: 'monospace',
+                      fontSize: '0.83rem'
+                    }}>
+                      <div style={{ fontWeight: 'bold', color: '#2c3e50', marginBottom: '4px' }}>
+                        {arch.icon} {arch.label} ({arch.tagline})
+                      </div>
+                      <div style={{ color: '#444', marginBottom: '6px' }}>
+                        {arch.description}
+                      </div>
+                      <div style={{ color: '#b75800', fontWeight: 'bold' }}>
+                        ⚠️ The Trap: {arch.trap}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* CONDITIONAL ARCHETYPE FIELDS */}
+              {formData.groundArchetype === 'multi_crime_convergence' && (
+                <div style={{
+                  backgroundColor: '#f5efe6',
+                  border: '1px solid #d4c5b3',
+                  borderRadius: '4px',
+                  padding: '14px',
+                  marginBottom: '16px'
+                }}>
+                  <strong style={{ display: 'block', color: '#8b3a3a', fontFamily: 'monospace', fontSize: '0.9rem', marginBottom: '10px' }}>
+                    💼 Multi-Crime Setup (The "Guilty But Innocent" Suspect)
+                  </strong>
+                  <div style={formStyles.row}>
+                    <div style={formStyles.fieldGroup}>
+                      <label style={formStyles.label}>Secondary Offender / Burglar (Fall Guy) *</label>
+                      <select
+                        style={formStyles.input}
+                        value={formData.groundFallGuy}
+                        onChange={(e) => setFormData({ ...formData, groundFallGuy: e.target.value })}
+                      >
+                        <option value="">-- Select Suspect --</option>
+                        {formData.suspects.map((s, idx) => (
+                          <option key={idx} value={s.id || `suspect_${idx + 1}`}>
+                            {s.name || `Suspect ${idx + 1}`} ({s.role})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div style={formStyles.fieldGroup}>
+                      <label style={formStyles.label}>Secondary Crime Description *</label>
+                      <input
+                        style={formStyles.input}
+                        value={formData.groundRedHerringCrime}
+                        onChange={(e) => setFormData({ ...formData, groundRedHerringCrime: e.target.value })}
+                        placeholder="e.g., Safe Burglary at 9:45 PM / Embezzlement"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {formData.groundArchetype === 'deliberate_frame_job' && (
+                <div style={{
+                  backgroundColor: '#f5efe6',
+                  border: '1px solid #d4c5b3',
+                  borderRadius: '4px',
+                  padding: '14px',
+                  marginBottom: '16px'
+                }}>
+                  <strong style={{ display: 'block', color: '#8b3a3a', fontFamily: 'monospace', fontSize: '0.9rem', marginBottom: '10px' }}>
+                    🎭 Deliberate Frame-Up Setup (The Planted Patsy)
+                  </strong>
+                  <div style={formStyles.fieldGroup}>
+                    <label style={formStyles.label}>Framed Fall Guy (Patsy) *</label>
+                    <select
+                      style={formStyles.input}
+                      value={formData.groundFallGuy}
+                      onChange={(e) => setFormData({ ...formData, groundFallGuy: e.target.value })}
+                    >
+                      <option value="">-- Select Framed Suspect --</option>
+                      {formData.suspects.map((s, idx) => (
+                        <option key={idx} value={s.id || `suspect_${idx + 1}`}>
+                          {s.name || `Suspect ${idx + 1}`} ({s.role})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {formData.groundArchetype === 'cause_of_death_twist' && (
+                <div style={{
+                  backgroundColor: '#f5efe6',
+                  border: '1px solid #d4c5b3',
+                  borderRadius: '4px',
+                  padding: '14px',
+                  marginBottom: '16px'
+                }}>
+                  <strong style={{ display: 'block', color: '#8b3a3a', fontFamily: 'monospace', fontSize: '0.9rem', marginBottom: '10px' }}>
+                    🧪 Cause-of-Death Twist (The Stunner vs. The Killer)
+                  </strong>
+                  <div style={formStyles.row}>
+                    <div style={formStyles.fieldGroup}>
+                      <label style={formStyles.label}>Suspect Who Struck Victim (The Stunner) *</label>
+                      <select
+                        style={formStyles.input}
+                        value={formData.groundFallGuy}
+                        onChange={(e) => setFormData({ ...formData, groundFallGuy: e.target.value })}
+                      >
+                        <option value="">-- Select Assailant Suspect --</option>
+                        {formData.suspects.map((s, idx) => (
+                          <option key={idx} value={s.id || `suspect_${idx + 1}`}>
+                            {s.name || `Suspect ${idx + 1}`} ({s.role})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div style={formStyles.fieldGroup}>
+                      <label style={formStyles.label}>True Fatal Mechanism (Coroner / Toxicology) *</label>
+                      <input
+                        style={formStyles.input}
+                        value={formData.groundTrueFatalMechanism}
+                        onChange={(e) => setFormData({ ...formData, groundTrueFatalMechanism: e.target.value })}
+                        placeholder="e.g., Acute Cyanide Poisoning in tea 20 mins prior"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {formData.groundArchetype === 'false_confession' && (
+                <div style={{
+                  backgroundColor: '#f5efe6',
+                  border: '1px solid #d4c5b3',
+                  borderRadius: '4px',
+                  padding: '14px',
+                  marginBottom: '16px'
+                }}>
+                  <strong style={{ display: 'block', color: '#8b3a3a', fontFamily: 'monospace', fontSize: '0.9rem', marginBottom: '10px' }}>
+                    ⚖️ False Confession Setup (The Coerced Scapegoat)
+                  </strong>
+                  <div style={formStyles.fieldGroup}>
+                    <label style={formStyles.label}>Suspect Who Breaks Down Into False Confession *</label>
+                    <select
+                      style={formStyles.input}
+                      value={formData.groundFallGuy}
+                      onChange={(e) => setFormData({ ...formData, groundFallGuy: e.target.value })}
+                    >
+                      <option value="">-- Select Scapegoat Suspect --</option>
+                      {formData.suspects.map((s, idx) => (
+                        <option key={idx} value={s.id || `suspect_${idx + 1}`}>
+                          {s.name || `Suspect ${idx + 1}`} ({s.role})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* CORE SOLUTION FIELDS */}
               <div style={formStyles.row}>
                 <div style={formStyles.fieldGroup}>
                   <label style={formStyles.label}>True Killer *</label>

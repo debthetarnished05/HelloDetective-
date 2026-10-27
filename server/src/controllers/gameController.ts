@@ -119,7 +119,7 @@ export const getSessionState = async (req: Request, res: Response) => {
 
     let story = await Story.findById(session.storyId);
     if (!story) {
-      story = await ensureDefaultStory();
+      story = await seedDefaultStories();
     }
 
     res.status(200).json({
@@ -392,7 +392,7 @@ export const recordClue = async (req: Request, res: Response) => {
 export const listStories = async (req: Request, res: Response) => {
   try {
     await seedDefaultStories();
-    const stories = await Story.find().select('title caseNumber leadDetective status isDefault createdAt victimProfile briefing suspects locations evidence');
+    const stories = await Story.find().select('title caseNumber leadDetective status isDefault createdAt victimProfile briefing suspects locations evidence groundTruth');
     res.status(200).json({ stories });
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Failed to list stories' });
@@ -423,8 +423,8 @@ export const createStory = async (req: Request, res: Response) => {
 
 export const generateAiStory = async (req: Request, res: Response) => {
   try {
-    const { promptTheme } = req.body;
-    const generated = await GroqService.generateCompleteStory(promptTheme);
+    const { promptTheme, archetype } = req.body;
+    const generated = await GroqService.generateCompleteStory(promptTheme, archetype);
     const story = new Story(generated);
     await story.save();
     res.status(201).json({ story });

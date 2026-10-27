@@ -68,12 +68,24 @@ export interface IStageDefinition {
   unlockLocationIds: string[];
 }
 
+export type MysteryArchetype =
+  | 'classic_procedural'
+  | 'multi_crime_convergence'
+  | 'deliberate_frame_job'
+  | 'cause_of_death_twist'
+  | 'false_confession'
+  | 'non_linear_web';
+
 export interface IGroundTruth {
   killer: string; // suspectId
   motive: string;
   weapon: string;
   keyContradiction: string;
   timelineSummary: string;
+  archetype?: MysteryArchetype;
+  fallGuy?: string;
+  redHerringCrime?: string;
+  trueFatalMechanism?: string;
 }
 
 export interface IStory {

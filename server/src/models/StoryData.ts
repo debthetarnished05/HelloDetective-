@@ -61,7 +61,7 @@ const SuspectItemSchema = new Schema({
   evidenceReactions: { type: Map, of: String, default: {} },
   avatarUrl: { type: String },
   isPrimeSuspect: { type: Boolean, default: false },
-  category: { type: String, enum: ['prime_suspect', 'person_of_interest', 'witness'], default: 'person_of_interest' }
+  category: { type: String, enum: ['prime_suspect', 'person_of_interest', 'witness', 'secondary_suspect'], default: 'person_of_interest' }
 }, { _id: false });
 
 const StageDefinitionSchema = new Schema({
@@ -78,7 +78,22 @@ const GroundTruthSchema = new Schema({
   motive: { type: String, required: true },
   weapon: { type: String, required: true },
   keyContradiction: { type: String, required: true },
-  timelineSummary: { type: String, required: true }
+  timelineSummary: { type: String, required: true },
+  archetype: {
+    type: String,
+    enum: [
+      'classic_procedural',
+      'multi_crime_convergence',
+      'deliberate_frame_job',
+      'cause_of_death_twist',
+      'false_confession',
+      'non_linear_web'
+    ],
+    default: 'classic_procedural'
+  },
+  fallGuy: { type: String },
+  redHerringCrime: { type: String },
+  trueFatalMechanism: { type: String }
 }, { _id: false });
 
 const StorySchema = new Schema<IStoryDocument>({
