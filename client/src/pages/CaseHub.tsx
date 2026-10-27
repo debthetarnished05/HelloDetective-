@@ -1,8 +1,7 @@
 import { useGameStore } from '../store/gameStore';
-import ChatModal from '../components/ChatModal';
 
 export default function CaseHub() {
-  const { story, currentStage, sessionId, suspectStates, activeSuspectId, setActiveSuspect } = useGameStore();
+  const { story, currentStage } = useGameStore();
 
   if (!story) {
     return (
@@ -13,6 +12,9 @@ export default function CaseHub() {
   }
 
   const currentStageDef = story.stages?.find(s => s.stage === currentStage);
+
+  const primeSuspects = (story.suspects || []).filter(s => s.isPrimeSuspect || s.category === 'prime_suspect');
+  const displaySuspects = primeSuspects.length > 0 ? primeSuspects.slice(0, 3) : (story.suspects || []).slice(0, 3);
 
   return (
     <div className="page-wrapper">
@@ -81,98 +83,26 @@ export default function CaseHub() {
           </div>
         </div>
 
-        {/* Card 4: Prime Suspects Board */}
+        {/* Card 4: Case Board Status - Persons of Interest (Pure Text Aesthetic) */}
         <div className="paper-note center-tape-note" style={styles.card}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid rgba(0,0,0,0.1)', paddingBottom: '8px', marginBottom: '18px' }}>
-            <h2 className="handwritten" style={{ ...styles.cardHeader, margin: 0, border: 'none', padding: 0 }}>Prime Suspects</h2>
-            <span style={{ fontFamily: 'monospace', fontSize: '0.8rem', backgroundColor: '#8b3a3a', color: 'white', padding: '3px 8px', borderRadius: '10px' }}>
-              PRIMARY TARGETS
-            </span>
-          </div>
+          <h2 className="handwritten" style={styles.cardHeader}>Persons of Interest</h2>
 
-          <p style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: '#555', marginTop: '-8px', marginBottom: '14px' }}>
-            Top persons of interest under direct homicide suspicion:
-          </p>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            {((story.suspects || []).filter(s => s.isPrimeSuspect || s.category === 'prime_suspect').length > 0
-              ? (story.suspects || []).filter(s => s.isPrimeSuspect || s.category === 'prime_suspect').slice(0, 3)
-              : (story.suspects || []).slice(0, 3)
-            ).map((suspect) => {
-              const state = suspectStates[suspect.id] || {
-                trustScore: suspect.initialTrust,
-                stressLevel: suspect.initialStress,
-                mood: 'composed'
-              };
-
-              return (
-                <div
-                  key={suspect.id}
-                  onClick={() => setActiveSuspect(suspect.id)}
-                  style={{
-                    backgroundColor: 'rgba(255,255,255,0.7)',
-                    padding: '12px 16px',
-                    borderRadius: '4px',
-                    borderLeft: '4px solid #8b3a3a',
-                    cursor: 'pointer',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
-                    <strong style={{ fontSize: '1.1rem', color: '#2c3e50' }}>{suspect.name}</strong>
-                    <span style={{ fontSize: '0.8rem', fontFamily: 'monospace', textTransform: 'uppercase', color: '#8b3a3a', fontWeight: 'bold' }}>
-                      {suspect.role}
-                    </span>
-                  </div>
-
-                  <p style={{ margin: '0 0 8px 0', fontSize: '0.9rem', color: '#444', fontStyle: 'italic' }}>
-                    Alibi: "{suspect.alibi}"
-                  </p>
-
-                  {/* Meters Preview */}
-                  <div style={{ display: 'flex', gap: '15px', fontSize: '0.8rem', fontFamily: 'monospace' }}>
-                    <span>Trust: <strong>{state.trustScore}%</strong></span>
-                    <span>Stress: <strong>{state.stressLevel}%</strong></span>
-                    <span style={{ color: '#8b3a3a', marginLeft: 'auto', fontWeight: 'bold' }}>Interrogate ➔</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div style={{ marginTop: '16px', textAlign: 'center', borderTop: '1px solid rgba(0,0,0,0.1)', paddingTop: '12px' }}>
-            <p style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#555', margin: '0 0 8px 0' }}>
-              More witnesses & persons of interest available:
-            </p>
-            <a
-              href="/suspects"
-              style={{
-                display: 'inline-block',
-                fontFamily: 'monospace',
-                fontSize: '0.9rem',
-                color: '#1a365d',
-                fontWeight: 'bold',
-                textDecoration: 'none',
-                border: '1px solid #1a365d',
-                padding: '6px 14px',
-                borderRadius: '4px',
-                backgroundColor: 'rgba(255,255,255,0.6)'
-              }}
-            >
-              Open Interrogation Directory (All {(story.suspects || []).length} Characters) ➔
-            </a>
-          </div>
+          {displaySuspects.map((suspect, idx) => (
+            <div key={suspect.id} style={styles.contentBlock}>
+              <h3 style={styles.subHeader}>
+                {idx === 0 ? 'Primary Suspect: ' : idx === 1 ? 'POI: ' : 'Witness: '}
+                {suspect.name} ({suspect.role})
+              </h3>
+              <ul style={styles.list}>
+                <li><strong>Motive:</strong> {suspect.motive}</li>
+                <li><strong>Alibi:</strong> {suspect.alibi}</li>
+                <li><strong>Notes:</strong> {suspect.trait}</li>
+              </ul>
+            </div>
+          ))}
         </div>
 
       </div>
-
-      {activeSuspectId && sessionId && (
-        <ChatModal
-          suspectId={activeSuspectId}
-          sessionId={sessionId}
-          onClose={() => setActiveSuspect(null)}
-        />
-      )}
     </div>
   );
 }
