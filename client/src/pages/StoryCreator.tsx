@@ -753,34 +753,27 @@ export default function StoryCreator() {
               const isCurrent = currentStory?._id === s._id;
               const victim = s.victimProfile;
 
-              // Compute clean short title for folder tab tape
-              let tabText = s.title;
-              if (tabText.includes(':')) {
-                tabText = tabText.split(':')[1].trim();
-              }
-              if (tabText.length > 28) {
-                tabText = tabText.slice(0, 25) + '...';
-              }
-
               return (
                 <div
                   key={s._id}
+                  onClick={() => setInspectedStory(s)}
                   style={{
                     position: 'relative',
                     width: '100%',
                     maxWidth: '350px',
                     margin: '0 auto',
-                    minHeight: '530px',
+                    minHeight: '480px',
                     backgroundColor: '#dec9b8',
                     backgroundImage: 'linear-gradient(145deg, #e5d4c3 0%, #dbcaa0 45%, #ceb7a1 100%)',
-                    borderRadius: '3px 18px 4px 4px',
+                    borderRadius: '4px 14px 4px 4px',
                     boxShadow: '0 12px 28px rgba(0,0,0,0.65), 0 2px 6px rgba(0,0,0,0.4), inset 0 0 35px rgba(110, 70, 40, 0.09)',
                     border: '1px solid #bba490',
-                    padding: '24px 20px 20px 34px',
+                    padding: '28px 24px 22px 34px',
                     boxSizing: 'border-box',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
+                    cursor: 'pointer',
                     transition: 'transform 0.25s ease, box-shadow 0.25s ease'
                   }}
                   onMouseEnter={(e) => {
@@ -792,42 +785,6 @@ export default function StoryCreator() {
                     e.currentTarget.style.boxShadow = '0 12px 28px rgba(0,0,0,0.65), 0 2px 6px rgba(0,0,0,0.4), inset 0 0 35px rgba(110, 70, 40, 0.09)';
                   }}
                 >
-                  {/* Top Red Crime String & 2 Push Pins */}
-                  <div style={{
-                    position: 'absolute',
-                    top: '0px',
-                    left: '26px',
-                    right: '32px',
-                    height: '2px',
-                    backgroundColor: '#b32415',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
-                    zIndex: 5
-                  }} />
-                  <div style={{
-                    position: 'absolute',
-                    left: '22px',
-                    top: '-7px',
-                    width: '14px',
-                    height: '14px',
-                    borderRadius: '50%',
-                    backgroundColor: '#b32415',
-                    background: 'radial-gradient(circle at 35% 35%, #ff5e5e 0%, #b32415 75%, #5a0a02 100%)',
-                    boxShadow: '1px 2px 5px rgba(0,0,0,0.6)',
-                    zIndex: 10
-                  }} />
-                  <div style={{
-                    position: 'absolute',
-                    right: '28px',
-                    top: '-7px',
-                    width: '14px',
-                    height: '14px',
-                    borderRadius: '50%',
-                    backgroundColor: '#b32415',
-                    background: 'radial-gradient(circle at 35% 35%, #ff5e5e 0%, #b32415 75%, #5a0a02 100%)',
-                    boxShadow: '1px 2px 5px rgba(0,0,0,0.6)',
-                    zIndex: 10
-                  }} />
-
                   {/* 3 Debossed Crease Lines on Left Spine */}
                   <div style={{
                     position: 'absolute',
@@ -841,54 +798,6 @@ export default function StoryCreator() {
                     <div style={{ width: '1.5px', height: '100%', backgroundColor: 'rgba(125, 90, 65, 0.35)' }} />
                     <div style={{ width: '1.5px', height: '100%', backgroundColor: 'rgba(125, 90, 65, 0.35)' }} />
                     <div style={{ width: '1.5px', height: '100%', backgroundColor: 'rgba(125, 90, 65, 0.35)' }} />
-                  </div>
-
-                  {/* Right Manila Tab with Mint Green Label Tape */}
-                  <div style={{
-                    position: 'absolute',
-                    right: '-28px',
-                    top: '115px',
-                    width: '28px',
-                    height: '165px',
-                    backgroundColor: '#d0ba9f',
-                    borderRadius: '0 12px 12px 0',
-                    border: '1px solid #bba490',
-                    borderLeft: 'none',
-                    boxShadow: '3px 4px 8px rgba(0,0,0,0.3)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 6
-                  }}>
-                    <div style={{
-                      position: 'absolute',
-                      left: '3px',
-                      top: '8px',
-                      bottom: '8px',
-                      width: '20px',
-                      backgroundColor: '#def0dd',
-                      border: '1px solid rgba(0,0,0,0.12)',
-                      borderRadius: '2px',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.08)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      overflow: 'hidden'
-                    }}>
-                      <span style={{
-                        writingMode: 'vertical-rl',
-                        transform: 'rotate(180deg)',
-                        fontFamily: "'Courier New', monospace",
-                        fontWeight: 'bold',
-                        fontSize: '0.72rem',
-                        letterSpacing: '1.5px',
-                        color: '#2a3b2a',
-                        whiteSpace: 'nowrap',
-                        textTransform: 'uppercase'
-                      }}>
-                        {tabText}
-                      </span>
-                    </div>
                   </div>
 
                   {/* FOLDER COVER CONTENTS */}
@@ -997,7 +906,7 @@ export default function StoryCreator() {
 
                     {/* Active Investigation Stamp if Current */}
                     {isCurrent && (
-                      <div style={{ textAlign: 'center', marginBottom: '10px' }}>
+                      <div style={{ textAlign: 'center', marginBottom: '8px' }}>
                         <div style={{
                           display: 'inline-block',
                           border: '2.5px solid #2e7d32',
@@ -1011,48 +920,29 @@ export default function StoryCreator() {
                           transform: 'rotate(-4deg)',
                           backgroundColor: 'rgba(255, 255, 255, 0.65)'
                         }}>
-                          ★ ACTIVE PLAYTHROUGH ★
+                          ★ ACTIVE CASE ★
                         </div>
                       </div>
                     )}
                   </div>
 
-                  {/* FOLDER ACTIONS */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', zIndex: 10, marginTop: '8px' }}>
-                    <button
-                      onClick={() => s._id && handleStartGameWithStory(s._id)}
-                      className="action-button"
-                      style={{
-                        margin: 0,
-                        padding: '10px 16px',
-                        fontSize: '0.92rem',
-                        letterSpacing: '1px',
-                        backgroundColor: isCurrent ? '#2e7d32' : '#8b261b',
-                        boxShadow: '0 3px 6px rgba(0,0,0,0.35)'
-                      }}
-                      disabled={loading}
-                    >
-                      {isCurrent ? 'CONTINUE CASE ➔' : 'OPEN CASE FILE ➔'}
-                    </button>
-
-                    <button
-                      onClick={() => setInspectedStory(s)}
-                      type="button"
-                      style={{
-                        backgroundColor: 'rgba(50, 40, 32, 0.85)',
-                        color: '#ebd8c5',
-                        border: '1px solid #7c6250',
-                        borderRadius: '4px',
-                        fontFamily: "'Courier New', monospace",
-                        fontSize: '0.78rem',
-                        fontWeight: 'bold',
-                        padding: '7px 12px',
-                        cursor: 'pointer',
-                        letterSpacing: '0.5px'
-                      }}
-                    >
-                      INSPECT DOSSIER 🔍
-                    </button>
+                  {/* Clean Click Prompt at Bottom of File */}
+                  <div style={{
+                    textAlign: 'center',
+                    marginTop: '10px',
+                    borderTop: '1px dashed rgba(140, 105, 80, 0.25)',
+                    paddingTop: '8px'
+                  }}>
+                    <span style={{
+                      fontFamily: "'Courier New', monospace",
+                      fontSize: '0.70rem',
+                      fontWeight: 'bold',
+                      color: '#715847',
+                      letterSpacing: '1.5px',
+                      textTransform: 'uppercase'
+                    }}>
+                      [ CLICK FILE TO OPEN DOSSIER ]
+                    </span>
                   </div>
                 </div>
               );
