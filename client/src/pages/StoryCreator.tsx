@@ -752,9 +752,6 @@ export default function StoryCreator() {
             {stories.map((s) => {
               const isCurrent = currentStory?._id === s._id;
               const victim = s.victimProfile;
-              const suspectCount = s.suspects?.length || 0;
-              const evidenceCount = s.evidence?.length || 0;
-              const locationCount = s.locations?.length || 0;
 
               // Compute clean short title for folder tab tape
               let tabText = s.title;
@@ -996,9 +993,6 @@ export default function StoryCreator() {
                           <strong>VICTIM:</strong> {victim.name}
                         </div>
                       )}
-                      <div style={{ fontSize: '0.67rem', color: '#554236', marginTop: '3px' }}>
-                        👥 {suspectCount} Suspects · 🔍 {evidenceCount} Clues · 📍 {locationCount} Locs
-                      </div>
                     </div>
 
                     {/* Active Investigation Stamp if Current */}
@@ -1204,7 +1198,7 @@ export default function StoryCreator() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '15px', marginBottom: '25px' }}>
                   <div style={{ backgroundColor: 'rgba(255,255,255,0.7)', padding: '14px', borderRadius: '4px', border: '1px solid #ddd' }}>
                     <strong style={{ fontFamily: 'monospace', color: '#2c3e50', display: 'block', marginBottom: '8px' }}>
-                      👥 SUSPECTS ({inspectedStory.suspects?.length || 0}):
+                      👥 SUSPECTS & PERSONS OF INTEREST:
                     </strong>
                     <ul style={{ margin: 0, paddingLeft: '18px', fontFamily: 'monospace', fontSize: '0.82rem', color: '#444' }}>
                       {(inspectedStory.suspects || []).map((s, idx) => (
@@ -1217,7 +1211,7 @@ export default function StoryCreator() {
 
                   <div style={{ backgroundColor: 'rgba(255,255,255,0.7)', padding: '14px', borderRadius: '4px', border: '1px solid #ddd' }}>
                     <strong style={{ fontFamily: 'monospace', color: '#2c3e50', display: 'block', marginBottom: '8px' }}>
-                      🔍 EVIDENCE ITEMS ({inspectedStory.evidence?.length || 0}):
+                      🔍 FORENSIC EVIDENCE ITEMS:
                     </strong>
                     <ul style={{ margin: 0, paddingLeft: '18px', fontFamily: 'monospace', fontSize: '0.82rem', color: '#444' }}>
                       {(inspectedStory.evidence || []).map((e, idx) => (
