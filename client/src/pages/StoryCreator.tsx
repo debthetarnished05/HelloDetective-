@@ -710,12 +710,12 @@ export default function StoryCreator() {
           boxSizing: 'border-box'
         }}>
           {/* Board Header Plaque */}
-          <div style={{ textAlign: 'center', marginBottom: '45px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '35px' }}>
             <div style={{
               display: 'inline-block',
               backgroundColor: 'rgba(10, 7, 5, 0.75)',
               border: '1px solid rgba(210, 180, 150, 0.25)',
-              padding: '10px 32px',
+              padding: '10px 36px',
               borderRadius: '4px',
               boxShadow: '0 4px 15px rgba(0,0,0,0.6)'
             }}>
@@ -726,18 +726,8 @@ export default function StoryCreator() {
                 letterSpacing: '2px',
                 textShadow: '2px 2px 6px rgba(0,0,0,0.9)'
               }}>
-                Mind Place // Active Case Files
+                Case Files
               </h2>
-              <p style={{
-                margin: '5px 0 0 0',
-                fontFamily: "'Courier New', monospace",
-                fontSize: '0.82rem',
-                color: '#ba9f88',
-                letterSpacing: '2px',
-                textTransform: 'uppercase'
-              }}>
-                FEDERAL BUREAU OF INVESTIGATION • CRIMINAL INVESTIGATIVE DIVISION
-              </p>
             </div>
           </div>
 
