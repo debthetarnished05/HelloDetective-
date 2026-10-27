@@ -693,42 +693,25 @@ export default function StoryCreator() {
         </div>
       )}
 
-      {/* TAB 1: ALL SAVED CASES (ALAN WAKE 2 STYLE MIND PLACE CASE BOARD) */}
+      {/* TAB 1: ALL SAVED CASES */}
       {activeTab === 'manage' && (
         <div style={{
           width: '100%',
           maxWidth: '1200px',
-          backgroundColor: '#1c140e',
-          backgroundImage: `
-            radial-gradient(circle at 50% 12%, rgba(65, 48, 36, 0.5) 0%, rgba(14, 10, 8, 0.98) 100%),
-            repeating-linear-gradient(90deg, transparent, transparent 135px, rgba(0, 0, 0, 0.4) 135px, rgba(0, 0, 0, 0.4) 138px)
-          `,
-          border: '4px solid #100b08',
-          boxShadow: 'inset 0 0 80px rgba(0,0,0,0.85), 0 12px 36px rgba(0,0,0,0.7)',
-          borderRadius: '8px',
-          padding: '35px 25px 60px',
-          boxSizing: 'border-box'
+          boxSizing: 'border-box',
+          padding: '0 10px'
         }}>
-          {/* Board Header Plaque */}
+          {/* Header */}
           <div style={{ textAlign: 'center', marginBottom: '35px' }}>
-            <div style={{
-              display: 'inline-block',
-              backgroundColor: 'rgba(10, 7, 5, 0.75)',
-              border: '1px solid rgba(210, 180, 150, 0.25)',
-              padding: '10px 36px',
-              borderRadius: '4px',
-              boxShadow: '0 4px 15px rgba(0,0,0,0.6)'
+            <h2 className="handwritten" style={{
+              fontSize: '3rem',
+              color: '#f5eedc',
+              margin: 0,
+              letterSpacing: '2px',
+              textShadow: '2px 3px 8px rgba(0,0,0,0.85)'
             }}>
-              <h2 className="handwritten" style={{
-                fontSize: '2.6rem',
-                color: '#ebdccb',
-                margin: 0,
-                letterSpacing: '2px',
-                textShadow: '2px 2px 6px rgba(0,0,0,0.9)'
-              }}>
-                Case Files
-              </h2>
-            </div>
+              Case Files
+            </h2>
           </div>
 
           {/* Grid of Manila Dossier Folders hanging from pins & red string */}
