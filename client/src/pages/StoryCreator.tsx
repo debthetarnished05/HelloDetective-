@@ -3,6 +3,7 @@ import { gameApi } from '../api/client';
 import { useGameStore } from '../store/gameStore';
 import type { IStory, MysteryArchetype } from '../types/index';
 import { useNavigate } from 'react-router-dom';
+import CaseSolutionsTab from '../components/CaseSolutionsTab';
 
 export const ARCHETYPE_OPTIONS: {
   value: MysteryArchetype;
@@ -57,8 +58,8 @@ export const ARCHETYPE_OPTIONS: {
     label: '6. The Non-Linear Web of Lies (Multi-Path Mesh)',
     icon: '🕸️',
     tagline: '3 Guilty Suspects, 1 Lethal Window',
-    description: 'All 3 suspects have broken alibis, motives, and access. Advancing stages strips away their collective lies, leaving all three looking guilty. Detective must deduce the exact lethal window.',
-    trap: 'No suspect is obviously innocent by Stage 4; player must pinpoint the exact 5-minute lethal window rather than relying on order of discovery.'
+    description: 'All 3 suspects have broken alibis, motives, and access. Uncovering leads strips away their collective lies, leaving all three looking guilty. Detective must deduce the exact lethal window.',
+    trap: 'No suspect is obviously innocent by the time all leads are secured; player must pinpoint the exact 5-minute lethal window rather than relying on order of discovery.'
   }
 ];
 
@@ -70,7 +71,9 @@ interface FormLocation {
   lastVisited: string;
   witnesses: string;
   notes: string;
-  unlockStage: number;
+  isInitiallyUnlocked: boolean;
+  hiddenEvidenceIds: string;
+  canvassReport: string;
 }
 
 interface FormEvidence {
@@ -81,7 +84,16 @@ interface FormEvidence {
   date: string;
   location: string;
   priority: 'Low' | 'Medium' | 'High' | 'Critical';
-  unlockStage: number;
+  isInitiallyUnlocked: boolean;
+  locationId: string;
+}
+
+interface FormDynamicUnlock {
+  type: 'location' | 'evidence' | 'character';
+  targetId: string;
+  triggerStress?: number | '';
+  triggerEvidenceId?: string;
+  revealDialogue?: string;
 }
 
 interface FormSuspect {
@@ -90,7 +102,9 @@ interface FormSuspect {
   role: string;
   trait: string;
   category: 'prime_suspect' | 'person_of_interest' | 'witness';
+  personality: 'confident' | 'nervous' | 'cunning' | 'aggressive' | 'defensive';
   isPrimeSuspect: boolean;
+  isInitiallyUnlocked: boolean;
   initialTrust: number;
   initialStress: number;
   alibi: string;
@@ -98,15 +112,7 @@ interface FormSuspect {
   privateKnowledge: string;
   secrets: string;
   breakdownThreshold: number;
-}
-
-interface FormStage {
-  stage: number;
-  title: string;
-  description: string;
-  gateRules: string;
-  unlockEvidenceIds: string;
-  unlockLocationIds: string;
+  dynamicUnlocks: FormDynamicUnlock[];
 }
 
 interface CaseFormData {
@@ -127,7 +133,6 @@ interface CaseFormData {
   locations: FormLocation[];
   evidence: FormEvidence[];
   suspects: FormSuspect[];
-  stages: FormStage[];
   killerId: string;
   groundMotive: string;
   groundWeapon: string;
@@ -153,7 +158,7 @@ const EXAMPLE_TEMPLATE: CaseFormData = {
   initialBriefing: 'Vincent Moretti was found slumped across his mahogany desk with an empty whiskey tumbler smelling of bitter almonds. The club was packed for the midnight jazz set, but the private corridor was monitored by his inner circle.',
   detectiveInsights: 'Moretti was preparing to sell the club and divorce his wife. The torch singer, the bartender, and a rival syndicate boss all had access to his private drink stash.',
   progressText: "Secured VIP Backroom crime scene\nImpounded bar glasses for toxicological screening\nDetained primary lounge staff in the Green Room for questioning",
-  currentObjectivesText: "Interrogate Delilah Moretti, Mickey Shores, and Salvatore Vance\nDetermine who acquired the pharmaceutical-grade potassium cyanide\nExpose the false alibi regarding the 1:30-2:00 AM performance window\nPresent deduction to Officer Davis to secure a warrant for the office safe",
+  currentObjectivesText: "Interrogate Delilah Moretti and Mickey Shores\nCanvass the VIP Backroom and Main Jazz Bar for physical evidence\nExpose who held the pharmaceutical-grade potassium cyanide\nSubmit formal indictment to the District Attorney",
   locations: [
     {
       id: 'vip_backroom',
@@ -163,7 +168,9 @@ const EXAMPLE_TEMPLATE: CaseFormData = {
       lastVisited: 'August 14, 2:20 AM',
       witnesses: 'Club Doorman, Cleaning Maid',
       notes: 'Mahogany desk, half-full rye whiskey bottle, cracked safe with documents missing.',
-      unlockStage: 1
+      isInitiallyUnlocked: true,
+      hiddenEvidenceIds: 'cyanide_whiskey_glass, torn_roulette_voucher',
+      canvassReport: 'Forensics dusted the mahogany desk and recovered a crystal tumbler coated with cyanide crystals, along with a torn gambling marker in the wastebasket.'
     },
     {
       id: 'main_jazz_bar',
@@ -173,7 +180,9 @@ const EXAMPLE_TEMPLATE: CaseFormData = {
       lastVisited: 'Pending',
       witnesses: 'Patrons, Brass Band Members',
       notes: 'Busy bar counter where all specialty drinks and private decanters are prepped.',
-      unlockStage: 1
+      isInitiallyUnlocked: true,
+      hiddenEvidenceIds: '',
+      canvassReport: 'CSI swept the stage and backstage door. Floorboards show scuff marks leading directly to the private corridor.'
     },
     {
       id: 'upper_mezzanine_office',
@@ -183,7 +192,9 @@ const EXAMPLE_TEMPLATE: CaseFormData = {
       lastVisited: 'Pending',
       witnesses: 'Accountant',
       notes: 'Contains private financial ledgers, hidden cash reserves, and divorce filings.',
-      unlockStage: 2
+      isInitiallyUnlocked: false,
+      hiddenEvidenceIds: 'silver_powder_compact',
+      canvassReport: 'CSI forced open the office vanity mirror, discovering a hidden powder compact with traces of white crystalline cyanide residue.'
     },
     {
       id: 'pier_19_cold_storage',
@@ -193,7 +204,9 @@ const EXAMPLE_TEMPLATE: CaseFormData = {
       lastVisited: 'Pending',
       witnesses: 'Dockworkers',
       notes: 'Warehouse used by Salvatore Vance to store smuggled liquors and industrial solvents.',
-      unlockStage: 3
+      isInitiallyUnlocked: false,
+      hiddenEvidenceIds: 'chemical_shipping_manifest',
+      canvassReport: 'Officers raided the waterfront locker, seizing customs manifests showing industrial chemical shipments cleared under Vance’s signature.'
     }
   ],
   evidence: [
@@ -205,7 +218,8 @@ const EXAMPLE_TEMPLATE: CaseFormData = {
       date: 'Aug 14, 2:25 AM',
       location: 'VIP Backroom Desk',
       priority: 'Critical',
-      unlockStage: 1
+      isInitiallyUnlocked: true,
+      locationId: 'vip_backroom'
     },
     {
       id: 'torn_roulette_voucher',
@@ -215,27 +229,30 @@ const EXAMPLE_TEMPLATE: CaseFormData = {
       date: 'Aug 14, 2:30 AM',
       location: 'Wastebasket under Desk',
       priority: 'High',
-      unlockStage: 1
+      isInitiallyUnlocked: true,
+      locationId: 'vip_backroom'
     },
     {
       id: 'silver_powder_compact',
       title: "Delilah's Silver Cosmetic Compact",
       subtitle: 'False compartment with poison residue',
       details: 'A vintage silver compact mirror containing fine white cyanide powder under the powder puff.',
-      date: 'Stage 2 Search',
+      date: 'CSI Search',
       location: 'Upper Mezzanine Office Vanity',
       priority: 'Critical',
-      unlockStage: 2
+      isInitiallyUnlocked: false,
+      locationId: 'upper_mezzanine_office'
     },
     {
       id: 'chemical_shipping_manifest',
       title: 'Smuggled Chemical Invoice',
       subtitle: 'Issued to Salvatore Vance',
       details: 'Customs papers showing industrial cyanide shipments cleared through Pier 19.',
-      date: 'Stage 3 Search',
+      date: 'CSI Search',
       location: 'Pier 19 Cold Storage',
       priority: 'Medium',
-      unlockStage: 3
+      isInitiallyUnlocked: false,
+      locationId: 'pier_19_cold_storage'
     }
   ],
   suspects: [
@@ -245,14 +262,24 @@ const EXAMPLE_TEMPLATE: CaseFormData = {
       role: "Lead Torch Singer & Victim's Wife",
       trait: 'Glamorous, composed, icy under cross-examination, protective of her future',
       category: 'prime_suspect',
+      personality: 'cunning',
       isPrimeSuspect: true,
+      isInitiallyUnlocked: true,
       initialTrust: 45,
       initialStress: 30,
       alibi: 'Claims she was performing her midnight set on the stage continuously from 1:15 AM to 2:00 AM without stepping off.',
       motive: 'Vincent planned to serve her with divorce papers and cut her out of the estate and club ownership.',
       privateKnowledge: 'She stepped into the VIP backroom during the 10-minute trumpet solo at 1:40 AM to spike his private rye bottle.',
       secrets: "Admitted arguing violently with Vincent backstage before the midnight set\nConfessed she took her passport and cash bundle from Vincent's safe\nRevealed she saw Mickey delivering the drink tray to Vincent's room",
-      breakdownThreshold: 75
+      breakdownThreshold: 75,
+      dynamicUnlocks: [
+        {
+          type: 'location',
+          targetId: 'upper_mezzanine_office',
+          triggerStress: 50,
+          revealDialogue: "Alright! If you want to dig through our marital dirt, check Vincent's private office on the mezzanine! But leave me alone!"
+        }
+      ]
     },
     {
       id: 'mickey_shores',
@@ -260,14 +287,24 @@ const EXAMPLE_TEMPLATE: CaseFormData = {
       role: 'Head Bartender & Floor Manager',
       trait: 'Nervous, fast-talking, wiping down the bar compulsively, sweating',
       category: 'prime_suspect',
+      personality: 'nervous',
       isPrimeSuspect: true,
+      isInitiallyUnlocked: true,
       initialTrust: 50,
       initialStress: 40,
       alibi: 'Claims he was behind the main bar mixing cocktails for the crowd all night.',
       motive: 'Vincent held over $15,000 in defaulted gambling markers against him and threatened violence.',
       privateKnowledge: 'Mickey poured the rye at 1:35 AM and brought it to the backroom, but claims Vincent was alive when he set it down.',
       secrets: "Admitted he poured Vincent's private rye at 1:30 AM\nConfessed Vincent threatened to have his hands broken over the gambling debt\nRevealed Salvatore handed him an unlabelled amber vial earlier that evening",
-      breakdownThreshold: 70
+      breakdownThreshold: 70,
+      dynamicUnlocks: [
+        {
+          type: 'character',
+          targetId: 'salvatore_vance',
+          triggerStress: 55,
+          revealDialogue: "It was Salvatore Vance! He threatened to break my thumbs! He cornered me near the VIP room, go question him!"
+        }
+      ]
     },
     {
       id: 'salvatore_vance',
@@ -275,48 +312,24 @@ const EXAMPLE_TEMPLATE: CaseFormData = {
       role: 'Rival Downtown Syndicate Boss',
       trait: 'Arrogant, cigar-smoking, dismissive of police authority',
       category: 'person_of_interest',
+      personality: 'aggressive',
       isPrimeSuspect: false,
+      isInitiallyUnlocked: false,
       initialTrust: 55,
       initialStress: 20,
       alibi: 'Claims he was seated in the front row booth flanked by three bodyguards all evening.',
       motive: 'Wanted to absorb the Midnight Lounge into his gambling and liquor empire.',
       privateKnowledge: 'He offered Delilah the cyanide powder days ago, knowing her desperation to get rid of Vincent.',
       secrets: "Admitted offering Vincent $50,000 to purchase the Midnight Lounge deed\nConfessed meeting Delilah in secret behind the theater two nights ago\nRevealed he stores industrial chemicals at Pier 19",
-      breakdownThreshold: 80
-    }
-  ],
-  stages: [
-    {
-      stage: 1,
-      title: 'Stage 1: The Initial Scene (The Alibi Crack)',
-      description: "Find the first major flaw in the suspects' stated movements during the 1:30-2:00 AM murder window.",
-      gateRules: 'The detective must prove that Delilah Moretti stepped off stage during the trumpet solo or that Mickey delivered the private drink tray.',
-      unlockEvidenceIds: 'silver_powder_compact',
-      unlockLocationIds: 'upper_mezzanine_office'
-    },
-    {
-      stage: 2,
-      title: 'Stage 2: The Hidden Web (The Divorce & Poison)',
-      description: "Uncover the financial and domestic motive behind Vincent's assassination.",
-      gateRules: 'The detective must present the divorce petition or recover the silver cosmetic compact with cyanide residue.',
-      unlockEvidenceIds: 'chemical_shipping_manifest',
-      unlockLocationIds: 'pier_19_cold_storage'
-    },
-    {
-      stage: 3,
-      title: 'Stage 3: The Cornered Suspects (The Source of Cyanide)',
-      description: 'Trace the chemical origin and pin down the exact opportunity.',
-      gateRules: 'The detective must establish that the cyanide was obtained from Pier 19 and slipped into the rye glass during the performance break.',
-      unlockEvidenceIds: '',
-      unlockLocationIds: ''
-    },
-    {
-      stage: 4,
-      title: 'Stage 4: The Final Squeeze',
-      description: 'Confront the killer with the cosmetic compact and broken alibi to force a confession.',
-      gateRules: 'Submit the Arrest Warrant and forensic brief to the District Attorney.',
-      unlockEvidenceIds: '',
-      unlockLocationIds: ''
+      breakdownThreshold: 80,
+      dynamicUnlocks: [
+        {
+          type: 'location',
+          targetId: 'pier_19_cold_storage',
+          triggerStress: 60,
+          revealDialogue: "You think I need to poison drinks with my bare hands? My operations run out of Pier 19 cold storage. Go send your lab boys there!"
+        }
+      ]
     }
   ],
   killerId: 'delilah_moretti',
@@ -354,7 +367,9 @@ const BLANK_TEMPLATE: CaseFormData = {
       lastVisited: 'Recent',
       witnesses: 'None',
       notes: '',
-      unlockStage: 1
+      isInitiallyUnlocked: true,
+      hiddenEvidenceIds: '',
+      canvassReport: ''
     }
   ],
   evidence: [
@@ -366,7 +381,8 @@ const BLANK_TEMPLATE: CaseFormData = {
       date: 'Recent',
       location: 'Main Crime Scene',
       priority: 'High',
-      unlockStage: 1
+      isInitiallyUnlocked: true,
+      locationId: 'crime_scene_main'
     }
   ],
   suspects: [
@@ -376,48 +392,17 @@ const BLANK_TEMPLATE: CaseFormData = {
       role: 'Business Associate / Relative',
       trait: 'Nervous, defensive',
       category: 'prime_suspect',
+      personality: 'nervous',
       isPrimeSuspect: true,
+      isInitiallyUnlocked: true,
       initialTrust: 50,
       initialStress: 25,
       alibi: '',
       motive: '',
       privateKnowledge: '',
       secrets: '',
-      breakdownThreshold: 75
-    }
-  ],
-  stages: [
-    {
-      stage: 1,
-      title: 'Stage 1: The Initial Scene (The Lie)',
-      description: 'Break the first suspect alibi.',
-      gateRules: 'Discover the initial timeline contradiction.',
-      unlockEvidenceIds: '',
-      unlockLocationIds: ''
-    },
-    {
-      stage: 2,
-      title: 'Stage 2: The Hidden Web (The Motive)',
-      description: 'Uncover the motive behind the murder.',
-      gateRules: 'Prove the financial or personal motive.',
-      unlockEvidenceIds: '',
-      unlockLocationIds: ''
-    },
-    {
-      stage: 3,
-      title: 'Stage 3: The Cornered Suspects (The Opportunity)',
-      description: 'Pin down the murder weapon and opportunity.',
-      gateRules: 'Identify the weapon and access window.',
-      unlockEvidenceIds: '',
-      unlockLocationIds: ''
-    },
-    {
-      stage: 4,
-      title: 'Stage 4: The Final Squeeze',
-      description: 'Deliver the arrest warrant.',
-      gateRules: 'Submit the final warrant.',
-      unlockEvidenceIds: '',
-      unlockLocationIds: ''
+      breakdownThreshold: 75,
+      dynamicUnlocks: []
     }
   ],
   killerId: 'suspect_1',
@@ -437,7 +422,7 @@ export default function StoryCreator() {
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiArchetype, setAiArchetype] = useState<string>('random');
   const [aiGenerating, setAiGenerating] = useState(false);
-  const [activeTab, setActiveTab] = useState<'manage' | 'ai' | 'form'>('manage');
+  const [activeTab, setActiveTab] = useState<'manage' | 'ai' | 'form' | 'solutions'>('manage');
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [inspectedStory, setInspectedStory] = useState<IStory | null>(null);
 
@@ -484,7 +469,7 @@ export default function StoryCreator() {
 
     try {
       const generated = await gameApi.generateAiStory(aiPrompt, aiArchetype);
-      setMessage({ text: `Successfully generated "${generated.title}" with 4 stages!`, type: 'success' });
+      setMessage({ text: `Successfully generated "${generated.title}" with dynamic lead-web architecture!`, type: 'success' });
       await loadStories();
       setActiveTab('manage');
     } catch (err: any) {
@@ -510,7 +495,9 @@ export default function StoryCreator() {
           lastVisited: 'Pending',
           witnesses: 'None identified',
           notes: '',
-          unlockStage: 1
+          isInitiallyUnlocked: false,
+          hiddenEvidenceIds: '',
+          canvassReport: ''
         }
       ]
     }));
@@ -549,7 +536,8 @@ export default function StoryCreator() {
           date: 'Recent',
           location: prev.locations[0]?.title || 'Crime Scene',
           priority: 'Medium',
-          unlockStage: 1
+          isInitiallyUnlocked: false,
+          locationId: prev.locations[0]?.id || ''
         }
       ]
     }));
@@ -586,14 +574,17 @@ export default function StoryCreator() {
           role: 'Role / Occupation',
           trait: 'Distinguishing personality',
           category: 'person_of_interest',
+          personality: 'defensive',
           isPrimeSuspect: false,
+          isInitiallyUnlocked: false,
           initialTrust: 50,
           initialStress: 20,
           alibi: 'Stated whereabouts during the time of death.',
           motive: 'Possible motive or zero motive.',
           privateKnowledge: 'Secret truth known only to this character.',
           secrets: '',
-          breakdownThreshold: 75
+          breakdownThreshold: 75,
+          dynamicUnlocks: []
         }
       ]
     }));
@@ -618,11 +609,49 @@ export default function StoryCreator() {
     });
   };
 
-  const handleUpdateStage = (index: number, field: keyof FormStage, value: any) => {
+  const handleAddDynamicUnlock = (suspectIndex: number) => {
     setFormData(prev => {
-      const updated = [...prev.stages];
-      updated[index] = { ...updated[index], [field]: value };
-      return { ...prev, stages: updated };
+      const updated = [...prev.suspects];
+      const currentUnlocks = updated[suspectIndex].dynamicUnlocks || [];
+      updated[suspectIndex] = {
+        ...updated[suspectIndex],
+        dynamicUnlocks: [
+          ...currentUnlocks,
+          {
+            type: 'location',
+            targetId: '',
+            triggerStress: 50,
+            revealDialogue: ''
+          }
+        ]
+      };
+      return { ...prev, suspects: updated };
+    });
+  };
+
+  const handleRemoveDynamicUnlock = (suspectIndex: number, unlockIndex: number) => {
+    setFormData(prev => {
+      const updated = [...prev.suspects];
+      updated[suspectIndex] = {
+        ...updated[suspectIndex],
+        dynamicUnlocks: (updated[suspectIndex].dynamicUnlocks || []).filter((_, i) => i !== unlockIndex)
+      };
+      return { ...prev, suspects: updated };
+    });
+  };
+
+  const handleUpdateDynamicUnlock = (
+    suspectIndex: number,
+    unlockIndex: number,
+    field: keyof FormDynamicUnlock,
+    value: any
+  ) => {
+    setFormData(prev => {
+      const updated = [...prev.suspects];
+      const unlocks = [...(updated[suspectIndex].dynamicUnlocks || [])];
+      unlocks[unlockIndex] = { ...unlocks[unlockIndex], [field]: value };
+      updated[suspectIndex] = { ...updated[suspectIndex], dynamicUnlocks: unlocks };
+      return { ...prev, suspects: updated };
     });
   };
 
@@ -675,25 +704,34 @@ export default function StoryCreator() {
       },
       locations: formData.locations.map((loc, idx) => ({
         ...loc,
-        id: loc.id.trim() || `loc_${idx + 1}_${loc.title.toLowerCase().replace(/[^a-z0-9]/g, '_')}`
+        id: loc.id.trim() || `loc_${idx + 1}_${loc.title.toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
+        isInitiallyUnlocked: Boolean(loc.isInitiallyUnlocked),
+        hiddenEvidenceIds: loc.hiddenEvidenceIds
+          ? loc.hiddenEvidenceIds.split(',').map(s => s.trim()).filter(Boolean)
+          : [],
+        canvassReport: loc.canvassReport?.trim() || `CSI completed a comprehensive forensic sweep of ${loc.title}.`
       })),
       evidence: formData.evidence.map((ev, idx) => ({
         ...ev,
-        id: ev.id.trim() || `ev_${idx + 1}_${ev.title.toLowerCase().replace(/[^a-z0-9]/g, '_')}`
+        id: ev.id.trim() || `ev_${idx + 1}_${ev.title.toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
+        isInitiallyUnlocked: Boolean(ev.isInitiallyUnlocked),
+        locationId: ev.locationId?.trim() || undefined
       })),
       suspects: formData.suspects.map((susp, idx) => ({
         ...susp,
         id: susp.id.trim() || `susp_${idx + 1}_${susp.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
-        secrets: susp.secrets.split('\n').map(s => s.trim()).filter(Boolean)
+        secrets: susp.secrets.split('\n').map(s => s.trim()).filter(Boolean),
+        personality: susp.personality || 'defensive',
+        isInitiallyUnlocked: Boolean(susp.isInitiallyUnlocked),
+        dynamicUnlocks: (susp.dynamicUnlocks || []).map(u => ({
+          type: u.type,
+          targetId: u.targetId.trim(),
+          triggerStress: u.triggerStress !== undefined && u.triggerStress !== '' ? Number(u.triggerStress) : undefined,
+          triggerEvidenceId: u.triggerEvidenceId?.trim() || undefined,
+          revealDialogue: u.revealDialogue?.trim() || undefined
+        }))
       })),
-      stages: formData.stages.map(st => ({
-        stage: st.stage,
-        title: st.title.trim(),
-        description: st.description.trim(),
-        gateRules: st.gateRules.trim(),
-        unlockEvidenceIds: st.unlockEvidenceIds.split(',').map(s => s.trim()).filter(Boolean),
-        unlockLocationIds: st.unlockLocationIds.split(',').map(s => s.trim()).filter(Boolean)
-      })),
+      stages: [],
       groundTruth: {
         killer: formData.killerId.trim() || formData.suspects[0]?.id || 'suspect_1',
         motive: formData.groundMotive.trim() || 'Undetermined motive',
@@ -746,6 +784,12 @@ export default function StoryCreator() {
           style={{ ...styles.tabBtn, backgroundColor: activeTab === 'form' ? '#8b3a3a' : '#2c3e50' }}
         >
           📝 Case Builder Form
+        </button>
+        <button
+          onClick={() => setActiveTab('solutions')}
+          style={{ ...styles.tabBtn, backgroundColor: activeTab === 'solutions' ? '#8b3a3a' : '#2c3e50' }}
+        >
+          📖 Case Solutions & True Stories ({stories.length})
         </button>
       </div>
 
@@ -1227,10 +1271,10 @@ export default function StoryCreator() {
       {activeTab === 'ai' && (
         <div style={styles.container}>
           <h2 className="handwritten" style={{ fontSize: '2.5rem', color: '#2c3e50', marginBottom: '10px' }}>
-            AI 4-Stage Mystery Generator
+            AI Dynamic Lead-Web Mystery Generator
           </h2>
           <p style={{ fontFamily: 'monospace', color: '#555', marginBottom: '25px', lineHeight: '1.6' }}>
-            Harness Groq to invent a completely new, coherent 4-stage murder mystery with suspects, alibis, secrets, forensic evidence, locations, deduction gate rules, and ground truth.
+            Harness Groq to invent a completely new, coherent dynamic lead-web murder mystery with suspects, psychological personalities, forensic crime scenes, hidden physical clues, and dynamic lead triggers.
           </p>
 
           <form onSubmit={handleAiGenerate} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -1583,18 +1627,18 @@ export default function StoryCreator() {
                         required
                       />
                     </div>
-                    <div style={formStyles.fieldGroup}>
-                      <label style={formStyles.label}>Unlock Stage (1-4) *</label>
-                      <select
-                        style={formStyles.input}
-                        value={loc.unlockStage}
-                        onChange={(e) => handleUpdateLocation(idx, 'unlockStage', Number(e.target.value))}
-                      >
-                        <option value={1}>Stage 1 (Initial Scene)</option>
-                        <option value={2}>Stage 2 (Motive Web)</option>
-                        <option value={3}>Stage 3 (Opportunity)</option>
-                        <option value={4}>Stage 4 (Final)</option>
-                      </select>
+                    <div style={{ ...formStyles.fieldGroup, display: 'flex', justifyContent: 'center' }}>
+                      <label style={{ ...formStyles.label, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <input
+                          type="checkbox"
+                          checked={loc.isInitiallyUnlocked}
+                          onChange={(e) => handleUpdateLocation(idx, 'isInitiallyUnlocked', e.target.checked)}
+                        />
+                        Accessible at Start (Primary Scene)
+                      </label>
+                      <span style={{ fontSize: '0.72rem', color: '#666', fontFamily: 'monospace' }}>
+                        Checked: Open on Day 1 · Unchecked: Discovered via interrogation/leads
+                      </span>
                     </div>
                   </div>
                   <div style={formStyles.row}>
@@ -1623,6 +1667,26 @@ export default function StoryCreator() {
                         value={loc.notes}
                         onChange={(e) => handleUpdateLocation(idx, 'notes', e.target.value)}
                         placeholder="e.g., Half-full rye bottle, safe cracked open"
+                      />
+                    </div>
+                  </div>
+                  <div style={formStyles.row}>
+                    <div style={formStyles.fieldGroup}>
+                      <label style={formStyles.label}>Hidden Evidence IDs Uncovered via Forensic Canvass</label>
+                      <input
+                        style={formStyles.input}
+                        value={loc.hiddenEvidenceIds}
+                        onChange={(e) => handleUpdateLocation(idx, 'hiddenEvidenceIds', e.target.value)}
+                        placeholder="e.g., cyanide_whiskey_glass, torn_roulette_voucher"
+                      />
+                    </div>
+                    <div style={{ ...formStyles.fieldGroup, gridColumn: 'span 2' }}>
+                      <label style={formStyles.label}>CSI Forensic Field Canvass Report *</label>
+                      <input
+                        style={formStyles.input}
+                        value={loc.canvassReport}
+                        onChange={(e) => handleUpdateLocation(idx, 'canvassReport', e.target.value)}
+                        placeholder="e.g., Forensics dusted the mahogany desk and recovered a crystal tumbler coated with cyanide crystals."
                       />
                     </div>
                   </div>
@@ -1693,18 +1757,18 @@ export default function StoryCreator() {
                         <option value="Low">Low</option>
                       </select>
                     </div>
-                    <div style={formStyles.fieldGroup}>
-                      <label style={formStyles.label}>Unlock Stage (1-4) *</label>
-                      <select
-                        style={formStyles.input}
-                        value={ev.unlockStage}
-                        onChange={(e) => handleUpdateEvidence(idx, 'unlockStage', Number(e.target.value))}
-                      >
-                        <option value={1}>Stage 1 (Initial Scene)</option>
-                        <option value={2}>Stage 2 (Motive Web)</option>
-                        <option value={3}>Stage 3 (Opportunity)</option>
-                        <option value={4}>Stage 4 (Final)</option>
-                      </select>
+                    <div style={{ ...formStyles.fieldGroup, display: 'flex', justifyContent: 'center' }}>
+                      <label style={{ ...formStyles.label, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <input
+                          type="checkbox"
+                          checked={ev.isInitiallyUnlocked}
+                          onChange={(e) => handleUpdateEvidence(idx, 'isInitiallyUnlocked', e.target.checked)}
+                        />
+                        Discovered at Scene (Initially Unlocked)
+                      </label>
+                      <span style={{ fontSize: '0.72rem', color: '#666', fontFamily: 'monospace' }}>
+                        Checked: In locker at case start · Unchecked: Hidden until canvassed/revealed
+                      </span>
                     </div>
                   </div>
                   <div style={formStyles.row}>
@@ -1725,6 +1789,15 @@ export default function StoryCreator() {
                         value={ev.location}
                         onChange={(e) => handleUpdateEvidence(idx, 'location', e.target.value)}
                         placeholder="e.g., VIP Backroom Desk"
+                      />
+                    </div>
+                    <div style={formStyles.fieldGroup}>
+                      <label style={formStyles.label}>Location ID Where Hidden / Found</label>
+                      <input
+                        style={formStyles.input}
+                        value={ev.locationId}
+                        onChange={(e) => handleUpdateEvidence(idx, 'locationId', e.target.value)}
+                        placeholder="e.g., vip_backroom"
                       />
                     </div>
                   </div>
@@ -1797,6 +1870,33 @@ export default function StoryCreator() {
                         <option value="person_of_interest">Person of Interest</option>
                         <option value="witness">Witness / Specialist</option>
                       </select>
+                    </div>
+                    <div style={formStyles.fieldGroup}>
+                      <label style={formStyles.label}>Personality Type *</label>
+                      <select
+                        style={formStyles.input}
+                        value={susp.personality || 'defensive'}
+                        onChange={(e) => handleUpdateSuspect(idx, 'personality', e.target.value)}
+                      >
+                        <option value="confident">💼 Confident (Smug, unflappable unless hit with hard evidence)</option>
+                        <option value="nervous">😰 Nervous (Fidgety, sweats, breaks quickly under pressure)</option>
+                        <option value="cunning">🦊 Cunning (Evasive, redirects blame, subtle slip-ups)</option>
+                        <option value="aggressive">⚡ Aggressive (Hostile, confrontational, lashes out)</option>
+                        <option value="defensive">🛡️ Defensive (Guarded, stonewalls until cornered)</option>
+                      </select>
+                    </div>
+                    <div style={{ ...formStyles.fieldGroup, display: 'flex', justifyContent: 'center' }}>
+                      <label style={{ ...formStyles.label, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <input
+                          type="checkbox"
+                          checked={susp.isInitiallyUnlocked}
+                          onChange={(e) => handleUpdateSuspect(idx, 'isInitiallyUnlocked', e.target.checked)}
+                        />
+                        Initially Identified (Available at Start)
+                      </label>
+                      <span style={{ fontSize: '0.72rem', color: '#666', fontFamily: 'monospace' }}>
+                        Checked: On board Day 1 · Unchecked: Undisclosed lead unlocked dynamically
+                      </span>
                     </div>
                   </div>
                   <div style={formStyles.row}>
@@ -1881,79 +1981,158 @@ export default function StoryCreator() {
                       />
                     </div>
                   </div>
+
+                  {/* DYNAMIC LEAD UNLOCKS SUB-SECTION */}
+                  <div style={{
+                    marginTop: '16px',
+                    padding: '14px',
+                    backgroundColor: 'rgba(0,0,0,0.03)',
+                    border: '1px dashed #a5b4fc',
+                    borderRadius: '6px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                      <div>
+                        <strong style={{ fontFamily: 'monospace', color: '#3730a3', fontSize: '0.9rem' }}>
+                          ⚡ Dynamic Lead Unlocks ({(susp.dynamicUnlocks || []).length})
+                        </strong>
+                        <span style={{ display: 'block', fontSize: '0.75rem', color: '#666', fontFamily: 'monospace' }}>
+                          What new scene, physical clue, or person does this suspect blurt out when pressured or shown evidence?
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleAddDynamicUnlock(idx)}
+                        style={{ ...formStyles.smallBtn, backgroundColor: '#4338ca', color: '#fff' }}
+                      >
+                        ➕ Add Unlock Rule
+                      </button>
+                    </div>
+
+                    {(susp.dynamicUnlocks || []).map((unlock, uIdx) => (
+                      <div key={uIdx} style={{
+                        backgroundColor: '#fff',
+                        border: '1px solid #c7d2fe',
+                        borderRadius: '4px',
+                        padding: '12px',
+                        marginBottom: '10px'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                          <span style={{ fontFamily: 'monospace', fontSize: '0.82rem', fontWeight: 'bold', color: '#312e81' }}>
+                            Lead Unlock #{uIdx + 1}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveDynamicUnlock(idx, uIdx)}
+                            style={{ ...formStyles.smallBtn, backgroundColor: '#ef4444', color: '#fff', padding: '2px 8px', fontSize: '0.75rem' }}
+                          >
+                            ✕ Remove
+                          </button>
+                        </div>
+                        <div style={formStyles.row}>
+                          <div style={formStyles.fieldGroup}>
+                            <label style={formStyles.label}>Unlock Type *</label>
+                            <select
+                              style={formStyles.input}
+                              value={unlock.type}
+                              onChange={(e) => handleUpdateDynamicUnlock(idx, uIdx, 'type', e.target.value)}
+                            >
+                              <option value="location">📍 New Location</option>
+                              <option value="evidence">🔍 New Forensic Evidence</option>
+                              <option value="character">👤 New Person of Interest</option>
+                            </select>
+                          </div>
+                          <div style={formStyles.fieldGroup}>
+                            <label style={formStyles.label}>Target Slug / ID to Unlock *</label>
+                            <input
+                              style={formStyles.input}
+                              value={unlock.targetId}
+                              onChange={(e) => handleUpdateDynamicUnlock(idx, uIdx, 'targetId', e.target.value)}
+                              placeholder="e.g., pier_19_cold_storage or salvatore_vance"
+                              required
+                            />
+                          </div>
+                          <div style={formStyles.fieldGroup}>
+                            <label style={formStyles.label}>Trigger Stress Threshold (%)</label>
+                            <input
+                              type="number"
+                              style={formStyles.input}
+                              value={unlock.triggerStress}
+                              onChange={(e) => handleUpdateDynamicUnlock(idx, uIdx, 'triggerStress', e.target.value === '' ? '' : Number(e.target.value))}
+                              placeholder="e.g., 55 (triggers when stress >= 55)"
+                              min={0}
+                              max={100}
+                            />
+                          </div>
+                          <div style={formStyles.fieldGroup}>
+                            <label style={formStyles.label}>OR Trigger Evidence ID</label>
+                            <input
+                              style={formStyles.input}
+                              value={unlock.triggerEvidenceId || ''}
+                              onChange={(e) => handleUpdateDynamicUnlock(idx, uIdx, 'triggerEvidenceId', e.target.value)}
+                              placeholder="e.g., silver_powder_compact"
+                            />
+                          </div>
+                        </div>
+                        <div style={{ marginTop: '8px' }}>
+                          <label style={formStyles.label}>Spoken Reveal Dialogue (What suspect blurts out) *</label>
+                          <input
+                            style={formStyles.input}
+                            value={unlock.revealDialogue || ''}
+                            onChange={(e) => handleUpdateDynamicUnlock(idx, uIdx, 'revealDialogue', e.target.value)}
+                            placeholder="e.g., 'Alright! If you want the truth, go check Pier 19 cold storage! Salvatore runs his chemicals out of there!'"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
 
-            {/* SECTION 7: 4-STAGE DEDUCTION PROGRESSION */}
+            {/* SECTION 7: DYNAMIC LEAD-WEB ARCHITECTURE OVERVIEW */}
             <div style={formStyles.sectionCard}>
               <div style={formStyles.sectionTitle}>
-                <span>7. Four-Stage Deduction Gate Progression</span>
+                <span>7. Dynamic Lead-Web & Forensic Investigation Architecture</span>
               </div>
-              <p style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: '#555', marginTop: 0 }}>
-                Define what the player must realize and report to Officer Davis to advance each investigation stage.
-              </p>
-
-              {formData.stages.map((st, idx) => (
-                <div key={idx} style={{ ...formStyles.itemCard, borderLeft: '4px solid #8b3a3a' }}>
-                  <div style={{ marginBottom: '8px' }}>
-                    <strong style={{ fontFamily: 'Georgia, serif', color: '#8b3a3a', fontSize: '1.05rem' }}>
-                      Stage {st.stage}: {st.title}
-                    </strong>
-                  </div>
-                  <div style={formStyles.row}>
-                    <div style={formStyles.fieldGroup}>
-                      <label style={formStyles.label}>Stage Title *</label>
-                      <input
-                        style={formStyles.input}
-                        value={st.title}
-                        onChange={(e) => handleUpdateStage(idx, 'title', e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div style={formStyles.fieldGroup}>
-                      <label style={formStyles.label}>Stage Objective / Description *</label>
-                      <input
-                        style={formStyles.input}
-                        value={st.description}
-                        onChange={(e) => handleUpdateStage(idx, 'description', e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div style={{ marginBottom: '10px' }}>
-                    <label style={formStyles.label}>Officer Davis Deduction Gate Rule (What the player must report) *</label>
-                    <textarea
-                      style={formStyles.textarea}
-                      rows={2}
-                      value={st.gateRules}
-                      onChange={(e) => handleUpdateStage(idx, 'gateRules', e.target.value)}
-                      placeholder="The player must explain that..."
-                      required
-                    />
-                  </div>
-                  <div style={formStyles.row}>
-                    <div style={formStyles.fieldGroup}>
-                      <label style={formStyles.label}>Evidence IDs Unlocked on Clear (comma-separated)</label>
-                      <input
-                        style={formStyles.input}
-                        value={st.unlockEvidenceIds}
-                        onChange={(e) => handleUpdateStage(idx, 'unlockEvidenceIds', e.target.value)}
-                        placeholder="e.g., silver_powder_compact"
-                      />
-                    </div>
-                    <div style={formStyles.fieldGroup}>
-                      <label style={formStyles.label}>Location IDs Unlocked on Clear (comma-separated)</label>
-                      <input
-                        style={formStyles.input}
-                        value={st.unlockLocationIds}
-                        onChange={(e) => handleUpdateStage(idx, 'unlockLocationIds', e.target.value)}
-                        placeholder="e.g., upper_mezzanine_office"
-                      />
-                    </div>
-                  </div>
+              <div style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.75)',
+                borderLeft: '4px solid #10b981',
+                borderRadius: '4px',
+                padding: '16px 20px',
+                fontFamily: 'monospace'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '1.4rem' }}>🕸️</span>
+                  <strong style={{ color: '#065f46', fontSize: '1.05rem' }}>
+                    Non-Linear Dynamic Lead-Web Architecture Active
+                  </strong>
                 </div>
-              ))}
+                <p style={{ margin: '0 0 10px 0', fontSize: '0.88rem', color: '#1f2937', lineHeight: '1.6' }}>
+                  This case uses an organic, non-linear investigation system rather than rigid artificial stages.
+                  As lead detective, players uncover leads through two organic actions:
+                </p>
+                <ul style={{ margin: '0 0 12px 0', paddingLeft: '20px', fontSize: '0.84rem', color: '#374151', lineHeight: '1.6' }}>
+                  <li>
+                    <strong>Forensic Canvassing:</strong> Sweeping crime scenes dispatches CSI units to unlock hidden physical evidence and generate forensic reports.
+                  </li>
+                  <li>
+                    <strong>Psychological Interrogation:</strong> Pressing suspects past their stress breakdown thresholds or presenting incriminating evidence triggers dynamic blurts that reveal new locations, clues, or undisclosed associates.
+                  </li>
+                  <li>
+                    <strong>DA Closing Window:</strong> When all crime scenes have been canvassed and all physical evidence uncovered, Officer Davis alerts the player that the case is closing. The player is granted a limited interrogation window (12 questions) to finalize their deductions before submitting the Arrest Warrant.
+                  </li>
+                </ul>
+                <div style={{
+                  backgroundColor: '#ecfdf5',
+                  border: '1px solid #a7f3d0',
+                  borderRadius: '4px',
+                  padding: '10px 14px',
+                  fontSize: '0.80rem',
+                  color: '#047857'
+                }}>
+                  ✨ <strong>Case Lead Inventory:</strong> {formData.locations.length} Locations ({formData.locations.filter(l => l.isInitiallyUnlocked).length} Initial) · {formData.evidence.length} Forensic Clues ({formData.evidence.filter(e => e.isInitiallyUnlocked).length} Initial) · {formData.suspects.length} Characters ({formData.suspects.filter(s => s.isInitiallyUnlocked).length} Initial)
+                </div>
+              </div>
             </div>
 
             {/* SECTION 8: GROUND TRUTH & AI JUDGE SOLUTION */}
@@ -2226,6 +2405,11 @@ export default function StoryCreator() {
             </button>
           </form>
         </div>
+      )}
+
+      {/* TAB 4: CASE SOLUTIONS & TRUE STORIES */}
+      {activeTab === 'solutions' && (
+        <CaseSolutionsTab stories={stories} />
       )}
     </div>
   );
