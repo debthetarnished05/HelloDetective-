@@ -13,7 +13,6 @@ export default function CaseHub() {
 
   const allSuspects = story.suspects || [];
   const displaySuspects = allSuspects.filter(s => unlockedSuspects.includes(s.id));
-  const undisclosedCount = allSuspects.length - displaySuspects.length;
 
   return (
     <div className="page-wrapper">
@@ -85,7 +84,7 @@ export default function CaseHub() {
         {/* Card 4: Case Board Status - Persons of Interest (Pure Text Aesthetic) */}
         <div className="paper-note center-tape-note" style={styles.card}>
           <h2 className="handwritten" style={styles.cardHeader}>
-            Persons of Interest ({displaySuspects.length} Identified)
+            Persons of Interest
           </h2>
 
           {displaySuspects.map((suspect, idx) => (
@@ -101,23 +100,6 @@ export default function CaseHub() {
               </ul>
             </div>
           ))}
-
-          {undisclosedCount > 0 && (
-            <div style={{
-              marginTop: '15px',
-              padding: '12px 14px',
-              backgroundColor: 'rgba(0,0,0,0.05)',
-              borderRadius: '4px',
-              border: '1px dashed #777'
-            }}>
-              <span style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#555', display: 'block', fontWeight: 'bold' }}>
-                🔒 {undisclosedCount} UNDISCLOSED PERSON(S) OF INTEREST
-              </span>
-              <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#666', lineHeight: '1.4', display: 'block', marginTop: '2px' }}>
-                Additional associates and key witnesses have not yet been identified. Interrogate known suspects or canvass crime scenes to uncover their identities.
-              </span>
-            </div>
-          )}
         </div>
 
       </div>

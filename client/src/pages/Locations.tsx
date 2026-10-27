@@ -14,7 +14,7 @@ export default function Locations() {
   return (
     <div className="page-wrapper">
       <div className="taped-title handwritten">
-        Investigation Locations ({canvassedLocations.length} / {displayLocations.length} Canvassed)
+        Investigation Locations
       </div>
 
       <p style={{ color: 'white', fontFamily: 'monospace', fontSize: '0.95rem', marginBottom: '20px', textAlign: 'center', maxWidth: '750px' }}>

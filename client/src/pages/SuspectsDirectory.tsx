@@ -16,7 +16,7 @@ export default function SuspectsDirectory() {
   } = useGameStore();
   const [filter, setFilter] = useState<'all' | 'prime' | 'witness'>('all');
 
-  const suspects = story?.suspects || [];
+  const suspects = (story?.suspects || []).filter(s => unlockedSuspects.includes(s.id));
 
   const primeSuspects = suspects.filter(s => s.isPrimeSuspect || s.category === 'prime_suspect');
   const otherCharacters = suspects.filter(s => !s.isPrimeSuspect && s.category !== 'prime_suspect');
@@ -67,7 +67,7 @@ export default function SuspectsDirectory() {
   return (
     <div className="page-wrapper" style={{ paddingBottom: '90px' }}>
       <div className="taped-title handwritten">
-        Interrogation Directory ({unlockedSuspects.length} / {suspects.length} Discovered)
+        Interrogation Directory
       </div>
 
       {/* CASE CLOSING BANNER */}
@@ -98,7 +98,7 @@ export default function SuspectsDirectory() {
       ) : null}
 
       <p style={{ color: 'white', fontFamily: 'monospace', fontSize: '0.95rem', marginBottom: '18px', textAlign: 'center', maxWidth: '750px' }}>
-        Cross-examine prime suspects, witnesses, and persons of interest. Interrogate them with the right pressure or physical evidence to unlock new crime scenes and undisclosed persons!
+        Cross-examine prime suspects, witnesses, and persons of interest. Interrogate them with targeted pressure or physical evidence to break alibis and uncover new leads.
       </p>
 
       {/* Filter Tabs */}
@@ -107,26 +107,25 @@ export default function SuspectsDirectory() {
           onClick={() => setFilter('all')}
           style={{ ...styles.tabBtn, backgroundColor: filter === 'all' ? '#8b3a3a' : '#1e293b' }}
         >
-          All Characters ({suspects.length})
+          All Identified Persons
         </button>
         <button
           onClick={() => setFilter('prime')}
           style={{ ...styles.tabBtn, backgroundColor: filter === 'prime' ? '#8b3a3a' : '#1e293b' }}
         >
-          Prime Suspects ({primeSuspects.length})
+          Prime Suspects
         </button>
         <button
           onClick={() => setFilter('witness')}
           style={{ ...styles.tabBtn, backgroundColor: filter === 'witness' ? '#8b3a3a' : '#1e293b' }}
         >
-          Witnesses & Staff ({otherCharacters.length})
+          Witnesses & Staff
         </button>
       </div>
 
       {/* Suspect Cards Grid */}
       <div className="suspect-board" style={{ maxWidth: '1200px', marginTop: '15px' }}>
         {displayedSuspects.map((suspect, index) => {
-          const isUnlocked = unlockedSuspects.includes(suspect.id);
           const state = suspectStates[suspect.id] || {
             trustScore: suspect.initialTrust ?? 50,
             stressLevel: suspect.initialStress ?? 20,
@@ -135,54 +134,6 @@ export default function SuspectsDirectory() {
 
           const categoryInfo = getCategoryBadge(suspect.category, suspect.isPrimeSuspect);
           const personalityInfo = getPersonalityBadge(suspect.personality);
-
-          if (!isUnlocked) {
-            return (
-              <div
-                key={suspect.id}
-                className="polaroid"
-                style={{
-                  transform: `rotate(${index % 2 === 0 ? 1.5 : -1.5}deg)`,
-                  width: '280px',
-                  padding: '14px 14px 20px 14px',
-                  backgroundColor: '#f1f1f1',
-                  opacity: 0.85,
-                  border: '2px dashed #999',
-                  cursor: 'not-allowed'
-                }}
-                title="Unknown Person of Interest. Interrogate other suspects or canvass crime scenes to uncover identity."
-              >
-                <div
-                  style={{
-                    width: '100%',
-                    height: '140px',
-                    background: 'linear-gradient(135deg, #1f2937, #111827)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderRadius: '3px'
-                  }}
-                >
-                  <span style={{ fontSize: '3rem', filter: 'grayscale(100%)' }}>🔒</span>
-                  <span style={{ color: '#aaa', fontFamily: 'monospace', fontSize: '0.75rem', marginTop: '6px' }}>
-                    UNDISCLOSED IDENTITY
-                  </span>
-                </div>
-                <div className="polaroid-caption" style={{ marginTop: '12px', textAlign: 'center' }}>
-                  <strong style={{ fontSize: '1.15rem', color: '#666', display: 'block' }}>
-                    ??? Unknown Character
-                  </strong>
-                  <div style={{ color: '#888', fontFamily: 'monospace', fontSize: '0.8rem', marginTop: '4px' }}>
-                    Identity Unidentified
-                  </div>
-                  <div style={{ backgroundColor: 'rgba(0,0,0,0.05)', padding: '8px', borderRadius: '4px', margin: '10px 0', fontSize: '0.78rem', color: '#555', fontFamily: 'monospace' }}>
-                    🔎 <em>Lead not yet revealed. Interrogate known persons or canvass crime scenes to unlock this person.</em>
-                  </div>
-                </div>
-              </div>
-            );
-          }
 
           return (
             <div

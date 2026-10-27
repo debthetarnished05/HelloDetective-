@@ -23,7 +23,7 @@ export default function EvidenceLocker() {
   return (
     <div className="page-wrapper">
       <div className="taped-title handwritten">
-        Evidence Locker ({displayEvidence.length} Clues Unlocked)
+        Evidence Locker
       </div>
 
       <p style={{ color: 'white', fontFamily: 'monospace', fontSize: '0.95rem', marginBottom: '20px', textAlign: 'center' }}>

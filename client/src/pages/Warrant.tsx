@@ -3,7 +3,7 @@ import { useGameStore } from '../store/gameStore';
 import { gameApi } from '../api/client';
 
 export default function Warrant() {
-  const { sessionId, story, unlockedEvidence, recordedClues, caseClosingTriggered, remainingClosingQuestions, interrogationLocked } = useGameStore();
+  const { sessionId, story, unlockedEvidence, recordedClues, caseClosingTriggered, remainingClosingQuestions, interrogationLocked, unlockedSuspects } = useGameStore();
 
   const [suspect, setSuspect] = useState('');
   const [motive, setMotive] = useState('');
@@ -18,7 +18,7 @@ export default function Warrant() {
   } | null>(null);
 
   const availableEvidence = (story?.evidence || []).filter(e => unlockedEvidence.includes(e.id));
-  const suspects = story?.suspects || [];
+  const suspects = (story?.suspects || []).filter(s => unlockedSuspects.includes(s.id));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

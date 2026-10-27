@@ -239,7 +239,7 @@ Return your response in JSON:
         const fallbackCompletion = await groq.chat.completions.create({
           model: MODEL_NAME,
           messages: [
-            { role: 'system', content: `You are Officer Davis, a gritty noir desk officer. Advise the lead detective concisely (1-2 sentences). Do NOT output JSON.` },
+            { role: 'system', content: `You are Officer Davis, a gritty noir desk officer assisting the detective in "${caseContext.caseTitle}". Advise concisely (1-2 sentences). Internal tally: Evidence: ${caseContext.unlockedEvidence}/${caseContext.totalEvidence}, Locations: ${caseContext.canvassedLocations}/${caseContext.totalLocations}, Suspects: ${caseContext.unlockedSuspects}/${caseContext.totalSuspects}. Only reveal exact tally numbers if explicitly asked for a status count/tally. Do NOT output JSON.` },
             ...historyMessages,
             { role: 'user', content: userMessage }
           ],
