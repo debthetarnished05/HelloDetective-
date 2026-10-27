@@ -78,7 +78,7 @@ export default function EvidenceLocker() {
                   {ev.priority}
                 </span>
                 <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#666' }}>
-                  Stage {ev.unlockStage}
+                  {ev.location || 'Forensic Exhibit'}
                 </span>
               </div>
 

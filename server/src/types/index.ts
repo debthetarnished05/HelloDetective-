@@ -17,6 +17,17 @@ export interface IObjectives {
   currentObjectives: string[];
 }
 
+export type SuspectPersonality = 'confident' | 'nervous' | 'cunning' | 'aggressive' | 'defensive';
+
+export interface IDynamicUnlockRule {
+  type: 'evidence' | 'location' | 'character';
+  targetId: string;
+  triggerStress?: number;
+  triggerEvidenceId?: string;
+  revealDialogue?: string;
+  revealed?: boolean;
+}
+
 export interface ILocationItem {
   id: string;
   title: string;
@@ -25,7 +36,10 @@ export interface ILocationItem {
   lastVisited: string;
   witnesses: string;
   notes: string;
-  unlockStage: number; // 1 to 4
+  unlockStage?: number;
+  isInitiallyUnlocked?: boolean;
+  hiddenEvidenceIds?: string[];
+  canvassReport?: string;
   imageUrl?: string;
 }
 
@@ -37,7 +51,9 @@ export interface IEvidenceItem {
   date: string;
   location: string;
   priority: 'Low' | 'Medium' | 'High' | 'Critical';
-  unlockStage: number; // 1 to 4
+  unlockStage?: number;
+  isInitiallyUnlocked?: boolean;
+  locationId?: string;
   imageUrl?: string;
 }
 
@@ -46,6 +62,9 @@ export interface ISuspectItem {
   name: string;
   role: string;
   trait: string;
+  personality?: SuspectPersonality;
+  isInitiallyUnlocked?: boolean;
+  dynamicUnlocks?: IDynamicUnlockRule[];
   initialTrust: number; // 0 - 100
   initialStress: number; // 0 - 100
   alibi: string;
@@ -56,14 +75,14 @@ export interface ISuspectItem {
   evidenceReactions?: Record<string, string>; // Special reactions to specific evidence IDs
   avatarUrl?: string;
   isPrimeSuspect?: boolean;
-  category?: 'prime_suspect' | 'person_of_interest' | 'witness';
+  category?: 'prime_suspect' | 'person_of_interest' | 'witness' | 'secondary_suspect';
 }
 
 export interface IStageDefinition {
   stage: number;
   title: string;
   description: string;
-  gateRules: string; // Evaluation rules for Officer Davis
+  gateRules: string;
   unlockEvidenceIds: string[];
   unlockLocationIds: string[];
 }
@@ -99,7 +118,7 @@ export interface IStory {
   locations: ILocationItem[];
   evidence: IEvidenceItem[];
   suspects: ISuspectItem[];
-  stages: IStageDefinition[];
+  stages?: IStageDefinition[];
   groundTruth: IGroundTruth;
   isDefault?: boolean;
 }

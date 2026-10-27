@@ -7,6 +7,11 @@ interface GameState {
   story: IStory | null;
   unlockedEvidence: string[];
   unlockedLocations: string[];
+  unlockedSuspects: string[];
+  canvassedLocations: string[];
+  caseClosingTriggered: boolean;
+  remainingClosingQuestions: number;
+  interrogationLocked: boolean;
   suspectStates: Record<string, ISuspectRuntimeState>;
   officerChatHistory: IOfficerChatMessage[];
   notes: string;
@@ -25,6 +30,10 @@ interface GameState {
   setActiveSuspect: (suspectId: string | null) => void;
   setDraggedEvidence: (evidenceId: string | null) => void;
   setLoading: (loading: boolean) => void;
+  markLocationCanvassed: (locationId: string, newlyFoundEvidenceIds?: string[]) => void;
+  setClosingState: (data: { caseClosingTriggered?: boolean; remainingClosingQuestions?: number; interrogationLocked?: boolean }) => void;
+  setUnlockedEntities: (data: { suspects?: string[]; locations?: string[]; evidence?: string[] }) => void;
+  setOfficerChatHistory: (history: IOfficerChatMessage[]) => void;
 }
 
 export const useGameStore = create<GameState>((set) => ({
@@ -33,6 +42,11 @@ export const useGameStore = create<GameState>((set) => ({
   story: null,
   unlockedEvidence: [],
   unlockedLocations: [],
+  unlockedSuspects: [],
+  canvassedLocations: [],
+  caseClosingTriggered: false,
+  remainingClosingQuestions: 12,
+  interrogationLocked: false,
   suspectStates: {},
   officerChatHistory: [],
   notes: '',
@@ -62,6 +76,11 @@ export const useGameStore = create<GameState>((set) => ({
       story,
       unlockedEvidence: session.unlockedEvidence || [],
       unlockedLocations: session.unlockedLocations || [],
+      unlockedSuspects: session.unlockedSuspects || (story.suspects || []).slice(0, 2).map((s: any) => s.id),
+      canvassedLocations: session.canvassedLocations || [],
+      caseClosingTriggered: session.caseClosingTriggered || false,
+      remainingClosingQuestions: session.remainingClosingQuestions !== undefined ? session.remainingClosingQuestions : 12,
+      interrogationLocked: session.interrogationLocked || false,
       suspectStates: states,
       officerChatHistory: session.officerChatHistory || [],
       notes: session.notes || '',
@@ -126,5 +145,29 @@ export const useGameStore = create<GameState>((set) => ({
 
   setDraggedEvidence: (evidenceId) => set({ draggedEvidenceId: evidenceId }),
 
-  setLoading: (loading) => set({ isLoading: loading })
+  setLoading: (loading) => set({ isLoading: loading }),
+
+  markLocationCanvassed: (locationId, newlyFoundEvidenceIds = []) =>
+    set((state) => ({
+      canvassedLocations: state.canvassedLocations.includes(locationId)
+        ? state.canvassedLocations
+        : [...state.canvassedLocations, locationId],
+      unlockedEvidence: [...new Set([...state.unlockedEvidence, ...newlyFoundEvidenceIds])]
+    })),
+
+  setClosingState: (data) =>
+    set((state) => ({
+      caseClosingTriggered: data.caseClosingTriggered !== undefined ? data.caseClosingTriggered : state.caseClosingTriggered,
+      remainingClosingQuestions: data.remainingClosingQuestions !== undefined ? data.remainingClosingQuestions : state.remainingClosingQuestions,
+      interrogationLocked: data.interrogationLocked !== undefined ? data.interrogationLocked : state.interrogationLocked
+    })),
+
+  setUnlockedEntities: ({ suspects, locations, evidence }) =>
+    set((state) => ({
+      unlockedSuspects: suspects ? [...new Set([...state.unlockedSuspects, ...suspects])] : state.unlockedSuspects,
+      unlockedLocations: locations ? [...new Set([...state.unlockedLocations, ...locations])] : state.unlockedLocations,
+      unlockedEvidence: evidence ? [...new Set([...state.unlockedEvidence, ...evidence])] : state.unlockedEvidence
+    })),
+
+  setOfficerChatHistory: (history) => set({ officerChatHistory: history })
 }));

@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useGameStore } from '../store/gameStore';
 
 export default function Navigation() {
-  const { currentStage, story } = useGameStore();
+  const { story, caseClosingTriggered, remainingClosingQuestions, interrogationLocked } = useGameStore();
   const location = useLocation();
 
   const isActive = (path: string) => location.pathname === path;
@@ -13,19 +13,52 @@ export default function Navigation() {
         <h2 style={{ fontFamily: 'Caveat, cursive', margin: 0, fontSize: '1.8rem', color: '#ffd54f' }}>
           {story?.title || 'Hello Detective!'}
         </h2>
-        <span
-          style={{
-            backgroundColor: '#8b3a3a',
-            color: 'white',
-            fontFamily: 'monospace',
-            fontSize: '0.75rem',
-            padding: '3px 8px',
-            borderRadius: '10px',
-            fontWeight: 'bold'
-          }}
-        >
-          STAGE {currentStage}
-        </span>
+        {interrogationLocked ? (
+          <span
+            style={{
+              backgroundColor: '#b71c1c',
+              color: 'white',
+              fontFamily: 'monospace',
+              fontSize: '0.75rem',
+              padding: '4px 10px',
+              borderRadius: '10px',
+              fontWeight: 'bold',
+              letterSpacing: '0.5px'
+            }}
+          >
+            🔒 INTERROGATION LOCKED
+          </span>
+        ) : caseClosingTriggered ? (
+          <span
+            style={{
+              backgroundColor: '#d97706',
+              color: 'white',
+              fontFamily: 'monospace',
+              fontSize: '0.75rem',
+              padding: '4px 10px',
+              borderRadius: '10px',
+              fontWeight: 'bold',
+              letterSpacing: '0.5px',
+              boxShadow: '0 0 10px rgba(217,119,6,0.6)'
+            }}
+          >
+            ⏳ CLOSING ({remainingClosingQuestions} Qs LEFT)
+          </span>
+        ) : (
+          <span
+            style={{
+              backgroundColor: '#1e40af',
+              color: 'white',
+              fontFamily: 'monospace',
+              fontSize: '0.75rem',
+              padding: '3px 9px',
+              borderRadius: '10px',
+              fontWeight: 'bold'
+            }}
+          >
+            ACTIVE CASE
+          </span>
+        )}
       </div>
 
       <div style={styles.links}>
@@ -42,7 +75,7 @@ export default function Navigation() {
           Suspects
         </Link>
         <Link to="/officer" style={{ ...styles.link, borderBottom: isActive('/officer') ? '2px solid #ffd54f' : 'none' }}>
-          Officer Davis (Deductions)
+          Officer Davis (Advisor)
         </Link>
         <Link to="/warrant" style={{ ...styles.link, color: '#ff8a80', borderBottom: isActive('/warrant') ? '2px solid #ff8a80' : 'none' }}>
           Submit Warrant

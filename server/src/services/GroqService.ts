@@ -49,15 +49,25 @@ function getGroqClient(): Groq {
 
 export class GroqService {
 
-  // 1. Suspect Interrogation (Dual-Memory, Trust, Stress & Evidence Reaction)
+  // 1. Suspect Interrogation (Dual-Memory, Trust, Stress & Personality)
   static async chatWithSuspect(
     suspectProfile: ISuspectItem,
     suspectState: ISuspectRuntimeState,
     userMessage: string,
     presentedEvidence: IEvidenceItem | null = null,
-    allRevealedFactsAcrossSuspects: string[] = []
+    allRevealedFactsAcrossSuspects: string[] = [],
+    mandatoryUnlockDialogue?: string
   ) {
     const groq = getGroqClient();
+
+    const personality = suspectProfile.personality || 'defensive';
+    const personalityGuides: Record<string, string> = {
+      confident: 'PERSONALITY ARCHETYPE: CONFIDENT. You are smug, polite, and dismissive of circumstantial accusations. You only gain stress if presented with hard, undeniable physical evidence. Keep your composure and smirk at weak questions.',
+      nervous: 'PERSONALITY ARCHETYPE: NERVOUS. You are twitchy, easily rattled, defensive, and stutter when pressed. Mild pressure increases your stress rapidly, and you easily let slip details or blurt out excuses.',
+      cunning: 'PERSONALITY ARCHETYPE: CUNNING. You are polite, calculated, deflect blame toward other suspects, and mask your emotions until backed into an undeniable logical corner.',
+      aggressive: 'PERSONALITY ARCHETYPE: AGGRESSIVE. You are hostile, confrontational, snap back at questions, and threaten to get the detective\'s badge. Provoking you causes angry, reckless slips of the tongue.',
+      defensive: 'PERSONALITY ARCHETYPE: DEFENSIVE. You are guarded, give short measured answers, watch your words carefully, and demand strict legal procedure.'
+    };
 
     const evidenceReactionHint = presentedEvidence && suspectProfile.evidenceReactions?.[presentedEvidence.id]
       ? `SPECIFIC EVIDENCE REACTION: When shown "${presentedEvidence.title}", your secret reaction is: "${suspectProfile.evidenceReactions[presentedEvidence.id]}". Act this out!`
@@ -66,6 +76,7 @@ export class GroqService {
     const systemPrompt = `You are roleplaying as ${suspectProfile.name} in a murder mystery investigation.
 ROLE: ${suspectProfile.role}
 PERSONALITY & TRAITS: ${suspectProfile.trait}
+${personalityGuides[personality] || personalityGuides.defensive}
 STATED INITIAL ALIBI: "${suspectProfile.alibi}"
 SUSPECTED MOTIVE: "${suspectProfile.motive}"
 
@@ -78,7 +89,7 @@ BREAKDOWN THRESHOLD: ${suspectProfile.breakdownThreshold}/100
 === BEHAVIOR RULES BY METER ===
 - If Trust < 30: You are defensive, cold, annoyed, stonewalling, or demand to speak to your attorney.
 - If Trust > 70: You are cooperative, sincere, and willing to share context about other people.
-- If Stress < 40: You speak smoothly and defend your alibi confidently.
+- If Stress < 40: You speak smoothly and defend your alibi confidently according to your personality.
 - If Stress between 50 and 75: You show visible anxiety, fidgeting, perspiration, stuttering, and defensive irritation.
 - If Stress >= ${suspectProfile.breakdownThreshold}: You reach your BREAKDOWN STATE! Your composure crumbles completely. You burst into tears or panic and confess one of your hidden secrets!
 
@@ -92,6 +103,11 @@ ${JSON.stringify(suspectProfile.secrets, null, 2)}
 3. REVEALED FACTS LEDGER (Statements you ALREADY admitted to the detective in prior turns):
 ${JSON.stringify(suspectState.revealedFacts, null, 2)}
 CRITICAL RULE: You have ALREADY admitted these facts. You CANNOT deny them or contradict yourself!
+
+${mandatoryUnlockDialogue ? `=== CRITICAL UNLOCK MOMENT (MANDATORY) ===
+Your defense has fractured! You MUST incorporate the following slip-up or admission into your response dialogue:
+"${mandatoryUnlockDialogue}"
+Weave this admission naturally into your speech as a slip of the tongue, defensive excuse, or panicked confession!` : ''}
 
 ${presentedEvidence ? `=== EVIDENCE CONFRONTATION RULE ===
 The detective is holding up physical evidence: "${presentedEvidence.title}" (${presentedEvidence.subtitle}).
@@ -155,69 +171,70 @@ You MUST reply with ONLY valid JSON with exactly these keys:
     }
   }
 
-  // 2. The Deduction Gate (Officer Davis)
-  static async evaluateDeduction(
-    currentStage: number,
-    stageDef: IStageDefinition,
-    deduction: string,
-    revealedFacts: string[],
-    groundTruth: IGroundTruth
+  // 2. The Silent Advisor (Officer Davis)
+  static async chatWithOfficerAdvisor(
+    userMessage: string,
+    caseContext: {
+      caseTitle: string;
+      victimName: string;
+      totalEvidence: number;
+      unlockedEvidence: number;
+      totalLocations: number;
+      canvassedLocations: number;
+      totalSuspects: number;
+      unlockedSuspects: number;
+      discoveredClues: string[];
+      groundTruthSummary: string;
+    },
+    chatHistory: { role: string; content: string }[] = []
   ) {
     const groq = getGroqClient();
 
-    const systemPrompt = `You are Officer Davis, a seasoned veteran police officer assisting the lead detective in a homicide case.
-You evaluate whether the detective's theory has enough substance and evidence to advance to the next stage of the investigation.
+    const systemPrompt = `You are Officer Davis, a gritty, sharp, and loyal veteran desk officer assisting the lead detective in the homicide investigation: "${caseContext.caseTitle}" (Victim: ${caseContext.victimName}).
 
-CURRENT STAGE: ${currentStage} - "${stageDef.title}"
-STAGE GOAL & GATE RULES: "${stageDef.gateRules}"
-GROUND TRUTH SUMMARY: "${groundTruth.timelineSummary}"
+=== YOUR ROLE AS SILENT ADVISOR ===
+1. You assist the detective with case notes, guidance, and observational insights.
+2. CRITICAL RULE ON COUNTS/PROGRESS:
+   - Do NOT spontaneously volunteer the exact counts or completion statistics (e.g. "We have 4 of 6 evidence").
+   - ONLY report the exact numerical progress if the detective EXPLICITLY asks for a sit-rep, status report, count, or how many leads are remaining!
+   - Current actual tracking (internal knowledge):
+     * Evidence recovered: ${caseContext.unlockedEvidence} of ${caseContext.totalEvidence}
+     * Locations canvassed: ${caseContext.canvassedLocations} of ${caseContext.totalLocations}
+     * Suspects/Witnesses identified: ${caseContext.unlockedSuspects} of ${caseContext.totalSuspects}
+3. If the detective asks for a suggestion on where to look or who to sweat:
+   - Provide a realistic, grounded noir tip based on current progress. Remind them to cross-reference statements with physical crime scenes or press suspect nerves.
+4. Speak in authentic, concise noir police dialogue (1 to 3 sentences).
 
-EVIDENCE / FACTS ADMITTED BY SUSPECTS SO FAR:
-${JSON.stringify(revealedFacts, null, 2)}
+Recent clues in the case file:
+${JSON.stringify(caseContext.discoveredClues.slice(-5), null, 2)}
 
-DETECTIVE'S SUBMITTED DEDUCTION:
-"${deduction}"
-
-EVALUATION CRITERIA:
-- The detective does NOT need identical phrasing, but they MUST capture the core insight described in the GATE RULES (e.g., catching the specific lie, discovering the real motive, or linking the weapon/opportunity).
-- If their deduction is accurate and grounded in the facts uncovered:
-  - "isApproved": true
-  - "dialogue": Gritty, encouraging police dialogue (e.g. "Good work, Detective. That cracks this wide open. I'll get a warrant signed right away.")
-- If their deduction is incomplete, premature, or wrong:
-  - "isApproved": false
-  - "dialogue": Constructive police skepticism (e.g. "I hear what you're saying, Detective, but the DA won't sign off on a hunch. We need concrete proof that places him there.")
-
-You MUST respond in ONLY valid JSON:
+Return your response in JSON:
 {
-  "isApproved": boolean,
-  "dialogue": "Your in-character spoken words as Officer Davis",
-  "feedback": "A short detective note giving guidance on what proof is still missing"
+  "dialogue": "Officer Davis's in-character spoken dialogue."
 }`;
+
+    const historyMessages = (chatHistory || []).slice(-6).map(m => ({
+      role: m.role as 'user' | 'assistant',
+      content: m.content
+    }));
 
     const completion = await groq.chat.completions.create({
       model: MODEL_NAME,
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Officer Davis, review my deduction: "${deduction}"` }
+        ...historyMessages,
+        { role: 'user', content: userMessage }
       ],
       response_format: { type: 'json_object' },
-      temperature: 0.3,
-      max_tokens: 350
+      temperature: 0.6,
+      max_tokens: 300
     });
 
     try {
       const parsed = JSON.parse(completion.choices[0]?.message?.content || '{}');
-      return {
-        isApproved: Boolean(parsed.isApproved),
-        dialogue: parsed.dialogue || "We need more than that to make a move, Detective.",
-        feedback: parsed.feedback || "Cross-examine suspect alibis with physical logs."
-      };
+      return parsed.dialogue || "Keep shaking the tree, Detective. Someone's bound to slip up.";
     } catch (e) {
-      return {
-        isApproved: false,
-        dialogue: "I can't take this to the Captain yet. Bring me harder evidence.",
-        feedback: "Check the timeline contradictions."
-      };
+      return "I'm holding down the precinct desk, Detective. What's your play?";
     }
   }
 
@@ -334,7 +351,7 @@ Respond with ONLY valid JSON:
     const blueprint = ARCHETYPE_BLUEPRINTS[archetype];
 
     const systemPrompt = `You are a master mystery writer and detective game designer.
-Generate a complete, fully playable 4-stage detective murder mystery game in valid JSON.
+Generate a complete, fully playable dynamic lead-web detective murder mystery game in valid JSON.
 
 === MANDATORY MYSTERY ARCHETYPE ===
 SELECTED ARCHETYPE: "${archetype}" (${blueprint.name})
@@ -344,7 +361,13 @@ ${blueprint.instructions}
 
 USER PREMISE/THEME: "${promptTheme || 'A gripping high-stakes murder mystery with multiple suspects and corporate/personal secrets.'}"
 
-REQUIRED STRUCTURE (Must match exactly):
+=== DYNAMIC LEAD-WEB ARCHITECTURE ===
+- NO rigid artificial stages! Instead, structure the case as an organic Web of Leads.
+- Locations: 3-5 locations. Exactly 1 or 2 are "isInitiallyUnlocked": true (the primary crime scene). Other locations are discovered dynamically when suspects slip up under stress or when searching scenes!
+- Evidence: 5-8 evidence items. Exactly 1 or 2 are "isInitiallyUnlocked": true. Others are hidden at locations ("locationId") or revealed by suspects.
+- Suspects: 3-5 suspects. 2-3 are "isInitiallyUnlocked": true. Each has a distinct personality ("confident" | "nervous" | "cunning" | "aggressive" | "defensive") and "dynamicUnlocks" rules specifying what they blurt out when stressed or shown evidence!
+
+REQUIRED JSON STRUCTURE (Must match exactly):
 {
   "title": "Compelling Title",
   "caseNumber": "2025-XXXX-XX",
@@ -364,7 +387,7 @@ REQUIRED STRUCTURE (Must match exactly):
   },
   "objectives": {
     "progress": ["2-3 past completed initial steps"],
-    "currentObjectives": ["3-4 clear objectives for the detective"]
+    "currentObjectives": ["Canvass crime scenes", "Interrogate initial suspects", "Follow forensic leads"]
   },
   "locations": [
     {
@@ -373,9 +396,11 @@ REQUIRED STRUCTURE (Must match exactly):
       "subtitle": "Address/Area",
       "status": "Active Crime Scene | Location of Interest",
       "lastVisited": "Date or Pending",
-      "witnesses": "Witness names",
+      "witnesses": "Witness names or None",
       "notes": "Description and what might be found here",
-      "unlockStage": 1 // 1, 2, 3, or 4
+      "isInitiallyUnlocked": true, // Exactly 1 or 2 initial scenes are true
+      "hiddenEvidenceIds": ["evidence_slug_found_here"],
+      "canvassReport": "What CSI investigators discover upon canvassing this scene."
     }
   ],
   "evidence": [
@@ -387,7 +412,8 @@ REQUIRED STRUCTURE (Must match exactly):
       "date": "Date found",
       "location": "Where found",
       "priority": "Critical" | "High" | "Medium" | "Low",
-      "unlockStage": 1 // 1, 2, 3, or 4
+      "isInitiallyUnlocked": true, // Exactly 1 or 2 initial clues are true
+      "locationId": "location_slug_where_hidden"
     }
   ],
   "suspects": [
@@ -396,52 +422,29 @@ REQUIRED STRUCTURE (Must match exactly):
       "name": "Full Name",
       "role": "Relationship to victim",
       "trait": "Distinctive personality traits",
+      "personality": "confident" | "nervous" | "cunning" | "aggressive" | "defensive",
+      "isInitiallyUnlocked": true, // 2-3 are true; others unlocked when named
       "initialTrust": 50,
       "initialStress": 25,
       "alibi": "Their public story of where they were",
       "motive": "Why they could have wanted the victim dead",
       "privateKnowledge": "What they privately know, what they hide, and their actual actions",
-      "secrets": ["Secret 1", "Secret 2", "Secret 3"],
+      "secrets": ["Secret 1", "Secret 2"],
       "breakdownThreshold": 80,
       "evidenceReactions": {
         "evidence_slug": "How they react when shown this specific evidence"
       },
+      "dynamicUnlocks": [
+        {
+          "type": "location" | "evidence" | "character",
+          "targetId": "slug_of_target_to_unlock",
+          "triggerStress": 55, // or omit if triggered by evidence
+          "triggerEvidenceId": "evidence_slug", // or omit if triggered by stress
+          "revealDialogue": "What the suspect blurts out that reveals this new location, clue, or person!"
+        }
+      ],
       "isPrimeSuspect": true,
-      "category": "prime_suspect"
-    }
-  ],
-  "stages": [
-    {
-      "stage": 1,
-      "title": "Stage 1: The Initial Scene (The Lie)",
-      "description": "Expose the first major flaw in someone's alibi",
-      "gateRules": "Exact condition the detective must state to Officer Davis to advance",
-      "unlockEvidenceIds": ["evidence_slug"],
-      "unlockLocationIds": ["location_slug"]
-    },
-    {
-      "stage": 2,
-      "title": "Stage 2: The Hidden Web (The Motive)",
-      "description": "Uncover the financial or personal motive",
-      "gateRules": "Exact condition the detective must deduce to advance to stage 3",
-      "unlockEvidenceIds": ["evidence_slug"],
-      "unlockLocationIds": ["location_slug"]
-    },
-    {
-      "stage": 3,
-      "title": "Stage 3: The Cornered Suspects (The Opportunity & Weapon)",
-      "description": "Discover how security was breached or where the weapon was hidden",
-      "gateRules": "Exact condition the detective must deduce to advance to stage 4",
-      "unlockEvidenceIds": ["evidence_slug"],
-      "unlockLocationIds": ["location_slug"]
-    },
-    {
-      "stage": 4,
-      "title": "Stage 4: The Final Squeeze",
-      "description": "Confront the killer and prepare the arrest warrant",
-      "gateRules": "Stage 4 requires submitting the final Arrest Warrant to the Judge",
-      "unlockEvidenceIds": [],
-      "unlockLocationIds": []
+      "category": "prime_suspect" | "person_of_interest" | "witness"
     }
   ],
   "groundTruth": {
@@ -462,7 +465,7 @@ Return ONLY valid JSON.`;
       model: MODEL_NAME,
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Generate a brilliant detective mystery using archetype "${archetype}".${promptTheme ? ` Custom prompt/theme: "${promptTheme}".` : ''}` }
+        { role: 'user', content: `Generate a brilliant dynamic lead-web mystery using archetype "${archetype}".${promptTheme ? ` Custom prompt/theme: "${promptTheme}".` : ''}` }
       ],
       response_format: { type: 'json_object' },
       temperature: 0.8,
@@ -556,18 +559,23 @@ Return ONLY valid JSON.`;
     }
 
     // Normalize suspects
+    const validPersonalities = ['confident', 'nervous', 'cunning', 'aggressive', 'defensive'];
     if (Array.isArray(parsed.suspects)) {
       parsed.suspects = parsed.suspects.map((s: any, idx: number) => {
         let cat = (s.category || '').toLowerCase();
         if (!['prime_suspect', 'person_of_interest', 'witness', 'secondary_suspect'].includes(cat)) {
           cat = s.isPrimeSuspect ? 'prime_suspect' : 'person_of_interest';
         }
+        const pers = (s.personality || '').toLowerCase();
         return {
           ...s,
           id: s.id || `suspect_${idx + 1}`,
           name: s.name || `Suspect ${idx + 1}`,
           role: s.role || 'Person of Interest',
           trait: s.trait || 'Reserved',
+          personality: validPersonalities.includes(pers) ? pers : 'defensive',
+          isInitiallyUnlocked: typeof s.isInitiallyUnlocked === 'boolean' ? s.isInitiallyUnlocked : idx < 2,
+          dynamicUnlocks: Array.isArray(s.dynamicUnlocks) ? s.dynamicUnlocks : [],
           alibi: s.alibi || 'No comment provided.',
           motive: s.motive || 'Unknown',
           privateKnowledge: s.privateKnowledge || '',
@@ -579,6 +587,30 @@ Return ONLY valid JSON.`;
           breakdownThreshold: typeof s.breakdownThreshold === 'number' ? s.breakdownThreshold : 75
         };
       });
+      // Ensure at least 1 suspect is unlocked
+      if (!parsed.suspects.some((s: any) => s.isInitiallyUnlocked)) {
+        if (parsed.suspects[0]) parsed.suspects[0].isInitiallyUnlocked = true;
+      }
+    }
+
+    // Normalize locations
+    if (Array.isArray(parsed.locations)) {
+      parsed.locations = parsed.locations.map((l: any, idx: number) => ({
+        ...l,
+        id: l.id || `location_${idx + 1}`,
+        title: l.title || `Investigation Site ${idx + 1}`,
+        subtitle: l.subtitle || 'Vicinity',
+        status: l.status || 'Location of Interest',
+        lastVisited: l.lastVisited || 'Pending',
+        witnesses: l.witnesses || 'None',
+        notes: l.notes || '',
+        isInitiallyUnlocked: typeof l.isInitiallyUnlocked === 'boolean' ? l.isInitiallyUnlocked : idx === 0,
+        hiddenEvidenceIds: Array.isArray(l.hiddenEvidenceIds) ? l.hiddenEvidenceIds : [],
+        canvassReport: l.canvassReport || `Forensic sweep of ${l.title || 'the location'} completed.`
+      }));
+      if (!parsed.locations.some((l: any) => l.isInitiallyUnlocked)) {
+        if (parsed.locations[0]) parsed.locations[0].isInitiallyUnlocked = true;
+      }
     }
 
     // Normalize evidence
@@ -600,37 +632,16 @@ Return ONLY valid JSON.`;
           date: e.date || 'Recent',
           location: e.location || 'Crime Scene',
           priority: priorityMap[pKey] || 'Medium',
-          unlockStage: Number(e.unlockStage) || 1
+          isInitiallyUnlocked: typeof e.isInitiallyUnlocked === 'boolean' ? e.isInitiallyUnlocked : idx === 0,
+          locationId: e.locationId || (parsed.locations?.[0]?.id || 'location_1')
         };
       });
+      if (!parsed.evidence.some((e: any) => e.isInitiallyUnlocked)) {
+        if (parsed.evidence[0]) parsed.evidence[0].isInitiallyUnlocked = true;
+      }
     }
 
-    // Normalize locations
-    if (Array.isArray(parsed.locations)) {
-      parsed.locations = parsed.locations.map((l: any, idx: number) => ({
-        ...l,
-        id: l.id || `location_${idx + 1}`,
-        title: l.title || `Investigation Site ${idx + 1}`,
-        subtitle: l.subtitle || 'Vicinity',
-        status: l.status || 'Active Crime Scene',
-        lastVisited: l.lastVisited || 'Pending',
-        witnesses: l.witnesses || 'None',
-        notes: l.notes || '',
-        unlockStage: Number(l.unlockStage) || 1
-      }));
-    }
-
-    // Normalize stages
-    if (Array.isArray(parsed.stages)) {
-      parsed.stages = parsed.stages.map((st: any, idx: number) => ({
-        stage: Number(st.stage) || idx + 1,
-        title: st.title || `Stage ${idx + 1}`,
-        description: st.description || 'Investigation progression',
-        gateRules: st.gateRules || 'Report key breakthrough to Officer Davis.',
-        unlockEvidenceIds: Array.isArray(st.unlockEvidenceIds) ? st.unlockEvidenceIds : [],
-        unlockLocationIds: Array.isArray(st.unlockLocationIds) ? st.unlockLocationIds : []
-      }));
-    }
+    parsed.stages = [];
 
     return parsed as IStory;
   }

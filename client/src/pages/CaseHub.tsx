@@ -1,7 +1,7 @@
 import { useGameStore } from '../store/gameStore';
 
 export default function CaseHub() {
-  const { story, currentStage } = useGameStore();
+  const { story } = useGameStore();
 
   if (!story) {
     return (
@@ -11,8 +11,6 @@ export default function CaseHub() {
     );
   }
 
-  const currentStageDef = story.stages?.find(s => s.stage === currentStage);
-
   const primeSuspects = (story.suspects || []).filter(s => s.isPrimeSuspect || s.category === 'prime_suspect');
   const displaySuspects = primeSuspects.length > 0 ? primeSuspects.slice(0, 3) : (story.suspects || []).slice(0, 3);
 
@@ -20,7 +18,7 @@ export default function CaseHub() {
     <div className="page-wrapper">
       {/* Title Card */}
       <div className="taped-title handwritten">
-        {story.title} · Stage {currentStage}: {currentStageDef ? currentStageDef.title : ''}
+        {story.title} · Active Case File
       </div>
 
       {/* Grid Layout for the Dashboard Notes */}

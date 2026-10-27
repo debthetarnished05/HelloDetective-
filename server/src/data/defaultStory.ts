@@ -40,7 +40,9 @@ export const DEFAULT_STORY: IStory = {
       lastVisited: 'April 18, 2025',
       witnesses: 'Security Guard John Smith, Janitor Maria Garcia',
       notes: 'Primary homicide scene. The victim was found slumped over his desk. Letter opener missing from desk caddy.',
-      unlockStage: 1
+      isInitiallyUnlocked: true,
+      hiddenEvidenceIds: ['crime_scene_photos', 'autopsy_report'],
+      canvassReport: 'Forensic investigators dusted the mahogany desk and recovered the Medical Examiner preliminary autopsy report and detailed crime scene photos.'
     },
     {
       id: 'riverside_brews',
@@ -50,7 +52,9 @@ export const DEFAULT_STORY: IStory = {
       lastVisited: 'Pending Detective Visit',
       witnesses: 'Barista Alex Rivera',
       notes: 'Marcus Chen claims he sat here working alone until midnight. IP address of the threatening email traces to their public Wi-Fi.',
-      unlockStage: 2
+      isInitiallyUnlocked: false,
+      hiddenEvidenceIds: ['threatening_email', 'barista_statement'],
+      canvassReport: 'Detectives swept the public Wi-Fi logs and interviewed the night barista, recovering the email dispatch origin and the barista sworn deposition.'
     },
     {
       id: 'marcus_offsite_lab',
@@ -60,7 +64,9 @@ export const DEFAULT_STORY: IStory = {
       lastVisited: 'Pending Detective Visit',
       witnesses: 'Lab Tech Leo Vance',
       notes: 'Private server racks and development benches. Potential storage for proprietary corporate data and foreign contracts.',
-      unlockStage: 3
+      isInitiallyUnlocked: false,
+      hiddenEvidenceIds: ['secret_partnership_agreement'],
+      canvassReport: 'A search warrant at the incubator lab revealed locked server racks containing the foreign acquisition contract between Marcus Chen and Aegis Global.'
     },
     {
       id: 'storm_drain_parkade',
@@ -70,7 +76,9 @@ export const DEFAULT_STORY: IStory = {
       lastVisited: 'Pending Dive Sweep',
       witnesses: 'None',
       notes: 'Maintenance access drain located beneath the rear emergency fire exit stairs.',
-      unlockStage: 4
+      isInitiallyUnlocked: false,
+      hiddenEvidenceIds: ['damascus_letter_opener', 'parkade_security_log'],
+      canvassReport: 'CSI recovery divers dredged the rear alley drain, retrieving the bloodstained Damascus letter opener and recovering parkade Gate B scanner records.'
     }
   ],
   evidence: [
@@ -82,7 +90,7 @@ export const DEFAULT_STORY: IStory = {
       date: 'April 18, 2025',
       location: 'County Morgue',
       priority: 'Critical',
-      unlockStage: 1
+      isInitiallyUnlocked: true
     },
     {
       id: 'crime_scene_photos',
@@ -92,7 +100,7 @@ export const DEFAULT_STORY: IStory = {
       date: 'April 18, 2025',
       location: 'Riverside Corporate Center',
       priority: 'High',
-      unlockStage: 1
+      isInitiallyUnlocked: true
     },
     {
       id: 'parkade_security_log',
@@ -102,7 +110,8 @@ export const DEFAULT_STORY: IStory = {
       date: 'April 17, 2025',
       location: 'Riverside Corporate Center Gate B',
       priority: 'Critical',
-      unlockStage: 1
+      isInitiallyUnlocked: false,
+      locationId: 'storm_drain_parkade'
     },
     {
       id: 'threatening_email',
@@ -112,7 +121,8 @@ export const DEFAULT_STORY: IStory = {
       date: 'April 17, 2025',
       location: 'Riverside Brews / TechVision Servers',
       priority: 'High',
-      unlockStage: 2
+      isInitiallyUnlocked: false,
+      locationId: 'riverside_brews'
     },
     {
       id: 'barista_statement',
@@ -122,7 +132,8 @@ export const DEFAULT_STORY: IStory = {
       date: 'April 19, 2025',
       location: 'Riverside Brews',
       priority: 'Critical',
-      unlockStage: 2
+      isInitiallyUnlocked: false,
+      locationId: 'riverside_brews'
     },
     {
       id: 'secret_partnership_agreement',
@@ -132,7 +143,8 @@ export const DEFAULT_STORY: IStory = {
       date: 'April 12, 2025',
       location: 'Marcus\'s Offsite Lab Safe',
       priority: 'Critical',
-      unlockStage: 3
+      isInitiallyUnlocked: false,
+      locationId: 'marcus_offsite_lab'
     },
     {
       id: 'camera_override_log',
@@ -142,7 +154,8 @@ export const DEFAULT_STORY: IStory = {
       date: 'April 17, 2025',
       location: 'TechVision Mainframe',
       priority: 'Critical',
-      unlockStage: 3
+      isInitiallyUnlocked: false,
+      locationId: 'riverside_corporate_center'
     },
     {
       id: 'damascus_letter_opener',
@@ -152,7 +165,8 @@ export const DEFAULT_STORY: IStory = {
       date: 'April 20, 2025',
       location: 'Rear Service Alley Storm Drain',
       priority: 'Critical',
-      unlockStage: 4
+      isInitiallyUnlocked: false,
+      locationId: 'storm_drain_parkade'
     }
   ],
   suspects: [
@@ -161,6 +175,22 @@ export const DEFAULT_STORY: IStory = {
       name: 'Marcus Chen',
       role: 'Co-Founder & Chief Technology Officer',
       trait: 'Arrogant, calculating, easily defensive when trapped by hard data',
+      personality: 'cunning',
+      isInitiallyUnlocked: true,
+      dynamicUnlocks: [
+        {
+          type: 'location',
+          targetId: 'riverside_brews',
+          triggerStress: 40,
+          revealDialogue: "Fine! If you must know, I was sitting at Riverside Brews coffee shop on 5th Street all night! Go check their Wi-Fi logs if you don't believe me!"
+        },
+        {
+          type: 'location',
+          targetId: 'marcus_offsite_lab',
+          triggerStress: 70,
+          revealDialogue: "The Aegis contract? Who gave you that?! It was locked in my private offsite lab at Pier 9!"
+        }
+      ],
       initialTrust: 45,
       initialStress: 25,
       isPrimeSuspect: true,
@@ -187,6 +217,16 @@ export const DEFAULT_STORY: IStory = {
       name: 'Sarah Reynolds',
       role: 'Victim\'s Sister & Venture Capitalist',
       trait: 'Grieving, high-strung, guarded about her catastrophic debts',
+      personality: 'defensive',
+      isInitiallyUnlocked: true,
+      dynamicUnlocks: [
+        {
+          type: 'character',
+          targetId: 'diana_wilkins',
+          triggerStress: 45,
+          revealDialogue: "Michael wasn't alone that afternoon! I saw Diana Wilkins, his lead systems architect, having an intense argument with him near the server room!"
+        }
+      ],
       initialTrust: 40,
       initialStress: 35,
       isPrimeSuspect: true,
@@ -210,6 +250,22 @@ export const DEFAULT_STORY: IStory = {
       name: 'Diana Wilkins',
       role: 'Lead Systems Architect & Penthouse Neighbor',
       trait: 'Nervous, talkative, terrified of getting caught in an illegal conspiracy',
+      personality: 'nervous',
+      isInitiallyUnlocked: false,
+      dynamicUnlocks: [
+        {
+          type: 'location',
+          targetId: 'storm_drain_parkade',
+          triggerStress: 60,
+          revealDialogue: "I disabled the cameras because Marcus blackmailed me! And after the 11 PM thud, I saw someone sprint toward the rear alley storm drain and ditch something heavy!"
+        },
+        {
+          type: 'evidence',
+          targetId: 'camera_override_log',
+          triggerStress: 45,
+          revealDialogue: "I kept an audit log of the camera override on the mainframe. Here, look at the server timestamps yourself!"
+        }
+      ],
       initialTrust: 55,
       initialStress: 40,
       isPrimeSuspect: true,
@@ -233,6 +289,16 @@ export const DEFAULT_STORY: IStory = {
       name: 'Alex Rivera',
       role: 'Night Barista at Riverside Brews',
       trait: 'Observant, street-smart, defensive about tipping rules and customer privacy',
+      personality: 'confident',
+      isInitiallyUnlocked: false,
+      dynamicUnlocks: [
+        {
+          type: 'evidence',
+          targetId: 'barista_statement',
+          triggerStress: 45,
+          revealDialogue: "Marcus gave me a hundred bucks to lie, but I ain't going down for murder. He stormed out at 10:35 PM in a blind panic."
+        }
+      ],
       initialTrust: 60,
       initialStress: 20,
       isPrimeSuspect: false,
@@ -257,6 +323,16 @@ export const DEFAULT_STORY: IStory = {
       name: 'Leo Vance',
       role: 'Senior Hardware Engineer at Pier 9 Lab',
       trait: 'Bitter, sharp-tongued engineer, obsessed with proprietary patents and unpaid royalties',
+      personality: 'aggressive',
+      isInitiallyUnlocked: false,
+      dynamicUnlocks: [
+        {
+          type: 'evidence',
+          targetId: 'secret_partnership_agreement',
+          triggerStress: 50,
+          revealDialogue: "Marcus hid the Aegis partnership contract right here in the Pier 9 server safe! Here is the safe code."
+        }
+      ],
       initialTrust: 45,
       initialStress: 35,
       isPrimeSuspect: false,
@@ -280,6 +356,16 @@ export const DEFAULT_STORY: IStory = {
       name: 'Maria Garcia',
       role: 'Night Shift Custodian at Riverside Corporate Center',
       trait: 'Observant, polite, terrified of losing her job or immigration status',
+      personality: 'nervous',
+      isInitiallyUnlocked: false,
+      dynamicUnlocks: [
+        {
+          type: 'evidence',
+          targetId: 'parkade_security_log',
+          triggerStress: 40,
+          revealDialogue: "I saw the black Audi speed out of Gate B into the street without headlights at 11:22 PM! Check the gate scanner records!"
+        }
+      ],
       initialTrust: 65,
       initialStress: 25,
       isPrimeSuspect: false,

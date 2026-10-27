@@ -17,10 +17,11 @@ export async function seedDefaultStories() {
     await defaultStory.save();
     console.log('Seeded default story: Silicon Alibi');
   } else {
-    if (!defaultStory.suspects || defaultStory.suspects.length < DEFAULT_STORY.suspects.length) {
-      defaultStory.suspects = DEFAULT_STORY.suspects as any;
-      await defaultStory.save();
-    }
+    defaultStory.locations = DEFAULT_STORY.locations as any;
+    defaultStory.evidence = DEFAULT_STORY.evidence as any;
+    defaultStory.suspects = DEFAULT_STORY.suspects as any;
+    defaultStory.groundTruth = DEFAULT_STORY.groundTruth as any;
+    await defaultStory.save();
   }
 
   // 2. Ensure OPERA_STORY (The Gilded Aria)
@@ -57,14 +58,27 @@ export const startNewGame = async (req: Request, res: Response) => {
       return res.status(500).json({ error: 'Failed to find or seed detective story.' });
     }
 
-    // Determine initial stage 1 unlocks
-    const stage1Evidence = (story.evidence || [])
-      .filter((e: any) => e.unlockStage <= 1)
+    // Determine initial unlocks for dynamic lead-web
+    const initialEvidence = (story.evidence || [])
+      .filter((e: any) => e.isInitiallyUnlocked !== false && (e.unlockStage === undefined || e.unlockStage <= 1))
       .map((e: any) => e.id);
+    if (initialEvidence.length === 0 && story.evidence?.[0]) {
+      initialEvidence.push(story.evidence[0].id);
+    }
 
-    const stage1Locations = (story.locations || [])
-      .filter((l: any) => l.unlockStage <= 1)
+    const initialLocations = (story.locations || [])
+      .filter((l: any) => l.isInitiallyUnlocked !== false && (l.unlockStage === undefined || l.unlockStage <= 1))
       .map((l: any) => l.id);
+    if (initialLocations.length === 0 && story.locations?.[0]) {
+      initialLocations.push(story.locations[0].id);
+    }
+
+    const initialSuspects = (story.suspects || [])
+      .filter((s: any) => s.isInitiallyUnlocked !== false)
+      .map((s: any) => s.id);
+    if (initialSuspects.length === 0) {
+      initialSuspects.push(...(story.suspects || []).slice(0, 2).map((s: any) => s.id));
+    }
 
     // Build initial suspect runtime states
     const suspectsMap = new Map<string, ISuspectRuntimeState>();
@@ -81,14 +95,19 @@ export const startNewGame = async (req: Request, res: Response) => {
 
     const session = new GameSession({
       storyId: story._id,
-      currentStage: 1,
-      unlockedEvidence: stage1Evidence,
-      unlockedLocations: stage1Locations,
+      unlockedEvidence: initialEvidence,
+      unlockedLocations: initialLocations,
+      canvassedLocations: [],
+      unlockedSuspects: initialSuspects,
+      caseClosingTriggered: false,
+      remainingClosingQuestions: 12,
+      interrogationLocked: false,
+      closingNotificationSent: false,
       suspects: suspectsMap,
       officerChatHistory: [
         {
           role: 'assistant',
-          content: `Welcome to the precinct, Detective. We've got a fresh homicide: ${story.victimProfile.name}, found dead in ${story.locations[0]?.title || 'the crime scene'}. Look over the initial scene evidence and start breaking down these alibis. Report back to me when you catch your first lie.`,
+          content: `Welcome to the precinct, Detective. We've got a fresh homicide: ${story.victimProfile.name}, found dead in ${story.locations[0]?.title || 'the crime scene'}. Canvas the crime scene and interrogate our prime suspects. When every lead is uncovered, I'll alert you to prepare the final indictment.`,
           timestamp: new Date()
         }
       ],
@@ -133,6 +152,27 @@ export const getSessionState = async (req: Request, res: Response) => {
   }
 };
 
+function checkAndTriggerClosing(session: any, story: any): boolean {
+  const totalLocations = (story.locations || []).length;
+  const totalEvidence = (story.evidence || []).length;
+  const canvassedCount = (session.canvassedLocations || []).length;
+  const evidenceCount = (session.unlockedEvidence || []).length;
+
+  if (canvassedCount >= totalLocations && evidenceCount >= totalEvidence && !session.caseClosingTriggered) {
+    session.caseClosingTriggered = true;
+    session.remainingClosingQuestions = 12;
+    session.closingNotificationSent = true;
+
+    session.officerChatHistory.push({
+      role: 'assistant',
+      content: `🚨 URGENT DISPATCH FROM OFFICER DAVIS: Detective! Forensics has finished processing every known crime scene, and all leads in town have been canvassed. The District Attorney is demanding our final indictment. You have 12 questions remaining across your suspects before interrogations are locked and we must take our Arrest Warrant to the Judge. Make every question count!`,
+      timestamp: new Date()
+    });
+    return true;
+  }
+  return false;
+}
+
 export const chatSuspect = async (req: Request, res: Response) => {
   try {
     const { sessionId, suspectId, message, presentedEvidenceId } = req.body;
@@ -143,8 +183,27 @@ export const chatSuspect = async (req: Request, res: Response) => {
     const story = await Story.findById(session.storyId);
     if (!story) return res.status(404).json({ error: 'Story not found' });
 
+    // Backward compatibility for existing active sessions
+    if (!session.unlockedSuspects) session.unlockedSuspects = (story.suspects || []).slice(0, 2).map((s: any) => s.id);
+    if (!session.canvassedLocations) session.canvassedLocations = [];
+    if (session.remainingClosingQuestions === undefined) session.remainingClosingQuestions = 12;
+
+    if (session.interrogationLocked) {
+      return res.status(403).json({
+        error: 'Interrogations have been locked by District Attorney mandate. Please review your findings and submit your Arrest Warrant to the Court.'
+      });
+    }
+
     const suspectProfile = story.suspects.find((s: any) => s.id === suspectId);
     if (!suspectProfile) return res.status(404).json({ error: `Suspect ${suspectId} not found in story` });
+
+    // Decrement countdown if in closing phase
+    if (session.caseClosingTriggered) {
+      session.remainingClosingQuestions = Math.max(0, session.remainingClosingQuestions - 1);
+      if (session.remainingClosingQuestions <= 0) {
+        session.interrogationLocked = true;
+      }
+    }
 
     // Ensure suspect runtime state exists
     let suspectState = session.suspects.get(suspectId);
@@ -165,6 +224,39 @@ export const chatSuspect = async (req: Request, res: Response) => {
       presentedEvidence = story.evidence.find((e: any) => e.id === presentedEvidenceId) || null;
     }
 
+    // Check dynamic unlock rules
+    let mandatoryUnlockDialogue: string | undefined;
+    const newlyUnlocked: { type: 'location' | 'evidence' | 'character'; id: string; name: string }[] = [];
+
+    const unlockRules = suspectProfile.dynamicUnlocks || [];
+    for (const rule of unlockRules) {
+      let triggered = false;
+      if (rule.triggerEvidenceId && presentedEvidenceId === rule.triggerEvidenceId) {
+        triggered = true;
+      } else if (typeof rule.triggerStress === 'number' && suspectState.stressLevel >= rule.triggerStress) {
+        triggered = true;
+      }
+
+      if (triggered) {
+        if (rule.type === 'location' && !session.unlockedLocations.includes(rule.targetId)) {
+          session.unlockedLocations.push(rule.targetId);
+          const loc = story.locations.find((l: any) => l.id === rule.targetId);
+          newlyUnlocked.push({ type: 'location', id: rule.targetId, name: loc?.title || rule.targetId });
+          if (rule.revealDialogue) mandatoryUnlockDialogue = rule.revealDialogue;
+        } else if (rule.type === 'evidence' && !session.unlockedEvidence.includes(rule.targetId)) {
+          session.unlockedEvidence.push(rule.targetId);
+          const ev = story.evidence.find((e: any) => e.id === rule.targetId);
+          newlyUnlocked.push({ type: 'evidence', id: rule.targetId, name: ev?.title || rule.targetId });
+          if (rule.revealDialogue) mandatoryUnlockDialogue = rule.revealDialogue;
+        } else if (rule.type === 'character' && !session.unlockedSuspects.includes(rule.targetId)) {
+          session.unlockedSuspects.push(rule.targetId);
+          const susp = story.suspects.find((s: any) => s.id === rule.targetId);
+          newlyUnlocked.push({ type: 'character', id: rule.targetId, name: susp?.name || rule.targetId });
+          if (rule.revealDialogue) mandatoryUnlockDialogue = rule.revealDialogue;
+        }
+      }
+    }
+
     // Collect revealed facts across ALL suspects for cross-referencing contradictions
     const allRevealedFacts: string[] = [];
     session.suspects.forEach((state) => {
@@ -173,10 +265,14 @@ export const chatSuspect = async (req: Request, res: Response) => {
       }
     });
 
+    const userContent = presentedEvidence
+      ? `[Presents Evidence: ${presentedEvidence.title}] ${message}`
+      : message;
+
     // Save user's message to chat history
     suspectState.chatHistory.push({
       role: 'user',
-      content: userMessageWithEvidencePrefix(message, presentedEvidence),
+      content: userContent,
       timestamp: new Date(),
       attachedEvidence: presentedEvidenceId || null
     });
@@ -187,7 +283,8 @@ export const chatSuspect = async (req: Request, res: Response) => {
       suspectState,
       message,
       presentedEvidence,
-      allRevealedFacts
+      allRevealedFacts,
+      mandatoryUnlockDialogue
     );
 
     // Apply updates
@@ -199,6 +296,25 @@ export const chatSuspect = async (req: Request, res: Response) => {
       suspectState.revealedFacts.push(aiResponse.new_revealed_fact);
     }
 
+    // Second-pass check: if new stress level just triggered any unlock rule
+    for (const rule of unlockRules) {
+      if (typeof rule.triggerStress === 'number' && suspectState.stressLevel >= rule.triggerStress) {
+        if (rule.type === 'location' && !session.unlockedLocations.includes(rule.targetId)) {
+          session.unlockedLocations.push(rule.targetId);
+          const loc = story.locations.find((l: any) => l.id === rule.targetId);
+          newlyUnlocked.push({ type: 'location', id: rule.targetId, name: loc?.title || rule.targetId });
+        } else if (rule.type === 'evidence' && !session.unlockedEvidence.includes(rule.targetId)) {
+          session.unlockedEvidence.push(rule.targetId);
+          const ev = story.evidence.find((e: any) => e.id === rule.targetId);
+          newlyUnlocked.push({ type: 'evidence', id: rule.targetId, name: ev?.title || rule.targetId });
+        } else if (rule.type === 'character' && !session.unlockedSuspects.includes(rule.targetId)) {
+          session.unlockedSuspects.push(rule.targetId);
+          const susp = story.suspects.find((s: any) => s.id === rule.targetId);
+          newlyUnlocked.push({ type: 'character', id: rule.targetId, name: susp?.name || rule.targetId });
+        }
+      }
+    }
+
     // Save AI response to chat history
     suspectState.chatHistory.push({
       role: 'assistant',
@@ -208,6 +324,10 @@ export const chatSuspect = async (req: Request, res: Response) => {
 
     session.suspects.set(suspectId, suspectState);
     session.markModified('suspects');
+
+    // Check if case closing countdown triggers
+    checkAndTriggerClosing(session, story);
+
     await session.save();
 
     res.status(200).json({
@@ -217,7 +337,14 @@ export const chatSuspect = async (req: Request, res: Response) => {
       mood: suspectState.mood,
       revealedFacts: suspectState.revealedFacts,
       newRevealedFact: aiResponse.new_revealed_fact,
-      brokeDown: aiResponse.broke_down || suspectState.stressLevel >= 80
+      brokeDown: aiResponse.broke_down || suspectState.stressLevel >= 80,
+      newlyUnlocked,
+      unlockedLocations: session.unlockedLocations,
+      unlockedEvidence: session.unlockedEvidence,
+      unlockedSuspects: session.unlockedSuspects,
+      caseClosingTriggered: session.caseClosingTriggered,
+      remainingClosingQuestions: session.remainingClosingQuestions,
+      interrogationLocked: session.interrogationLocked
     });
   } catch (error: any) {
     console.error('chatSuspect error:', error);
@@ -225,92 +352,121 @@ export const chatSuspect = async (req: Request, res: Response) => {
   }
 };
 
-function userMessageWithEvidencePrefix(msg: string, ev: any) {
-  if (!ev) return msg;
-  return `[Confronts with evidence: ${ev.title}] ${msg}`;
-}
-
-export const submitDeduction = async (req: Request, res: Response) => {
+export const canvassLocation = async (req: Request, res: Response) => {
   try {
-    const { sessionId, deduction } = req.body;
+    const { sessionId, locationId } = req.body;
     const session = await GameSession.findById(sessionId);
     if (!session) return res.status(404).json({ error: 'Session not found' });
 
     const story = await Story.findById(session.storyId);
     if (!story) return res.status(404).json({ error: 'Story not found' });
 
-    const currentStageDef = story.stages.find((s: any) => s.stage === session.currentStage) || {
-      stage: session.currentStage,
-      title: `Stage ${session.currentStage}`,
-      description: 'Proceed with the investigation',
-      gateRules: 'Establish significant evidence',
-      unlockEvidenceIds: [],
-      unlockLocationIds: []
-    };
+    if (!session.canvassedLocations) session.canvassedLocations = [];
 
-    // Gather all revealed admissions so far
-    const allAdmissions: string[] = [];
-    session.suspects.forEach(s => {
-      if (s.revealedFacts) allAdmissions.push(...s.revealedFacts);
-    });
+    const location = (story.locations || []).find((l: any) => l.id === locationId);
+    if (!location) return res.status(404).json({ error: 'Location not found' });
 
-    const officerResult = await GroqService.evaluateDeduction(
-      session.currentStage,
-      currentStageDef,
-      deduction,
-      allAdmissions,
-      story.groundTruth
-    );
-
-    let newlyUnlockedEvidence: string[] = [];
-    let newlyUnlockedLocations: string[] = [];
-
-    if (officerResult.isApproved && session.currentStage < 4) {
-      session.currentStage += 1;
-
-      // Unlock items configured for the completed stage
-      newlyUnlockedEvidence = currentStageDef.unlockEvidenceIds || [];
-      newlyUnlockedLocations = currentStageDef.unlockLocationIds || [];
-
-      // Also unlock any items tagged with the new stage
-      const nextStageEvidence = (story.evidence || [])
-        .filter((e: any) => e.unlockStage === session.currentStage)
-        .map((e: any) => e.id);
-      const nextStageLocations = (story.locations || [])
-        .filter((l: any) => l.unlockStage === session.currentStage)
-        .map((l: any) => l.id);
-
-      session.unlockedEvidence = [...new Set([...session.unlockedEvidence, ...newlyUnlockedEvidence, ...nextStageEvidence])];
-      session.unlockedLocations = [...new Set([...session.unlockedLocations, ...newlyUnlockedLocations, ...nextStageLocations])];
+    if (!session.canvassedLocations.includes(locationId)) {
+      session.canvassedLocations.push(locationId);
     }
+
+    const newlyFoundEvidence: any[] = [];
+    const hiddenIds = location.hiddenEvidenceIds || [];
+    for (const hid of hiddenIds) {
+      if (!session.unlockedEvidence.includes(hid)) {
+        session.unlockedEvidence.push(hid);
+        const ev = (story.evidence || []).find((e: any) => e.id === hid);
+        if (ev) newlyFoundEvidence.push(ev);
+      }
+    }
+
+    for (const ev of story.evidence || []) {
+      if (ev.locationId === locationId && !session.unlockedEvidence.includes(ev.id)) {
+        session.unlockedEvidence.push(ev.id);
+        if (!newlyFoundEvidence.some((e: any) => e.id === ev.id)) {
+          newlyFoundEvidence.push(ev);
+        }
+      }
+    }
+
+    checkAndTriggerClosing(session, story);
+
+    await session.save();
+
+    res.status(200).json({
+      location,
+      canvassReport: location.canvassReport || `CSI forensic canvass of ${location.title} completed.`,
+      canvassedLocations: session.canvassedLocations,
+      unlockedEvidence: session.unlockedEvidence,
+      newlyFoundEvidence,
+      caseClosingTriggered: session.caseClosingTriggered,
+      remainingClosingQuestions: session.remainingClosingQuestions
+    });
+  } catch (error: any) {
+    console.error('canvassLocation error:', error);
+    res.status(500).json({ error: error.message || 'Failed to canvass location' });
+  }
+};
+
+export const chatOfficer = async (req: Request, res: Response) => {
+  try {
+    const { sessionId, message } = req.body;
+    const session = await GameSession.findById(sessionId);
+    if (!session) return res.status(404).json({ error: 'Session not found' });
+
+    const story = await Story.findById(session.storyId);
+    if (!story) return res.status(404).json({ error: 'Story not found' });
+
+    if (!session.unlockedSuspects) session.unlockedSuspects = (story.suspects || []).slice(0, 2).map((s: any) => s.id);
+    if (!session.canvassedLocations) session.canvassedLocations = [];
+
+    const caseContext = {
+      caseTitle: story.title,
+      victimName: story.victimProfile?.name || 'the victim',
+      totalEvidence: (story.evidence || []).length,
+      unlockedEvidence: session.unlockedEvidence.length,
+      totalLocations: (story.locations || []).length,
+      canvassedLocations: session.canvassedLocations.length,
+      totalSuspects: (story.suspects || []).length,
+      unlockedSuspects: session.unlockedSuspects.length,
+      discoveredClues: (session.recordedClues || []).map((c: any) => c.statement),
+      groundTruthSummary: story.groundTruth?.timelineSummary || ''
+    };
 
     session.officerChatHistory.push({
       role: 'user',
-      content: deduction,
+      content: message,
       timestamp: new Date()
     });
 
+    const officerDialogue = await GroqService.chatWithOfficerAdvisor(
+      message,
+      caseContext,
+      session.officerChatHistory
+    );
+
     session.officerChatHistory.push({
       role: 'assistant',
-      content: officerResult.dialogue,
-      timestamp: new Date(),
-      isApproved: officerResult.isApproved
+      content: officerDialogue,
+      timestamp: new Date()
     });
 
     await session.save();
 
     res.status(200).json({
-      isApproved: officerResult.isApproved,
-      dialogue: officerResult.dialogue,
-      feedback: officerResult.feedback,
-      newStage: session.currentStage,
-      unlockedEvidence: session.unlockedEvidence,
-      unlockedLocations: session.unlockedLocations
+      dialogue: officerDialogue,
+      officerChatHistory: session.officerChatHistory
     });
   } catch (error: any) {
-    console.error('submitDeduction error:', error);
-    res.status(500).json({ error: error.message || 'Failed to submit deduction' });
+    console.error('chatOfficer error:', error);
+    res.status(500).json({ error: error.message || 'Failed to consult Officer Davis' });
   }
+};
+
+export const submitDeduction = async (req: Request, res: Response) => {
+  const { sessionId, deduction, message } = req.body;
+  req.body.message = deduction || message;
+  return chatOfficer(req, res);
 };
 
 export const submitWarrant = async (req: Request, res: Response) => {

@@ -3,7 +3,17 @@ import ChatModal from '../components/ChatModal';
 import { useGameStore } from '../store/gameStore';
 
 export default function SuspectsDirectory() {
-  const { story, sessionId, suspectStates, activeSuspectId, setActiveSuspect } = useGameStore();
+  const {
+    story,
+    sessionId,
+    suspectStates,
+    activeSuspectId,
+    setActiveSuspect,
+    unlockedSuspects,
+    caseClosingTriggered,
+    remainingClosingQuestions,
+    interrogationLocked
+  } = useGameStore();
   const [filter, setFilter] = useState<'all' | 'prime' | 'witness'>('all');
 
   const suspects = story?.suspects || [];
@@ -37,14 +47,58 @@ export default function SuspectsDirectory() {
     return { text: 'PERSON OF INTEREST', bg: '#f57c00' };
   };
 
+  const getPersonalityBadge = (personality?: string) => {
+    switch (personality) {
+      case 'confident':
+        return { text: '💼 Confident', bg: '#1e3a8a' };
+      case 'nervous':
+        return { text: '😰 Nervous', bg: '#b45309' };
+      case 'cunning':
+        return { text: '🦊 Cunning', bg: '#701a75' };
+      case 'aggressive':
+        return { text: '⚡ Aggressive', bg: '#991b1b' };
+      case 'defensive':
+        return { text: '🛡️ Defensive', bg: '#374151' };
+      default:
+        return { text: '🎭 Composed', bg: '#475569' };
+    }
+  };
+
   return (
     <div className="page-wrapper" style={{ paddingBottom: '90px' }}>
       <div className="taped-title handwritten">
-        Interrogation Directory ({suspects.length} Characters Available)
+        Interrogation Directory ({unlockedSuspects.length} / {suspects.length} Discovered)
       </div>
 
+      {/* CASE CLOSING BANNER */}
+      {interrogationLocked ? (
+        <div style={styles.lockedBanner}>
+          <div style={{ fontSize: '1.4rem' }}>🚫</div>
+          <div>
+            <strong style={{ fontFamily: 'monospace', fontSize: '1.05rem', color: '#ffcdd2', display: 'block' }}>
+              DISTRICT ATTORNEY MANDATE: INTERROGATION ROOMS SEALED
+            </strong>
+            <span style={{ fontFamily: 'monospace', fontSize: '0.88rem', color: '#f5f5f5' }}>
+              All 12 closing questions have been exhausted. You may no longer interrogate suspects. Review your case notes and submit your formal Arrest Warrant.
+            </span>
+          </div>
+        </div>
+      ) : caseClosingTriggered ? (
+        <div style={styles.closingBanner}>
+          <div style={{ fontSize: '1.4rem' }}>⏳</div>
+          <div>
+            <strong style={{ fontFamily: 'monospace', fontSize: '1.05rem', color: '#fff9c4', display: 'block' }}>
+              CLOSING WINDOW ACTIVE — {remainingClosingQuestions} QUESTIONS REMAINING
+            </strong>
+            <span style={{ fontFamily: 'monospace', fontSize: '0.88rem', color: '#fff' }}>
+              All locations canvassed and forensic evidence recovered. The DA demands an arrest warrant. Each question asked to any suspect reduces this remaining counter!
+            </span>
+          </div>
+        </div>
+      ) : null}
+
       <p style={{ color: 'white', fontFamily: 'monospace', fontSize: '0.95rem', marginBottom: '18px', textAlign: 'center', maxWidth: '750px' }}>
-        Cross-examine prime suspects, witnesses, and persons of interest. Any statement or contradiction uncovered can be saved directly to your Case Notebook.
+        Cross-examine prime suspects, witnesses, and persons of interest. Interrogate them with the right pressure or physical evidence to unlock new crime scenes and undisclosed persons!
       </p>
 
       {/* Filter Tabs */}
@@ -72,6 +126,7 @@ export default function SuspectsDirectory() {
       {/* Suspect Cards Grid */}
       <div className="suspect-board" style={{ maxWidth: '1200px', marginTop: '15px' }}>
         {displayedSuspects.map((suspect, index) => {
+          const isUnlocked = unlockedSuspects.includes(suspect.id);
           const state = suspectStates[suspect.id] || {
             trustScore: suspect.initialTrust ?? 50,
             stressLevel: suspect.initialStress ?? 20,
@@ -79,6 +134,55 @@ export default function SuspectsDirectory() {
           };
 
           const categoryInfo = getCategoryBadge(suspect.category, suspect.isPrimeSuspect);
+          const personalityInfo = getPersonalityBadge(suspect.personality);
+
+          if (!isUnlocked) {
+            return (
+              <div
+                key={suspect.id}
+                className="polaroid"
+                style={{
+                  transform: `rotate(${index % 2 === 0 ? 1.5 : -1.5}deg)`,
+                  width: '280px',
+                  padding: '14px 14px 20px 14px',
+                  backgroundColor: '#f1f1f1',
+                  opacity: 0.85,
+                  border: '2px dashed #999',
+                  cursor: 'not-allowed'
+                }}
+                title="Unknown Person of Interest. Interrogate other suspects or canvass crime scenes to uncover identity."
+              >
+                <div
+                  style={{
+                    width: '100%',
+                    height: '140px',
+                    background: 'linear-gradient(135deg, #1f2937, #111827)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '3px'
+                  }}
+                >
+                  <span style={{ fontSize: '3rem', filter: 'grayscale(100%)' }}>🔒</span>
+                  <span style={{ color: '#aaa', fontFamily: 'monospace', fontSize: '0.75rem', marginTop: '6px' }}>
+                    UNDISCLOSED IDENTITY
+                  </span>
+                </div>
+                <div className="polaroid-caption" style={{ marginTop: '12px', textAlign: 'center' }}>
+                  <strong style={{ fontSize: '1.15rem', color: '#666', display: 'block' }}>
+                    ??? Unknown Character
+                  </strong>
+                  <div style={{ color: '#888', fontFamily: 'monospace', fontSize: '0.8rem', marginTop: '4px' }}>
+                    Identity Unidentified
+                  </div>
+                  <div style={{ backgroundColor: 'rgba(0,0,0,0.05)', padding: '8px', borderRadius: '4px', margin: '10px 0', fontSize: '0.78rem', color: '#555', fontFamily: 'monospace' }}>
+                    🔎 <em>Lead not yet revealed. Interrogate known persons or canvass crime scenes to unlock this person.</em>
+                  </div>
+                </div>
+              </div>
+            );
+          }
 
           return (
             <div
@@ -88,13 +192,23 @@ export default function SuspectsDirectory() {
                 transform: `rotate(${index % 2 === 0 ? 1.5 : -1.5}deg)`,
                 width: '280px',
                 padding: '14px 14px 20px 14px',
-                cursor: 'pointer',
+                cursor: interrogationLocked ? 'not-allowed' : 'pointer',
                 transition: 'transform 0.2s',
                 backgroundColor: '#fffdf9'
               }}
-              onClick={() => setActiveSuspect(suspect.id)}
-              onMouseEnter={(e) => e.currentTarget.style.transform = 'rotate(0deg) scale(1.04)'}
-              onMouseLeave={(e) => e.currentTarget.style.transform = `rotate(${index % 2 === 0 ? 1.5 : -1.5}deg) scale(1)`}
+              onClick={() => {
+                if (interrogationLocked) {
+                  alert('Interrogations are locked by DA mandate. You must proceed to Court & Submit your Arrest Warrant.');
+                  return;
+                }
+                setActiveSuspect(suspect.id);
+              }}
+              onMouseEnter={(e) => {
+                if (!interrogationLocked) e.currentTarget.style.transform = 'rotate(0deg) scale(1.04)';
+              }}
+              onMouseLeave={(e) => {
+                if (!interrogationLocked) e.currentTarget.style.transform = `rotate(${index % 2 === 0 ? 1.5 : -1.5}deg) scale(1)`;
+              }}
             >
               {/* Avatar placeholder with badges */}
               <div
@@ -158,9 +272,24 @@ export default function SuspectsDirectory() {
               </div>
 
               <div className="polaroid-caption" style={{ marginTop: '12px' }}>
-                <strong style={{ fontSize: '1.25rem', color: '#1e293b', display: 'block' }}>
-                  {suspect.name}
-                </strong>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <strong style={{ fontSize: '1.25rem', color: '#1e293b' }}>
+                    {suspect.name}
+                  </strong>
+                  <span
+                    style={{
+                      backgroundColor: personalityInfo.bg,
+                      color: 'white',
+                      fontFamily: 'monospace',
+                      fontSize: '0.7rem',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    {personalityInfo.text}
+                  </span>
+                </div>
                 <div style={{ color: '#8b3a3a', fontFamily: 'monospace', fontSize: '0.85rem', fontWeight: 'bold', marginTop: '2px' }}>
                   {suspect.role}
                 </div>
@@ -258,5 +387,29 @@ const styles = {
     fontSize: '0.92rem',
     cursor: 'pointer',
     boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+  },
+  closingBanner: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px',
+    backgroundColor: '#b45309',
+    border: '2px solid #fbbf24',
+    borderRadius: '8px',
+    padding: '12px 20px',
+    maxWidth: '900px',
+    margin: '0 auto 20px auto',
+    boxShadow: '0 4px 15px rgba(217,119,6,0.3)'
+  },
+  lockedBanner: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px',
+    backgroundColor: '#7f1d1d',
+    border: '2px solid #f87171',
+    borderRadius: '8px',
+    padding: '12px 20px',
+    maxWidth: '900px',
+    margin: '0 auto 20px auto',
+    boxShadow: '0 4px 15px rgba(185,28,28,0.4)'
   }
 };

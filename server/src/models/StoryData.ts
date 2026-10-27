@@ -22,6 +22,15 @@ const ObjectivesSchema = new Schema({
   currentObjectives: [{ type: String }]
 }, { _id: false });
 
+const DynamicUnlockSchema = new Schema({
+  type: { type: String, enum: ['evidence', 'location', 'character'], required: true },
+  targetId: { type: String, required: true },
+  triggerStress: { type: Number },
+  triggerEvidenceId: { type: String },
+  revealDialogue: { type: String },
+  revealed: { type: Boolean, default: false }
+}, { _id: false });
+
 const LocationItemSchema = new Schema({
   id: { type: String, required: true },
   title: { type: String, required: true },
@@ -31,6 +40,9 @@ const LocationItemSchema = new Schema({
   witnesses: { type: String, default: 'None identified' },
   notes: { type: String, default: '' },
   unlockStage: { type: Number, default: 1 },
+  isInitiallyUnlocked: { type: Boolean, default: false },
+  hiddenEvidenceIds: [{ type: String }],
+  canvassReport: { type: String },
   imageUrl: { type: String }
 }, { _id: false });
 
@@ -43,6 +55,8 @@ const EvidenceItemSchema = new Schema({
   location: { type: String, default: 'Crime Scene' },
   priority: { type: String, enum: ['Low', 'Medium', 'High', 'Critical'], default: 'Medium' },
   unlockStage: { type: Number, default: 1 },
+  isInitiallyUnlocked: { type: Boolean, default: false },
+  locationId: { type: String },
   imageUrl: { type: String }
 }, { _id: false });
 
@@ -51,6 +65,9 @@ const SuspectItemSchema = new Schema({
   name: { type: String, required: true },
   role: { type: String, required: true },
   trait: { type: String, required: true },
+  personality: { type: String, enum: ['confident', 'nervous', 'cunning', 'aggressive', 'defensive'], default: 'defensive' },
+  isInitiallyUnlocked: { type: Boolean, default: true },
+  dynamicUnlocks: [DynamicUnlockSchema],
   initialTrust: { type: Number, default: 50 },
   initialStress: { type: Number, default: 20 },
   alibi: { type: String, required: true },
@@ -107,7 +124,7 @@ const StorySchema = new Schema<IStoryDocument>({
   locations: [LocationItemSchema],
   evidence: [EvidenceItemSchema],
   suspects: [SuspectItemSchema],
-  stages: [StageDefinitionSchema],
+  stages: { type: [StageDefinitionSchema], default: [] },
   groundTruth: { type: GroundTruthSchema, required: true },
   isDefault: { type: Boolean, default: false }
 }, {

@@ -3,7 +3,7 @@ import { useGameStore } from '../store/gameStore';
 import { gameApi } from '../api/client';
 
 export default function Warrant() {
-  const { sessionId, story, unlockedEvidence, recordedClues, currentStage } = useGameStore();
+  const { sessionId, story, unlockedEvidence, recordedClues, caseClosingTriggered, remainingClosingQuestions, interrogationLocked } = useGameStore();
 
   const [suspect, setSuspect] = useState('');
   const [motive, setMotive] = useState('');
@@ -103,9 +103,39 @@ export default function Warrant() {
           <h2 className="handwritten" style={{ fontSize: '2.8rem', color: '#2c3e50', textAlign: 'center', marginBottom: '5px' }}>
             Official Arrest Warrant & Prosecution Form
           </h2>
-          <p style={{ fontFamily: 'monospace', textAlign: 'center', color: '#555', marginBottom: '25px', fontSize: '0.9rem' }}>
-            Stage {currentStage} / 4. Present your definitive accusation to the Superior Court.
+          <p style={{ fontFamily: 'monospace', textAlign: 'center', color: '#555', marginBottom: '20px', fontSize: '0.9rem' }}>
+            Submit your formal indictment to the Superior Court at any time. The AI Judge will deliberate your physical forensics, suspect admissions, and motive.
           </p>
+
+          {interrogationLocked ? (
+            <div style={{
+              backgroundColor: '#fee2e2',
+              border: '1px solid #f87171',
+              borderRadius: '4px',
+              padding: '8px 14px',
+              marginBottom: '20px',
+              fontFamily: 'monospace',
+              fontSize: '0.85rem',
+              color: '#991b1b',
+              textAlign: 'center'
+            }}>
+              🚫 Interrogation rooms are sealed. The District Attorney is waiting for this warrant.
+            </div>
+          ) : caseClosingTriggered ? (
+            <div style={{
+              backgroundColor: '#fef3c7',
+              border: '1px solid #f59e0b',
+              borderRadius: '4px',
+              padding: '8px 14px',
+              marginBottom: '20px',
+              fontFamily: 'monospace',
+              fontSize: '0.85rem',
+              color: '#92400e',
+              textAlign: 'center'
+            }}>
+              ⏳ Case closing active — {remainingClosingQuestions} questions remaining before court-ordered lockdown.
+            </div>
+          ) : null}
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
             {/* 1. Primary Suspect Dropdown */}

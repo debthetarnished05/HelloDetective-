@@ -18,7 +18,12 @@ export default function ChatModal({ suspectId, sessionId, onClose }: ChatModalPr
     addSuspectChatMessage,
     addRecordedClue,
     draggedEvidenceId,
-    setDraggedEvidence
+    setDraggedEvidence,
+    caseClosingTriggered,
+    remainingClosingQuestions,
+    interrogationLocked,
+    setClosingState,
+    setUnlockedEntities
   } = useGameStore();
 
   const suspectProfile = story?.suspects.find(s => s.id === suspectId);
@@ -36,6 +41,7 @@ export default function ChatModal({ suspectId, sessionId, onClose }: ChatModalPr
   const [loading, setLoading] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [copiedClueId, setCopiedClueId] = useState<number | null>(null);
+  const [unlockAlerts, setUnlockAlerts] = useState<{ type: string; name: string }[]>([]);
 
   // Unlocked evidence objects
   const availableEvidence: IEvidenceItem[] = (story?.evidence || []).filter(e =>
@@ -46,7 +52,7 @@ export default function ChatModal({ suspectId, sessionId, onClose }: ChatModalPr
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || loading) return;
+    if (!input.trim() || loading || interrogationLocked) return;
 
     const userMsg = input.trim();
     const evId = selectedEvidenceId;
@@ -80,6 +86,25 @@ export default function ChatModal({ suspectId, sessionId, onClose }: ChatModalPr
         content: response.dialogue,
         timestamp: new Date()
       });
+
+      // Handle newly discovered leads
+      if (response.newlyUnlocked && response.newlyUnlocked.length > 0) {
+        setUnlockAlerts(response.newlyUnlocked);
+        setUnlockedEntities({
+          suspects: response.unlockedSuspects,
+          locations: response.unlockedLocations,
+          evidence: response.unlockedEvidence
+        });
+      }
+
+      // Update closing state
+      if (response.caseClosingTriggered !== undefined) {
+        setClosingState({
+          caseClosingTriggered: response.caseClosingTriggered,
+          remainingClosingQuestions: response.remainingClosingQuestions,
+          interrogationLocked: response.interrogationLocked
+        });
+      }
     } catch (error) {
       console.error(error);
       addSuspectChatMessage(suspectId, {
@@ -135,6 +160,19 @@ export default function ChatModal({ suspectId, sessionId, onClose }: ChatModalPr
     }
   };
 
+  const getPersonalityBadge = (personality?: string) => {
+    switch (personality) {
+      case 'confident': return { text: '💼 Confident', bg: '#1e3a8a' };
+      case 'nervous': return { text: '😰 Nervous', bg: '#b45309' };
+      case 'cunning': return { text: '🦊 Cunning', bg: '#701a75' };
+      case 'aggressive': return { text: '⚡ Aggressive', bg: '#991b1b' };
+      case 'defensive': return { text: '🛡️ Defensive', bg: '#374151' };
+      default: return { text: '🎭 Composed', bg: '#475569' };
+    }
+  };
+
+  const personalityInfo = getPersonalityBadge(suspectProfile?.personality);
+
   return (
     <div style={styles.overlay} onClick={onClose}>
       <div
@@ -144,30 +182,141 @@ export default function ChatModal({ suspectId, sessionId, onClose }: ChatModalPr
       >
         <button style={styles.closeBtn} onClick={onClose}>✕</button>
 
+        {/* CLOSING SQUEEZE / LOCKOUT ALERT */}
+        {interrogationLocked ? (
+          <div style={{
+            backgroundColor: '#7f1d1d',
+            border: '2px solid #ef4444',
+            borderRadius: '6px',
+            padding: '8px 14px',
+            marginBottom: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px'
+          }}>
+            <span style={{ fontSize: '1.2rem' }}>🚫</span>
+            <div style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: '#fff' }}>
+              <strong>DA LOCKOUT:</strong> All 12 closing questions exhausted. Interrogations are sealed. Submit your Arrest Warrant at Court.
+            </div>
+          </div>
+        ) : caseClosingTriggered ? (
+          <div style={{
+            backgroundColor: '#92400e',
+            border: '2px solid #f59e0b',
+            borderRadius: '6px',
+            padding: '8px 14px',
+            marginBottom: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            boxShadow: '0 2px 8px rgba(245,158,11,0.3)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'monospace', fontSize: '0.85rem', color: '#fff' }}>
+              <span style={{ fontSize: '1.2rem' }}>⏳</span>
+              <span><strong>DA CLOSING PHASE ACTIVE:</strong> Asking this question consumes 1 of your remaining questions.</span>
+            </div>
+            <span style={{
+              backgroundColor: '#f59e0b',
+              color: '#1e293b',
+              fontFamily: 'monospace',
+              fontWeight: 'bold',
+              fontSize: '0.82rem',
+              padding: '3px 8px',
+              borderRadius: '4px'
+            }}>
+              {remainingClosingQuestions} QUESTIONS LEFT
+            </span>
+          </div>
+        ) : null}
+
+        {/* NEWLY UNLOCKED LEADS BANNER */}
+        {unlockAlerts.length > 0 && (
+          <div style={{
+            backgroundColor: '#064e3b',
+            border: '2px solid #10b981',
+            borderRadius: '6px',
+            padding: '10px 14px',
+            marginBottom: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            animation: 'fadeIn 0.3s'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#ecfdf5', fontFamily: 'monospace', fontSize: '0.88rem' }}>
+              <span style={{ fontSize: '1.3rem' }}>🌟</span>
+              <div>
+                <strong>NEW INVESTIGATION LEAD UNCOVERED:</strong>
+                <div style={{ marginTop: '2px' }}>
+                  {unlockAlerts.map((lead, idx) => (
+                    <span key={idx} style={{
+                      display: 'inline-block',
+                      backgroundColor: 'rgba(255,255,255,0.2)',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      marginRight: '6px',
+                      fontWeight: 'bold'
+                    }}>
+                      [{lead.type.toUpperCase()}] {lead.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => setUnlockAlerts([])}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#a7f3d0',
+                cursor: 'pointer',
+                fontFamily: 'monospace',
+                fontSize: '0.8rem',
+                textDecoration: 'underline'
+              }}
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
         {/* Suspect Header & Meters */}
         <div style={styles.header}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-              <h2 className="handwritten" style={{ fontSize: '2.5rem', margin: 0, color: '#2c3e50' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <h2 className="handwritten" style={{ fontSize: '2.4rem', margin: 0, color: '#2c3e50' }}>
                 Interrogation: {suspectProfile?.name || suspectId}
               </h2>
+              <span
+                style={{
+                  backgroundColor: personalityInfo.bg,
+                  color: 'white',
+                  fontFamily: 'monospace',
+                  fontSize: '0.78rem',
+                  padding: '3px 8px',
+                  borderRadius: '6px',
+                  fontWeight: 'bold',
+                  letterSpacing: '0.5px'
+                }}
+              >
+                {personalityInfo.text}
+              </span>
               <span
                 style={{
                   backgroundColor: getMoodColor(suspectRuntime.mood),
                   color: 'white',
                   fontFamily: 'monospace',
-                  fontSize: '0.85rem',
-                  padding: '4px 10px',
+                  fontSize: '0.78rem',
+                  padding: '3px 8px',
                   borderRadius: '12px',
                   textTransform: 'uppercase',
-                  letterSpacing: '1px',
+                  letterSpacing: '0.5px',
                   fontWeight: 'bold'
                 }}
               >
                 {suspectRuntime.mood.replace('_', ' ')}
               </span>
             </div>
-            <p style={{ margin: '4px 0 0 0', fontFamily: 'monospace', fontSize: '0.95rem', color: '#555' }}>
+            <p style={{ margin: '4px 0 0 0', fontFamily: 'monospace', fontSize: '0.92rem', color: '#555' }}>
               {suspectProfile?.role} · <em>"{suspectProfile?.alibi}"</em>
             </p>
           </div>
@@ -401,22 +550,32 @@ export default function ChatModal({ suspectId, sessionId, onClose }: ChatModalPr
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            style={styles.input}
+            style={{
+              ...styles.input,
+              backgroundColor: interrogationLocked ? '#f5f5f5' : 'white',
+              cursor: interrogationLocked ? 'not-allowed' : 'text'
+            }}
             placeholder={
-              selectedEvidenceId
+              interrogationLocked
+                ? '🚫 Interrogations locked by DA mandate. Submit your Arrest Warrant at Court.'
+                : selectedEvidenceId
                 ? `Confront ${suspectProfile?.name} with ${selectedEvidenceObj?.title}...`
                 : `Interrogate ${suspectProfile?.name} or present a contradiction...`
             }
-            disabled={loading}
-            autoFocus
+            disabled={loading || interrogationLocked}
+            autoFocus={!interrogationLocked}
           />
           <button
             type="submit"
             className="action-button"
-            style={styles.sendBtn}
-            disabled={loading || !input.trim()}
+            style={{
+              ...styles.sendBtn,
+              backgroundColor: interrogationLocked ? '#7f1d1d' : undefined,
+              cursor: interrogationLocked ? 'not-allowed' : undefined
+            }}
+            disabled={loading || !input.trim() || interrogationLocked}
           >
-            {loading ? 'Thinking...' : 'Interrogate'}
+            {interrogationLocked ? 'Locked' : loading ? 'Thinking...' : 'Interrogate'}
           </button>
         </form>
       </div>

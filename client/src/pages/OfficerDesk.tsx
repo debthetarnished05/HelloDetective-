@@ -3,44 +3,66 @@ import { useGameStore } from '../store/gameStore';
 import { gameApi } from '../api/client';
 
 export default function OfficerDesk() {
-  const { sessionId, currentStage, story, officerChatHistory, advanceStage } = useGameStore();
-  const [deduction, setDeduction] = useState('');
-  const [response, setResponse] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const {
+    sessionId,
+    officerChatHistory,
+    setOfficerChatHistory,
+    caseClosingTriggered,
+    remainingClosingQuestions,
+    interrogationLocked
+  } = useGameStore();
+
+  const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [justAdvanced, setJustAdvanced] = useState<boolean>(false);
 
-  const currentStageDef = story?.stages?.find(s => s.stage === currentStage);
+  const QUICK_QUESTIONS = [
+    "Davis, what's our current case status & tally?",
+    "Who should I press or interrogate next?",
+    "Review our physical forensic evidence with me",
+    "Do we have enough to file an arrest warrant?"
+  ];
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!deduction.trim() || !sessionId || loading) return;
+  const handleSend = async (userText: string) => {
+    if (!userText.trim() || !sessionId || loading) return;
 
     setLoading(true);
-    setResponse(null);
-    setFeedback(null);
-    setJustAdvanced(false);
+    const query = userText.trim();
+    setMessage('');
+
+    // Optimistically add user message
+    const updatedHistory = [
+      ...officerChatHistory,
+      { role: 'user' as const, content: query, timestamp: new Date() }
+    ];
+    setOfficerChatHistory(updatedHistory);
 
     try {
-      const result = await gameApi.submitDeduction(sessionId, deduction);
-      setResponse(result.dialogue);
-      setFeedback(result.feedback);
-
-      if (result.isApproved) {
-        advanceStage(result.newStage, result.unlockedEvidence, result.unlockedLocations);
-        setJustAdvanced(true);
+      const result = await gameApi.chatOfficer(sessionId, query);
+      if (result.officerChatHistory) {
+        setOfficerChatHistory(result.officerChatHistory);
+      } else if (result.dialogue) {
+        setOfficerChatHistory([
+          ...updatedHistory,
+          { role: 'assistant' as const, content: result.dialogue, timestamp: new Date() }
+        ]);
       }
-      setDeduction('');
     } catch (error) {
-      console.error('Failed to submit deduction:', error);
-      setResponse("Precinct radio is down. Try again in a moment, Detective.");
+      console.error('Failed to chat with Officer Davis:', error);
+      setOfficerChatHistory([
+        ...updatedHistory,
+        {
+          role: 'assistant' as const,
+          content: "Precinct radio crackles with static... 'Detective, couldn't read your transmission. Try me again in a second.'",
+          timestamp: new Date()
+        }
+      ]);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="page-wrapper">
+    <div className="page-wrapper" style={{ paddingBottom: '90px' }}>
       <div
         className="notebook"
         style={{
@@ -53,76 +75,158 @@ export default function OfficerDesk() {
           boxSizing: 'border-box'
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid rgba(0,0,0,0.15)', paddingBottom: '12px', marginBottom: '15px' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid rgba(0,0,0,0.15)', paddingBottom: '12px', marginBottom: '15px', flexWrap: 'wrap', gap: '15px' }}>
           <div>
             <h2 className="handwritten" style={{ fontSize: '2.8rem', margin: 0, color: '#2c3e50' }}>
               Officer Davis's Desk
             </h2>
             <p style={{ margin: '4px 0 0 0', fontFamily: 'monospace', fontSize: '0.95rem', color: '#555' }}>
-              Lead Precinct Partner · Stage {currentStage} Deduction Gate
+              Lead Precinct Partner & Silent Investigation Advisor · Homicide Division
             </p>
           </div>
           <div
             style={{
-              backgroundColor: currentStage >= 4 ? '#b71c1c' : '#2c3e50',
+              backgroundColor: '#1e3a8a',
               color: 'white',
               padding: '6px 14px',
               borderRadius: '20px',
               fontFamily: 'monospace',
               fontSize: '0.85rem',
-              fontWeight: 'bold'
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
             }}
           >
-            STAGE {currentStage} OF 4
+            <span>🛡️</span>
+            <span>PRECINCT PARTNER</span>
           </div>
         </div>
 
-        {/* Current Stage Objective Card */}
-        {currentStageDef && (
-          <div
-            style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.75)',
-              borderLeft: '4px solid #8b3a3a',
-              padding: '14px 20px',
-              marginBottom: '20px',
-              borderRadius: '4px',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.08)'
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-              <strong style={{ fontFamily: 'monospace', color: '#8b3a3a', fontSize: '1rem', textTransform: 'uppercase' }}>
-                CURRENT OBJECTIVE: {currentStageDef.title}
+        {/* DA CLOSING BANNER */}
+        {interrogationLocked ? (
+          <div style={{
+            backgroundColor: '#7f1d1d',
+            border: '2px solid #ef4444',
+            borderRadius: '6px',
+            padding: '12px 18px',
+            marginBottom: '18px',
+            color: 'white',
+            fontFamily: 'monospace'
+          }}>
+            <strong style={{ fontSize: '1rem', display: 'block', color: '#fca5a5' }}>
+              🚫 DA MANDATE: 12 CLOSING QUESTIONS EXHAUSTED
+            </strong>
+            <p style={{ margin: '4px 0 0 0', fontSize: '0.88rem' }}>
+              "Detective, court orders require us to close the file. Suspect rooms are sealed. Head over to the Warrant desk, review the physical evidence and alibis, and submit the formal indictment."
+            </p>
+          </div>
+        ) : caseClosingTriggered ? (
+          <div style={{
+            backgroundColor: '#92400e',
+            border: '2px solid #f59e0b',
+            borderRadius: '6px',
+            padding: '12px 18px',
+            marginBottom: '18px',
+            color: 'white',
+            fontFamily: 'monospace',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
+            boxShadow: '0 4px 15px rgba(245,158,11,0.25)'
+          }}>
+            <div>
+              <strong style={{ fontSize: '1rem', display: 'block', color: '#fef08a' }}>
+                🚨 PRECINCT DISPATCH: ALL LEADS & FORENSICS SECURED
               </strong>
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.88rem' }}>
+                Every crime scene has been canvassed and all forensic evidence collected. The DA wants this wrapped up!
+              </p>
             </div>
-            <p style={{ margin: 0, fontFamily: 'monospace', fontSize: '0.92rem', color: '#333' }}>
-              {currentStageDef.description}
+            <div style={{
+              backgroundColor: '#f59e0b',
+              color: '#1e293b',
+              fontWeight: 'bold',
+              padding: '6px 14px',
+              borderRadius: '6px',
+              fontSize: '0.92rem'
+            }}>
+              ⏳ {remainingClosingQuestions} QUESTIONS REMAINING
+            </div>
+          </div>
+        ) : (
+          <div style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.75)',
+            borderLeft: '4px solid #2563eb',
+            padding: '12px 18px',
+            marginBottom: '18px',
+            borderRadius: '4px'
+          }}>
+            <p style={{ margin: 0, fontFamily: 'monospace', fontSize: '0.9rem', color: '#333' }}>
+              ℹ️ <strong>Officer Davis's Directive:</strong> "I'm monitoring the case board and tracking our physical forensics and crime scenes behind the scenes. Ask me anything about our leads, bounce suspect theories off me, or ask for a case tally whenever you need."
             </p>
           </div>
         )}
 
-        {/* Officer Chat History / Dialogue */}
+        {/* Quick Consultation Prompt Chips */}
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
+          {QUICK_QUESTIONS.map((q, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => handleSend(q)}
+              disabled={loading}
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.85)',
+                border: '1px solid #c5d4e8',
+                borderRadius: '16px',
+                padding: '6px 14px',
+                fontFamily: 'monospace',
+                fontSize: '0.82rem',
+                color: '#1e3a8a',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e0f2fe'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.85)'}
+            >
+              💬 {q}
+            </button>
+          ))}
+        </div>
+
+        {/* Officer Chat History */}
         <div
           style={{
             flex: 1,
-            maxHeight: '340px',
+            maxHeight: '400px',
             overflowY: 'auto',
-            padding: '15px',
-            backgroundColor: 'rgba(255, 255, 255, 0.65)',
+            padding: '18px',
+            backgroundColor: 'rgba(255, 255, 255, 0.7)',
             border: '1px solid #ccc',
-            borderRadius: '4px',
-            marginBottom: '20px'
+            borderRadius: '6px',
+            marginBottom: '20px',
+            boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.06)'
           }}
         >
           {officerChatHistory.length === 0 ? (
-            <p style={{ fontStyle: 'italic', color: '#666', fontFamily: 'monospace', textAlign: 'center', marginTop: '30px' }}>
-              "What do you have for me, Detective? If you've found a solid contradiction or cracked someone's alibi, lay it out."
-            </p>
+            <div style={{ textAlign: 'center', color: '#666', fontFamily: 'monospace', padding: '40px 20px' }}>
+              <p className="handwritten" style={{ fontSize: '2rem', color: '#2c3e50', margin: '0 0 8px 0' }}>
+                "What's on your mind, Detective?"
+              </p>
+              <p style={{ fontSize: '0.92rem', margin: 0 }}>
+                Ask Davis about suspect alibis, forensic contradictions, or ask for a case status tally.
+              </p>
+            </div>
           ) : (
             officerChatHistory.map((msg, i) => (
               <div
                 key={i}
                 style={{
-                  marginBottom: '14px',
+                  marginBottom: '16px',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start'
@@ -131,21 +235,30 @@ export default function OfficerDesk() {
                 <div
                   style={{
                     maxWidth: '85%',
-                    backgroundColor: msg.role === 'user' ? '#e3f2fd' : msg.isApproved ? '#e8f5e9' : '#fff',
-                    border: msg.role === 'user' ? '1px solid #bbdefb' : msg.isApproved ? '2px solid #2e7d32' : '1px solid #ddd',
-                    padding: '10px 16px',
-                    borderRadius: '6px'
+                    backgroundColor: msg.role === 'user' ? '#e3f2fd' : '#ffffff',
+                    border: msg.role === 'user' ? '1px solid #bbdefb' : '1px solid #ddd',
+                    borderLeft: msg.role === 'assistant' ? '4px solid #1e3a8a' : '1px solid #bbdefb',
+                    padding: '12px 18px',
+                    borderRadius: '6px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
                   }}
                 >
-                  <strong style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: msg.role === 'user' ? '#1565c0' : msg.isApproved ? '#2e7d32' : '#8b3a3a' }}>
-                    {msg.role === 'user' ? 'You' : 'Officer Davis'}
-                  </strong>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', gap: '20px' }}>
+                    <strong style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: msg.role === 'user' ? '#1565c0' : '#1e3a8a' }}>
+                      {msg.role === 'user' ? 'Lead Detective' : 'Officer Davis'}
+                    </strong>
+                    <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#888' }}>
+                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
                   <p
                     style={{
-                      margin: '4px 0 0 0',
+                      margin: 0,
                       fontFamily: msg.role === 'user' ? 'Caveat, cursive' : 'monospace',
-                      fontSize: msg.role === 'user' ? '1.4rem' : '0.98rem',
-                      color: '#222'
+                      fontSize: msg.role === 'user' ? '1.45rem' : '1rem',
+                      lineHeight: '1.5',
+                      color: '#222',
+                      whiteSpace: 'pre-wrap'
                     }}
                   >
                     {msg.content}
@@ -154,64 +267,45 @@ export default function OfficerDesk() {
               </div>
             ))
           )}
+          {loading && (
+            <div style={{ fontStyle: 'italic', color: '#1e3a8a', fontFamily: 'monospace', padding: '10px' }}>
+              Officer Davis is reviewing the precinct files...
+            </div>
+          )}
         </div>
 
-        {/* Live Feedback / Stage Advancement Announcement */}
-        {response && (
-          <div
+        {/* Input Form */}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSend(message);
+          }}
+          style={{ display: 'flex', gap: '12px' }}
+        >
+          <input
+            type="text"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Consult Officer Davis or ask: 'What is our current status tally?'..."
             style={{
-              backgroundColor: justAdvanced ? '#d4edda' : '#fff3cd',
-              border: `1px solid ${justAdvanced ? '#c3e6cb' : '#ffeeba'}`,
-              color: justAdvanced ? '#155724' : '#856404',
+              flex: 1,
               padding: '14px 18px',
-              marginBottom: '20px',
-              borderRadius: '4px',
-              boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-              <span style={{ fontSize: '1.2rem' }}>{justAdvanced ? '🎉' : '⚠️'}</span>
-              <strong style={{ fontFamily: 'monospace', fontSize: '1rem' }}>
-                {justAdvanced ? `DEDUCTION ACCEPTED! ADVANCED TO STAGE ${currentStage}!` : 'DAVIS EVALUATION:'}
-              </strong>
-            </div>
-            <p style={{ margin: 0, fontFamily: 'monospace', fontSize: '0.95rem' }}>
-              "{response}"
-            </p>
-            {feedback && (
-              <p style={{ margin: '6px 0 0 0', fontFamily: 'monospace', fontSize: '0.85rem', color: '#555', fontStyle: 'italic' }}>
-                Precinct Guidance: {feedback}
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* Deduction Form */}
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column' }}>
-          <textarea
-            value={deduction}
-            onChange={(e) => setDeduction(e.target.value)}
-            placeholder="Present your deduction to Davis (e.g. 'Marcus is lying about being at Riverside Brews all night because the parkade log proves his Audi arrived at the corporate center at 10:48 PM...')"
-            style={{
-              padding: '16px',
               fontFamily: 'monospace',
               fontSize: '1rem',
               border: '2px solid #ccc',
               borderRadius: '4px',
-              resize: 'none',
-              minHeight: '90px',
-              backgroundColor: 'rgba(255, 255, 255, 0.75)',
-              marginBottom: '15px'
+              outline: 'none',
+              backgroundColor: 'white'
             }}
             disabled={loading}
           />
           <button
             type="submit"
             className="action-button"
-            style={{ padding: '14px', fontSize: '1.1rem', marginTop: 0 }}
-            disabled={loading || !deduction.trim()}
+            style={{ padding: '0 25px', fontSize: '1rem', marginTop: 0, width: 'auto' }}
+            disabled={loading || !message.trim()}
           >
-            {loading ? 'Officer Davis is evaluating your case files...' : 'Submit Deduction to Officer Davis'}
+            {loading ? 'Consulting...' : 'Ask Davis'}
           </button>
         </form>
       </div>

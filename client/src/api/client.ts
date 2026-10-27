@@ -29,12 +29,28 @@ export const gameApi = {
     return response.data; // { dialogue, trustScore, stressLevel, mood, revealedFacts, newRevealedFact, brokeDown }
   },
 
+  canvassLocation: async (sessionId: string, locationId: string) => {
+    const response = await axios.post(`${API_URL}/location/canvass`, {
+      sessionId,
+      locationId
+    });
+    return response.data; // { location, canvassReport, canvassedLocations, unlockedEvidence, newlyFoundEvidence, caseClosingTriggered, remainingClosingQuestions }
+  },
+
+  chatOfficer: async (sessionId: string, message: string) => {
+    const response = await axios.post(`${API_URL}/officer/chat`, {
+      sessionId,
+      message
+    });
+    return response.data; // { dialogue, officerChatHistory }
+  },
+
   submitDeduction: async (sessionId: string, deduction: string) => {
     const response = await axios.post(`${API_URL}/deduction`, {
       sessionId,
       deduction
     });
-    return response.data; // { isApproved, dialogue, feedback, newStage, unlockedEvidence, unlockedLocations }
+    return response.data; // { dialogue, officerChatHistory }
   },
 
   submitWarrant: async (

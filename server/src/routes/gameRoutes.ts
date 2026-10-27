@@ -3,6 +3,8 @@ import {
   startNewGame,
   getSessionState,
   chatSuspect,
+  canvassLocation,
+  chatOfficer,
   submitDeduction,
   submitWarrant,
   saveNotes,
@@ -19,6 +21,8 @@ const router = Router();
 router.post('/start', startNewGame);
 router.get('/session/:sessionId', getSessionState);
 router.post('/chat', chatSuspect);
+router.post('/location/canvass', canvassLocation);
+router.post('/officer/chat', chatOfficer);
 router.post('/deduction', submitDeduction);
 router.post('/warrant', submitWarrant);
 router.post('/notes', saveNotes);

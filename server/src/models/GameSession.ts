@@ -3,9 +3,15 @@ import { ISuspectRuntimeState, IChatMessage, IOfficerChatMessage, IRecordedClue 
 
 export interface IGameSession extends Document {
   storyId: Types.ObjectId;
-  currentStage: number;
+  currentStage?: number;
   unlockedEvidence: string[];
   unlockedLocations: string[];
+  canvassedLocations: string[];
+  unlockedSuspects: string[];
+  caseClosingTriggered: boolean;
+  remainingClosingQuestions: number;
+  interrogationLocked: boolean;
+  closingNotificationSent: boolean;
   suspects: Map<string, ISuspectRuntimeState>;
   officerChatHistory: IOfficerChatMessage[];
   notes: string;
@@ -59,6 +65,12 @@ const GameSessionSchema = new Schema<IGameSession>({
   currentStage: { type: Number, default: 1 },
   unlockedEvidence: [{ type: String }],
   unlockedLocations: [{ type: String }],
+  canvassedLocations: [{ type: String }],
+  unlockedSuspects: [{ type: String }],
+  caseClosingTriggered: { type: Boolean, default: false },
+  remainingClosingQuestions: { type: Number, default: 12 },
+  interrogationLocked: { type: Boolean, default: false },
+  closingNotificationSent: { type: Boolean, default: false },
   suspects: {
     type: Map,
     of: SuspectRuntimeStateSchema,
