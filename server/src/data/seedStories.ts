@@ -1,6 +1,9 @@
 import { IStory } from '../types/index';
 
-// CASE 2: 1930s Gothic Noir Opera House Mystery
+// ============================================================================
+// CASE 2: The Gilded Aria (Deliberate Frame Job)
+// Trope: The Planted Patsy & "Too Convenient" Clue
+// ============================================================================
 export const OPERA_STORY: IStory = {
   title: 'The Gilded Aria: Poison at the Blackwood Opera',
   caseNumber: '1934-1024-VV',
@@ -11,25 +14,24 @@ export const OPERA_STORY: IStory = {
     age: 38,
     occupation: 'Prima Donna Soprano, Blackwood Grand Opera',
     discovered: 'October 24, 1934, 10:05 PM in Star Dressing Room #1',
-    causeOfDeath: 'Acute lethal ingestion of belladonna (deadly nightshade alkaloid)',
+    causeOfDeath: 'Acute lethal ingestion of pharmaceutical-grade belladonna (deadly nightshade alkaloid)',
     timeOfDeath: 'Between 9:35 PM and 9:55 PM, during the Act II intermission'
   },
   briefing: {
-    initialBriefing: 'Madame Vivienne Vance collapsed inside her locked dressing room minutes before her final curtain call in Tosca. A crystal voice-atomizer scented with bitter almond and nightshade was discovered shattered on her Persian rug. Outside in the gaslit alley, heavy rain has washed away footprints, but five members of the company were backstage during the intermission.',
-    detectiveInsights: 'Vivienne was as feared as she was adored. Behind the velvet drapes and golden proscenium lies a web of embezzled pension funds, desperate understudies, and illegal narcotics. The theater stage door was guarded, meaning the killer is undoubtedly one of the Blackwood players or patrons.'
+    initialBriefing: 'Madame Vivienne Vance collapsed inside her star dressing room minutes before her final curtain call in Tosca. A cut-crystal voice atomizer was found shattered on the Persian rug, heavily laced with concentrated belladonna. A monogrammed lace handkerchief belonging to her ambitious understudy Camille Dupré was conspicuously left beside the vanity, and an apothecary receipt in Camille\'s name was discovered in the wastebasket.',
+    detectiveInsights: 'Everything points screamingly at Camille Dupré—almost too cleanly. Behind the gilded proscenium, theater impresario Julian Blackwood faces imminent bankruptcy, while theater physician Dr. Pendelton has been trembling and guarding his private dispensary. A careful detective must question whether the incriminating trail was deliberately manufactured.'
   },
   objectives: {
     progress: [
-      'Secured Star Dressing Room #1 and summoned the coroner',
-      'Impounded the opera stage door entry ledger',
-      'Confiscated the shattered crystal perfume atomizer for chemical analysis',
-      'Isolated the prime suspects in the Green Room for questioning'
+      'Secured Star Dressing Room #1 and summoned the Scotland Yard coroner',
+      'Impounded the shattered crystal atomizer and stage door entry ledger',
+      'Isolated Julian Blackwood and Camille Dupré for interrogation'
     ],
     currentObjectives: [
-      'Interrogate Julian Blackwood, Camille Dupré, and Dr. Pendelton',
-      'Establish which suspect had access to pharmaceutical grade belladonna',
-      'Cross-reference the stage door guard\'s testimony with the box seat alibis',
-      'Present deduction to Officer Davis to secure a warrant for the private theater dispensary'
+      'Interrogate Julian Blackwood and Camille Dupré regarding the dressing room clues',
+      'Canvass the Opera Green Room and Private Dispensary for forensic traces',
+      'Cross-examine the apothecary receipt timeline with the rehearsal call-sheet',
+      'Consult Officer Davis to verify whether Camille was deliberately framed'
     ]
   },
   locations: [
@@ -37,331 +39,292 @@ export const OPERA_STORY: IStory = {
       id: 'star_dressing_room',
       title: 'Star Dressing Room #1',
       subtitle: 'Blackwood Grand Opera - Backstage Hallway',
-      status: 'Active Crime Scene',
+      status: 'Primary Crime Scene',
       lastVisited: 'October 24, 1934',
       witnesses: 'Wardrobe Mistress Eleanor Vance, Call Boy Tommy',
-      notes: 'Lavish dressing room with mahogany vanity, gilded mirror, and shattered perfume atomizer. The aroma of bitter almonds lingers in the air.',
-      unlockStage: 1
+      notes: 'Lavish vanity room with gilded mirrors and silk drapes. Shattered crystal perfume atomizer rests near the velvet settee.',
+      isInitiallyUnlocked: true,
+      hiddenEvidenceIds: ['shattered_atomizer', 'monogrammed_handkerchief'],
+      canvassReport: 'Forensic sweep recovered the shattered cut-crystal atomizer reeking of bitter almond, along with a monogrammed lace handkerchief smelling faintly of Turkish tobacco and lavender oil.'
     },
     {
       id: 'the_green_room',
-      title: 'The Green Room & Orchestra Pit',
-      subtitle: 'Sub-Stage Musicians\' Lounge',
+      title: 'The Green Room & Musicians\' Salon',
+      subtitle: 'Sub-Stage Lounge - Drury Lane Level',
       status: 'Witness Gathering Area',
       lastVisited: 'October 25, 1934',
       witnesses: 'Conductor Maestro Bellini, Understudy Camille Dupré',
-      notes: 'Dimly lit salon where performers wait between acts. Sheet music scattered across velvet settees. Stained tea cups left on the side tables.',
-      unlockStage: 2
+      notes: 'Dimly lit performers salon where tea and spirits were served during intermission. Stage door call-board hangs beside the piano.',
+      isInitiallyUnlocked: true,
+      hiddenEvidenceIds: ['dress_rehearsal_callsheet', 'opera_tea_service'],
+      canvassReport: 'Detectives seized the official Stage Master call-sheet signed by Maestro Bellini, confirming Camille was on stage in front of 400 patrons during the exact timestamp of the apothecary purchase.'
     },
     {
       id: 'blackwood_dispensary',
       title: 'Company Medical Dispensary',
       subtitle: 'Mezzanine Level - Office #4',
       status: 'Search Warrant Executed',
-      lastVisited: 'October 25, 1934',
+      lastVisited: 'Pending Detective Sweep',
       witnesses: 'Dr. Arthur Pendelton',
-      notes: 'Locked medicine cabinets containing pharmaceutical extracts, ether, and tinctures. A secret service dumbwaiter connects directly to the star dressing room hallway.',
-      unlockStage: 3
+      notes: 'Locked medical repository with glass ampoules and tinctures. A private service dumbwaiter shaft leads directly down into the star dressing room corridor.',
+      isInitiallyUnlocked: false,
+      hiddenEvidenceIds: ['dispensary_logbook', 'poison_vial_dumbwaiter'],
+      canvassReport: 'Forensic investigators opened the locked narcotics cabinet and recovered the dispensary stock ledger with page 44 excised, along with an amber vial bearing Julian Blackwood\'s signet wax seal.'
     },
     {
-      id: 'prop_workshop_vault',
-      title: 'Stage Rigging Catwalks & Boiler Crypt',
-      subtitle: 'Beneath the Main Fly Gallery',
-      status: 'Forensic Recovery Site',
+      id: 'blackwood_private_office',
+      title: 'Julian Blackwood\'s Executive Suite',
+      subtitle: 'Royal Box Corridor - Upper Gallery',
+      status: 'Restricted Office',
       lastVisited: 'Pending Detective Sweep',
-      witnesses: 'Stage Master Gideon Cross',
-      notes: 'Industrial network of counterweight pulleys and coal-burning furnaces. Ideal location to incinerate bloody rags or discard empty poison vials.',
-      unlockStage: 4
+      witnesses: 'Julian Blackwood',
+      notes: 'Opulent wood-paneled office with a locked brass desk safe. Odor of expensive Turkish cigars and lavender cologne.',
+      isInitiallyUnlocked: false,
+      hiddenEvidenceIds: ['embezzled_pension_audit', 'blackwood_bank_demand'],
+      canvassReport: 'CSI cracked the mahogany roll-top desk and recovered bank foreclosure notices totaling £15,000, and a confidential audit prepared by Vivienne Vance threatening Scotland Yard prosecution.'
     }
   ],
   evidence: [
     {
       id: 'shattered_atomizer',
       title: 'Shattered Crystal Voice Atomizer',
-      subtitle: 'Personal Throat Spray of Victim',
-      details: 'French cut-crystal spray bottle engraved with "V.V." The amber liquid inside tested positive for a lethal concentration of purified atropine and scopolamine from belladonna. A single deep inhalation would cause vocal paralysis followed by cardiac arrest within ten minutes.',
+      subtitle: 'Victim\'s Personal Throat Spray',
+      details: 'French cut-crystal spray flask engraved "V.V.". Chemical reagents test positive for lethal concentrated belladonna alkaloid. Inhaling the mist caused acute laryngeal edema and respiratory paralysis.',
       date: 'October 24, 1934',
       location: 'Star Dressing Room Floor',
       priority: 'Critical',
-      unlockStage: 1
+      isInitiallyUnlocked: true,
+      locationId: 'star_dressing_room'
     },
     {
-      id: 'apothecary_purchase_slip',
-      title: 'Apothecary Receipt for Belladonna Tincture',
-      subtitle: 'Manning & Sons Chemists, High Street',
-      details: 'Receipt dated October 20, 1934, logging the purchase of 50ml Concentrated Belladonna Tincture by "The Blackwood Opera Medical Staff". Signed with an illegible scrawl resembling the theater\'s physician.',
+      id: 'monogrammed_handkerchief',
+      title: 'Monogrammed Lace Handkerchief ("C.D.")',
+      subtitle: 'Planted Clue Bearing Understudy Monogram',
+      details: 'Fine silk handkerchief embroidered with the initials "C.D." belonging to Camille Dupré. However, forensic analysis notes it is perfumed with Spanish lavender oil and Turkish tobacco smoke—Julian Blackwood\'s exclusive personal blend.',
       date: 'October 24, 1934',
-      location: 'Found tucked in dressing room wastebasket',
+      location: 'Found on floor beside dressing room vanity',
       priority: 'High',
-      unlockStage: 1
+      isInitiallyUnlocked: false,
+      locationId: 'star_dressing_room'
     },
     {
-      id: 'stage_door_ledger',
-      title: 'Stage Door Guard Sign-In Ledger',
-      subtitle: 'Logbook of Watchman Felix Quinn',
-      details: 'Official theater logbook for October 24. While Julian Blackwood claims he remained in Box A drinking champagne with the mayor, the ledger notes a mysterious gentleman in a charcoal Inverness cape slipped out the stage door into the carriage alley at exactly 9:48 PM.',
+      id: 'dress_rehearsal_callsheet',
+      title: 'Maestro Bellini\'s Rehearsal Call-Sheet',
+      subtitle: 'Key Timeline Contradiction Document',
+      details: 'Official production register proving Camille Dupré was on stage rehearsing Act I under Maestro Bellini\'s direct baton from 2:00 PM to 4:30 PM on October 20—the exact afternoon the belladonna was purchased across town in her name.',
       date: 'October 24, 1934',
-      location: 'Stage Door Security Kiosk',
+      location: 'The Green Room Call-Board',
       priority: 'Critical',
-      unlockStage: 1
+      isInitiallyUnlocked: false,
+      locationId: 'the_green_room'
     },
     {
-      id: 'blackwood_pension_audit',
-      title: 'Secret Theater Embezzlement Audit',
-      subtitle: 'Auditor\'s Confidential Report',
-      details: 'Financial records showing over £15,000 missing from the Blackwood Actors Pension Fund. A handwritten note in Vivienne Vance\'s handwriting warns Julian Blackwood: "Return the performers\' life savings before Sunday mass, or the Board of Trustees and Scotland Yard will receive this ledger."',
-      date: 'October 22, 1934',
-      location: 'Vivienne Vance\'s Hatbox Safe',
-      priority: 'Critical',
-      unlockStage: 2
-    },
-    {
-      id: 'tampered_honey_jar',
-      title: 'Infused Chamomile & Honey Jar',
-      subtitle: 'Vocal Preparation Mixture',
-      details: 'Glazed porcelain jar prepared by understudy Camille Dupré. Chemical analysis shows pure honey and chamomile with trace amounts of belladonna residue around the threaded lid, proving the poison was transferred from another vessel.',
-      date: 'October 25, 1934',
-      location: 'The Green Room Kitchenette',
-      priority: 'High',
-      unlockStage: 2
-    },
-    {
-      id: 'dispensary_key_log',
-      title: 'Medical Poison Cabinet Logbook',
-      subtitle: 'Dr. Pendelton\'s Medical Office',
-      details: 'Dispensary register showing the poisonous alkaloids cabinet was unlocked at 7:15 PM on the night of the murder. Dr. Pendelton claims his key went missing from his waistcoat, but the brass lock shows no signs of forced entry.',
+      id: 'dispensary_logbook',
+      title: 'Excised Pharmaceutical Inventory Log',
+      subtitle: 'Company Dispensary Record',
+      details: 'Logbook showing that 100ml of concentrated belladonna extract was requisitioned on October 22 under emergency theatrical authorization. The authorization slip was signed with Julian Blackwood\'s corporate seal.',
       date: 'October 25, 1934',
       location: 'Company Medical Dispensary',
-      priority: 'Critical',
-      unlockStage: 3
+      priority: 'High',
+      isInitiallyUnlocked: false,
+      locationId: 'blackwood_dispensary'
     },
     {
-      id: 'dumbwaiter_belladonna_vial',
-      title: 'Brown Glass Poison Dropper Vial',
-      subtitle: 'Discarded Dropper Bottle',
-      details: 'Unlabeled amber bottle found wrapped in a monogrammed silk handkerchief inside the backstage dumbwaiter shaft. Forensics confirms belladonna alkaloid matching the atomizer liquid, and latent wax seal fingerprints matching Julian Blackwood\'s signet ring.',
-      date: 'October 26, 1934',
-      location: 'Service Dumbwaiter Shaft',
+      id: 'poison_vial_dumbwaiter',
+      title: 'Signet-Wax Amber Poison Vial',
+      subtitle: 'Direct Opportunity & Delivery Weapon',
+      details: 'Small brown glass apothecary vial recovered from the bottom of the backstage dumbwaiter shaft. Traces of belladonna residue match the atomizer. The cork stopper retains an imprint of Julian Blackwood\'s gold signet crest.',
+      date: 'October 25, 1934',
+      location: 'Base of Service Dumbwaiter',
       priority: 'Critical',
-      unlockStage: 4
+      isInitiallyUnlocked: false,
+      locationId: 'blackwood_dispensary'
+    },
+    {
+      id: 'embezzled_pension_audit',
+      title: 'Vivienne\'s Handwritten Embezzlement Audit',
+      subtitle: 'The Incontrovertible Financial Motive',
+      details: 'Detailed accounting sheets compiled by Vivienne Vance proving Julian Blackwood siphoned £15,000 from the company pension fund to cover gambling losses at the Carlton Club. Dated October 23 with a note: "To Inspector Thorne if not repaid by curtain call."',
+      date: 'October 25, 1934',
+      location: 'Blackwood Executive Desk Safe',
+      priority: 'Critical',
+      isInitiallyUnlocked: false,
+      locationId: 'blackwood_private_office'
     }
   ],
   suspects: [
     {
       id: 'julian_blackwood',
       name: 'Julian Blackwood',
-      role: 'Theater Impresario & Blackwood Estate Heir',
-      trait: 'Arrogant aristocrat, suave, desperate gambler drowning in debt',
-      initialTrust: 40,
-      initialStress: 30,
-      isPrimeSuspect: true,
+      role: 'Theater Impresario & Owner',
+      trait: 'Arrogant aristocrat who reeks of lavender pomade and Turkish tobacco.',
+      personality: 'cunning',
+      isInitiallyUnlocked: true,
       category: 'prime_suspect',
-      alibi: 'Claims he spent the entire intermission sipping vintage champagne in private Box A with the Lord Mayor and prominent socialites.',
-      motive: 'Vivienne discovered he embezzled £15,000 from the actors\' pension fund to pay off illegal gaming houses, and was going to hand the audit to Scotland Yard the following morning.',
-      privateKnowledge: 'He slipped away from Box A through the private mezzanine passage at 9:35 PM, entered Vivienne\'s dressing room while she was speaking to wardrobe, emptied Dr. Pendelton\'s stolen belladonna vial into her voice atomizer, and fled through the stage door alley into the carriage mews at 9:48 PM.',
+      isPrimeSuspect: true,
+      initialTrust: 40,
+      initialStress: 25,
+      alibi: 'Claims he was entertaining civic patrons in Royal Box A throughout the entire second act and never stepped foot backstage.',
+      motive: 'Vivienne discovered he embezzled £15,000 from the company fund and had drafted a complaint for Scotland Yard.',
+      privateKnowledge: 'Knows he planted Camille\'s handkerchief and forged her name on the pharmacy slip to frame her.',
       secrets: [
-        'Admitted leaving Box A during the intermission to speak with Vivienne',
-        'Confessed he was facing bankruptcy and public ruin over the missing £15,000 pension fund',
-        'Admitted taking the poison vial from Dr. Pendelton\'s coat earlier that afternoon',
-        'Broke down in tears and confessed to poisoning her throat atomizer so she would lose her voice permanently, claiming he never meant for the dose to be fatal'
+        'He is completely broke and faces criminal bankruptcy if the audit reaches the magistrate.',
+        'He obtained the belladonna by blackmailing Dr. Pendelton over his revoked medical license.',
+        'He used the service dumbwaiter from the mezzanine to bypass stage door guards.'
       ],
       breakdownThreshold: 80,
-      evidenceReactions: {
-        stage_door_ledger: 'His monocle trembles. He stammers that he merely stepped outside for a puff of Egyptian tobacco in the rain.',
-        blackwood_pension_audit: 'He turns ghost-white: "Vivienne was ruthless... She would have had me sent to Dartmoor Prison without a second thought!"',
-        dumbwaiter_belladonna_vial: 'He grabs the table edge as his knees buckle: "That handkerchief... My signet ring... My God, what have I done?"'
-      }
+      dynamicUnlocks: [
+        {
+          type: 'location',
+          targetId: 'blackwood_private_office',
+          triggerStress: 60,
+          revealDialogue: "You want to talk about finances? Fine, search my office! You won't find anything but legitimate production ledger books!"
+        },
+        {
+          type: 'character',
+          targetId: 'dr_pendelton',
+          triggerStress: 75,
+          revealDialogue: "If you're looking for pharmaceutical poisons, speak to Dr. Pendelton! The man runs the mezzanine dispensary, not me!"
+        }
+      ]
     },
     {
       id: 'camille_dupre',
       name: 'Camille Dupré',
-      role: 'Soprano Understudy & Chorus Leader',
-      trait: 'Bitter, fiercely ambitious, religious fanatic, repressed jealousy',
-      initialTrust: 50,
-      initialStress: 40,
-      isPrimeSuspect: true,
+      role: 'Understudy Soprano (Framed Patsy)',
+      trait: 'Pale, nervous, and terrified of being sent to the gallows for a crime she did not commit.',
+      personality: 'nervous',
+      isInitiallyUnlocked: true,
       category: 'prime_suspect',
-      alibi: 'Claims she was kneeling in prayer in the chorus dressing room, preparing to sing her minor chorus role.',
-      motive: 'Lived seven years in Vivienne\'s shadow enduring public humiliation; instantly took the lead role for Act III and received thunderous applause.',
-      privateKnowledge: 'She prepared Vivienne\'s hot honey water at 9:15 PM and saw Julian Blackwood lurking near the star dressing room with a silver pocket watch. She prayed for divine retribution against Vivienne, but did not administer the poison.',
+      isPrimeSuspect: true,
+      initialTrust: 65,
+      initialStress: 60,
+      alibi: 'Was in the Green Room and chorus rehearsal hall warming up her scales with Maestro Bellini.',
+      motive: 'Stood to inherit the lead role of Tosca upon Vivienne\'s sudden demise.',
+      privateKnowledge: 'Lost her monogrammed handkerchief two days ago after leaving it in Blackwood\'s office.',
       secrets: [
-        'Admitted wishing Vivienne dead so she could take the lead soprano role',
-        'Confessed she saw Julian Blackwood exit Vivienne\'s dressing room at 9:40 PM looking terrified',
-        'Revealed she found the discarded draft of the pension audit on the floor and hid it'
+        'Admitted she resented Vivienne\'s cruel insults during vocal coaching.',
+        'Her monogrammed handkerchief was stolen from her dressing basket Tuesday evening.',
+        'She has never purchased belladonna and was on stage during the alleged purchase.'
       ],
-      breakdownThreshold: 75,
-      evidenceReactions: {
-        tampered_honey_jar: 'She gasps and clutches her crucifix: "I only put clover honey and lemon in her tea! The Lord is my shepherd, I swear it!"',
-        shattered_atomizer: 'She looks at the crystal: "Vivienne used that atomizer every single night before Act III. Whoever poisoned it knew her ritual intimately."'
-      }
+      breakdownThreshold: 85,
+      dynamicUnlocks: [
+        {
+          type: 'evidence',
+          targetId: 'dress_rehearsal_callsheet',
+          triggerStress: 65,
+          revealDialogue: "Check Maestro Bellini's call-sheet! I was on stage singing the duet when that apothecary slip was supposedly signed! I was never in the East End!"
+        },
+        {
+          type: 'location',
+          targetId: 'blackwood_dispensary',
+          triggerStress: 75,
+          revealDialogue: "Mr. Blackwood has keys to the private dispensary on the mezzanine! I saw him slipping up the service stairs during intermission!"
+        }
+      ]
     },
     {
-      id: 'dr_arthur_pendelton',
+      id: 'dr_pendelton',
       name: 'Dr. Arthur Pendelton',
-      role: 'Resident Theater Physician & Toxicologist',
-      trait: 'Fastidious, sweating profusely, secret morphine addict in debt to Blackwood',
+      role: 'Theater Resident Physician',
+      trait: 'Sweating, defensive doctor with trembling hands and stained tweed lapels.',
+      personality: 'defensive',
+      isInitiallyUnlocked: false,
+      category: 'person_of_interest',
+      isPrimeSuspect: false,
       initialTrust: 45,
       initialStress: 50,
-      isPrimeSuspect: true,
-      category: 'prime_suspect',
-      alibi: 'Claims he was bandaging a stagehand\'s crushed wrist in the mezzanine dispensary during the intermission.',
-      motive: 'Vivienne discovered he was writing illegal morphine prescriptions for high-society addicts and threatened to revoke his medical license.',
-      privateKnowledge: 'He purchased the belladonna under pressure from Julian Blackwood, who claimed it was for an exotic botanical heart condition. Julian stole the remaining vial from his dispensary desk.',
+      alibi: 'Was tending to a stagehand who sprained an ankle in the prop workshop.',
+      motive: 'Was being blackmailed by Vivienne over prescribing illegal morphine to society patrons.',
+      privateKnowledge: 'Admits Julian Blackwood coerced him into surrendering concentrated belladonna extract.',
       secrets: [
-        'Admitted purchasing the concentrated belladonna extract from Manning & Sons chemists',
-        'Confessed Julian Blackwood blackmailed him using his secret morphine addiction',
-        'Revealed Julian forced him to leave the poison cabinet key on the desk at 7:00 PM'
+        'Practicing medicine without an active license after an incident in Edinburgh.',
+        'Julian Blackwood threatened to report his drug prescriptions unless he provided the belladonna.',
+        'Saw Blackwood carry an amber glass vial toward the dumbwaiter shaft.'
       ],
-      breakdownThreshold: 70,
-      evidenceReactions: {
-        apothecary_purchase_slip: 'He wipes his brow with a trembling handkerchief: "Blackwood threatened to have me struck off the medical register if I didn\'t sign that chemist slip!"',
-        dispensary_key_log: 'He admits: "The cabinet was unlocked for Julian. I knew he was up to no good, but I swear on my Hippocratic oath I didn\'t know he would kill her!"'
-      }
+      breakdownThreshold: 75,
+      dynamicUnlocks: [
+        {
+          type: 'evidence',
+          targetId: 'poison_vial_dumbwaiter',
+          triggerStress: 70,
+          revealDialogue: "God forgive me! Blackwood took the belladonna! He told me he needed it for rat extermination in the boiler rooms, then dropped the empty vial down the dumbwaiter!"
+        }
+      ]
     },
     {
-      id: 'gideon_cross',
-      name: 'Gideon Cross',
-      role: 'Stage Master & Fly-System Machinist',
-      trait: 'Gruff, weathered veteran stagehand, protective of stage crew',
-      initialTrust: 65,
-      initialStress: 15,
-      isPrimeSuspect: false,
+      id: 'maestro_bellini',
+      name: 'Maestro Marco Bellini',
+      role: 'Principal Opera Conductor',
+      trait: 'Stern Italian maestro obsessed with precision, timing, and musical discipline.',
+      personality: 'confident',
+      isInitiallyUnlocked: false,
       category: 'witness',
-      alibi: 'Up in the high fly-gallery checking the iron counterweights and gas pipe valves during the entire intermission.',
-      motive: 'None. Detested the wealthy patrons, respected Vivienne\'s singing talent.',
-      privateKnowledge: 'From his vantage point on the catwalks 40 feet up, he saw Julian Blackwood dart into the private corridor behind dressing room #1 at 9:36 PM wearing an evening coat, then rush toward the service dumbwaiter five minutes later.',
-      secrets: [
-        'Admitted seeing Julian Blackwood sneak backstage when he was supposed to be in Box A with the mayor',
-        'Confessed he heard glass shatter in the dumbwaiter shaft around 9:45 PM',
-        'Revealed Julian offered him twenty sovereigns the next morning to say the backstage corridor was empty'
-      ],
-      breakdownThreshold: 65,
-      evidenceReactions: {
-        stage_door_ledger: 'He grins grimly: "Old Quinn\'s ledger don\'t lie. Mr. Blackwood always thinks he can buy his way out of a hanging."',
-        dumbwaiter_belladonna_vial: 'He points up: "That dumbwaiter connects straight from the dispensary on floor two down to the dressing rooms."'
-      }
-    },
-    {
-      id: 'eleanor_vance',
-      name: 'Eleanor Vance',
-      role: 'Wardrobe Mistress & Victim\'s Sister',
-      trait: 'Grief-stricken, timid, fiercely protective of her sister\'s reputation',
-      initialTrust: 60,
-      initialStress: 40,
       isPrimeSuspect: false,
-      category: 'person_of_interest',
-      alibi: 'Hemming the burgundy velvet coronation robe in the wardrobe room on the fourth floor.',
-      motive: 'Stood to inherit Vivienne\'s personal estate and Parisian townhouse; tired of being treated like a domestic servant.',
-      privateKnowledge: 'Vivienne told her that afternoon: "Julian Blackwood will either return every shilling he stole from the chorus girls, or tomorrow he will be sleeping in a cell at Newgate." Eleanor also saw Julian threatening Vivienne through the dressing room door before curtain call.',
-      secrets: [
-        'Admitted she hated how Vivienne humiliated her in front of the cast, but loved her too much to hurt her',
-        'Confessed she hid Vivienne\'s private journal containing details of Julian\'s embezzlement',
-        'Revealed Vivienne caught Julian trying to open her jewel safe three days prior'
-      ],
-      breakdownThreshold: 70,
-      evidenceReactions: {
-        blackwood_pension_audit: 'She breaks into sobs: "Vivienne was doing it for the dancers! Julian gambled their pensions on Monte Carlo roulette!"',
-        shattered_atomizer: 'She covers her mouth: "I polished that silver casing this morning. Vivienne never sang a high C without spraying her throat first."'
-      }
-    },
-    {
-      id: 'felix_quinn',
-      name: 'Felix "Rattler" Quinn',
-      role: 'Night Stage Door Watchman',
-      trait: 'Cigar-smoking, dry, cynical Cockney watchman, stickler for his sign-in ledger',
       initialTrust: 70,
       initialStress: 20,
-      isPrimeSuspect: false,
-      category: 'witness',
-      alibi: 'Guarding the iron stage door alley entrance from 6:00 PM until 2:00 AM.',
-      motive: 'None. Only cares about his five-shilling wage and cold stout.',
-      privateKnowledge: 'Julian Blackwood threw a ten-shilling note on his desk at 9:48 PM, breathless and soaked in sweat, telling him: "Keep this door locked and forget you saw me." Blackwood then vanished into the fog down Drury Lane.',
+      alibi: 'Conducting orchestra rehearsals and checking score manuscripts in the pit.',
+      motive: 'None. Adored Vivienne\'s voice as a masterpiece of European opera.',
+      privateKnowledge: 'Can vouch with absolute musical certainty for Camille Dupré\'s exact whereabouts.',
       secrets: [
-        'Admitted taking the ten-shilling bribe from Julian Blackwood at 9:48 PM',
-        'Confessed Julian\'s hands were shaking so hard he dropped his umbrella',
-        'Revealed Blackwood smelled strongly of bitter almonds and cologne when he sprinted past the gate'
+        'Heard loud shouting between Vivienne and Blackwood regarding "the police and stolen funds" two nights ago.',
+        'Saw Julian Blackwood leave Royal Box A at 9:35 PM during the second act.'
       ],
-      breakdownThreshold: 60,
-      evidenceReactions: {
-        stage_door_ledger: 'He taps the page: "My handwriting don\'t lie, Guv\'nor. 9:48 PM, gentleman in Inverness cape. That was Julian Blackwood, plain as day."',
-        dumbwaiter_belladonna_vial: 'He snorts: "Bitter almonds? That was the exact stink on Blackwood\'s coat when he barged through my turnstile."'
-      }
-    }
-  ],
-  stages: [
-    {
-      stage: 1,
-      title: 'Stage 1: The Initial Scene (The Tainted Tincture)',
-      description: 'Establish how the deadly belladonna was administered to the prima donna and expose the falsified theater alibis.',
-      gateRules: 'The detective must identify that Vivienne Vance was murdered via the poisoned voice atomizer and that Julian Blackwood\'s Box A alibi is false because the stage door ledger proves he slipped backstage during intermission.',
-      unlockEvidenceIds: ['blackwood_pension_audit', 'tampered_honey_jar'],
-      unlockLocationIds: ['the_green_room']
-    },
-    {
-      stage: 2,
-      title: 'Stage 2: The Hidden Web (The Embezzlement & Blackmail)',
-      description: 'Uncover why the prima donna was targeted. Cross-examine the suspects regarding financial fraud and theater contracts.',
-      gateRules: 'The detective must deduce the true motive: Julian Blackwood embezzled £15,000 from the actors\' pension fund to pay off gambling debts, and Vivienne was going to report him to Scotland Yard.',
-      unlockEvidenceIds: ['dispensary_key_log'],
-      unlockLocationIds: ['blackwood_dispensary']
-    },
-    {
-      stage: 3,
-      title: 'Stage 3: The Cornered Suspects (The Poison Supply & Delivery)',
-      description: 'Pin down how the killer obtained the pharmaceutical belladonna and delivered it directly into her private quarters.',
-      gateRules: 'The detective must prove Dr. Pendelton was coerced into procuring the belladonna and that the killer used the backstage service dumbwaiter connecting the dispensary to Star Dressing Room #1.',
-      unlockEvidenceIds: ['dumbwaiter_belladonna_vial'],
-      unlockLocationIds: ['prop_workshop_vault']
-    },
-    {
-      stage: 4,
-      title: 'Stage 4: The Final Squeeze',
-      description: 'Confront Julian Blackwood with the signet-imprinted poison vial, stage door testimony, and the pension audit to break his aristocratic composure before the Magistrate.',
-      gateRules: 'Submit the completed Arrest Warrant to the Crown Prosecutor and High Court Judge.',
-      unlockEvidenceIds: [],
-      unlockLocationIds: []
+      breakdownThreshold: 80,
+      dynamicUnlocks: [
+        {
+          type: 'evidence',
+          targetId: 'embezzled_pension_audit',
+          triggerStress: 60,
+          revealDialogue: "Vivienne told me she had cornered Blackwood. She kept her audit locked in his desk safe after threatening to hand it to Scotland Yard!"
+        }
+      ]
     }
   ],
   groundTruth: {
     killer: 'julian_blackwood',
-    motive: 'embezzlement_blackmail_and_breach_of_contract',
-    weapon: 'shattered_atomizer',
-    keyContradiction: 'stage_door_ledger',
-    timelineSummary: 'Julian Blackwood embezzled £15,000 from the theater pension fund. Vivienne Vance confronted him and prepared an audit for Scotland Yard. Blackwood blackmailed Dr. Pendelton for concentrated belladonna, sneaked from his box at 9:35 PM, poured the poison into Vivienne\'s voice atomizer, dumped the vial down the dumbwaiter, and slipped out the stage door into Drury Lane at 9:48 PM before the curtain rose for Act III.'
+    motive: 'embezzled_pension_audit',
+    weapon: 'poison_vial_dumbwaiter',
+    keyContradiction: 'dress_rehearsal_callsheet',
+    timelineSummary: 'Julian Blackwood embezzled £15,000 from the actors pension fund. When Vivienne Vance threatened him with her audit, he blackmailed Dr. Pendelton for concentrated belladonna, planted Camille Dupré\'s stolen lace handkerchief and a forged receipt, slipped from Royal Box A at 9:35 PM, dosed Vivienne\'s vocal atomizer, dumped the vial down the dumbwaiter, and slipped back to his box before the curtain rose.',
+    archetype: 'deliberate_frame_job',
+    fallGuy: 'camille_dupre'
   },
   isDefault: false
 };
 
-// CASE 3: Arctic Research Station Cryo-Thriller
+// ============================================================================
+// CASE 3: The Frostbite Protocol (Cause-of-Death Twist)
+// Trope: The Stunner vs. The Killer / Assault Confession Trap
+// ============================================================================
 export const ARCTIC_STORY: IStory = {
   title: 'The Frostbite Protocol: Murder at Station Boreas',
   caseNumber: '2026-0114-BOREAS',
   leadDetective: 'Special Agent Nina Kouris',
   status: 'Active Polar Homicide Investigation',
   victimProfile: {
-    name: 'Dr. Erik Lindstrom',
+    name: 'Dr. Erik Lindqvist',
     age: 51,
     occupation: 'Chief Glaciologist & Project Director, Station Boreas',
     discovered: 'January 14, 2026, 04:30 UTC in Deep Sub-Ice Core Vault B4',
-    causeOfDeath: 'Acute cryogenic shock and asphyxiation from vented liquid nitrogen coolant, followed by blunt trauma to helmet faceplate',
-    timeOfDeath: 'Between 03:05 UTC and 03:25 UTC during Category 5 geomagnetic storm'
+    causeOfDeath: 'Acute cryogenic flash-freeze and liquid nitrogen asphyxiation after sustaining a non-fatal blunt skull concussion',
+    timeOfDeath: 'Between 03:15 UTC and 03:30 UTC during Category 5 blizzard'
   },
   briefing: {
-    initialBriefing: 'Station Boreas sits 400 miles inside the Greenland ice sheet, completely cut off by a Category 5 winter blizzard. Chief Glaciologist Dr. Erik Lindstrom was found frozen solid inside the pressurized sub-ice drill vault at Level B4. The vault\'s emergency liquid nitrogen purge valve had been manually tripped from the interior corridor, and Lindstrom\'s pressurized survival helmet was shattered from the outside with a pneumatic rock hammer.',
-    detectiveInsights: 'The station\'s exterior airlocks remained sealed tight against the -65°C gale outside—meaning the killer is trapped inside the habitat dome with us. Behind the facade of pure climate science lies a cutthroat battle over trillion-dollar rare-earth minerals buried beneath the melting ice sheet.'
+    initialBriefing: 'Station Boreas sits 400 miles inside the Greenland ice sheet, isolated by a -65°C polar gale. Chief Glaciologist Dr. Erik Lindqvist was found dead inside the pressurized sub-ice drill vault at Level B4. Dr. Nikolai Vance broke down in tears and confessed to striking Lindqvist across the head with a titanium wrench after a violent argument. However, preliminary forensic scans show the blow to the skull was merely a stunner—the true killer triggered the automated liquid nitrogen coolant purge valve 20 minutes later while Lindqvist was unconscious on the deck.',
+    detectiveInsights: 'A confession to assault is not a confession to murder. Dr. Vance believes he killed his colleague, but the coroner reveals Lindqvist was breathing normally for 25 minutes after the blow. Deputy Director Dr. Ingrid Meyer has been cool, calm, and cooperative—perhaps too eager to let Nikolai take the fall for a $40 billion rare-earth mining survey.'
   },
   objectives: {
     progress: [
-      'Placed Station Boreas on complete biometric lockdown',
+      'Station Boreas placed on full environmental lockdown',
       'Secured Level B4 Cryo-Drill Vault and quarantined life-support telemetry',
-      'Gathered all surviving research crew in the Central Mess Dome',
-      'Impounded the engineering tool crib and pneumatic drill registers'
+      'Interrogated Dr. Nikolai Vance following his assault confession'
     ],
     currentObjectives: [
-      'Interrogate Dr. Nikolai Vance, Chief Engineer Maya Zhang, and Sven Olsen',
-      'Investigate the looped sleep telemetry logs in the crew quarters',
-      'Discover who possessed administrative override credentials for the nitrogen purge system',
-      'Present deduction to Officer Davis to authorize forensic sweep of the deep core scanner lab'
+      'Examine the preliminary autopsy to prove blunt trauma did not cause death',
+      'Sweep the Life Support SCADA terminals for the nitrogen purge override code',
+      'Interrogate Dr. Ingrid Meyer regarding the rare-earth mining survey',
+      'Submit the warrant for the true assassin, not the remorseful attacker'
     ]
   },
   locations: [
@@ -369,297 +332,927 @@ export const ARCTIC_STORY: IStory = {
       id: 'cryo_drill_vault',
       title: 'Level B4 Sub-Ice Core Vault',
       subtitle: 'Station Boreas - 120 Meters Beneath Glacier',
-      status: 'Active Crime Scene',
+      status: 'Primary Crime Scene',
       lastVisited: 'January 14, 2026',
-      witnesses: 'Dr. Anya Petrova, Specialist Jonas Reed',
-      notes: 'Sub-zero drilling chamber where prehistoric ice cores are extracted. Heavy frost coats every surface. Liquid nitrogen venting manifold valve left open at position 4.',
-      unlockStage: 1
+      witnesses: 'Dr. Nikolai Vance, Dr. Ingrid Meyer',
+      notes: 'Sub-zero drilling vault where ancient ice cores are stored. Liquid nitrogen manifold purge valve #2 was manually locked into the open position.',
+      isInitiallyUnlocked: true,
+      hiddenEvidenceIds: ['shattered_faceplate', 'nitrogen_manifold_audit'],
+      canvassReport: 'CSI sweep verified that while Lindqvist suffered a fractured helmet faceplate from a wrench, the chamber air was 100% displaced by liquid nitrogen at -196°C, causing instant pulmonary freeze.'
     },
     {
-      id: 'central_habitat_quarters',
-      title: 'Crew Living Quarters & Mess Dome',
-      subtitle: 'Upper Habitat Level A',
-      status: 'Quarantined Living Area',
-      lastVisited: 'January 14, 2026',
-      witnesses: 'Quartermaster Kari Vinter',
-      notes: 'Prefabricated crew pods equipped with biometric vital-sign sleep trackers and personal workstation terminals. Sealed against polar gales.',
-      unlockStage: 2
-    },
-    {
-      id: 'engineering_tool_crib',
-      title: 'Heavy Machinery Bay & Maintenance Crib',
-      subtitle: 'Sub-Surface Level B2',
-      status: 'Search Warrant Executed',
-      lastVisited: 'January 15, 2026',
-      witnesses: 'Chief Engineer Maya Zhang, Rig Operator Sven Olsen',
-      notes: 'Workshop containing snowcat tractors, hydraulic winches, and heavy mining tools. The pneumatic rock hammer rack shows slot #3 empty.',
-      unlockStage: 3
-    },
-    {
-      id: 'communications_array_hub',
-      title: 'Satellite Uplink & Deep Sensor Lab',
-      subtitle: 'Tower Dome Level C',
-      status: 'Restricted Forensic Site',
+      id: 'scada_control_room',
+      title: 'Station Life Support SCADA Hub',
+      subtitle: 'Habitat Ring Level A',
+      status: 'Digital Forensics Site',
       lastVisited: 'Pending Detective Sweep',
-      witnesses: 'Comms Officer Jonas Reed',
-      notes: 'High-frequency microwave antennae and encrypted satellite data servers. Terminal screens show evidence of a scrubbed external data transmission.',
-      unlockStage: 4
+      witnesses: 'Chief Engineer Maya Zhang',
+      notes: 'Control terminals monitoring oxygen, coolant valves, and atmospheric pressure throughout the polar dome.',
+      isInitiallyUnlocked: true,
+      hiddenEvidenceIds: ['nitrogen_override_log', 'looped_sleep_tracker'],
+      canvassReport: 'System logs prove the nitrogen purge was activated from terminal SCADA-02 using Director Override code "MEYER-ADMIN-77" at 03:22 UTC—twenty minutes after Nikolai fled the vault.'
+    },
+    {
+      id: 'ingrid_private_office',
+      title: 'Dr. Ingrid Meyer\'s Research Quarters',
+      subtitle: 'Executive Module Suite #2',
+      status: 'Restricted Quarters',
+      lastVisited: 'Pending Detective Sweep',
+      witnesses: 'Dr. Ingrid Meyer',
+      notes: 'Sterile, meticulous office with satellite communication uplinks and locked scientific filing safes.',
+      isInitiallyUnlocked: false,
+      hiddenEvidenceIds: ['rare_earth_mining_concession', 'scrubbed_satellite_transmission'],
+      canvassReport: 'Forensic extraction of Ingrid\'s personal hard drive revealed an unredacted survey proving $40 billion in neodymium reserves beneath the glacier, brokered to an offshore consortium.'
     }
   ],
   evidence: [
     {
-      id: 'smashed_cryo_helmet',
-      title: 'Shattered Pressurized Survival Helmet',
-      subtitle: 'Victim\'s Protective Gear',
-      details: 'Dr. Lindstrom\'s reinforced polycarbonate faceplate was fractured by multiple high-velocity impacts from a blunt cylindrical tool. Forensic microscopes reveal microscopic blue nylon fibers and hydraulic grease embedded in the perimeter silicone seal.',
+      id: 'shattered_faceplate',
+      title: 'Cracked Titanium Helmet & Autopsy Report',
+      subtitle: 'Proof of the Cause-of-Death Twist',
+      details: 'Dr. Lindqvist\'s helmet was cracked by a titanium wrench, inflicting a mild skull concussion. However, the coroner\'s autopsy proves zero cerebral hemorrhage; the bronchial tree is coated with frozen nitrogen ice crystals. The victim was alive and breathing for 25 minutes after the blow.',
       date: 'January 14, 2026',
       location: 'Level B4 Drill Vault Deck',
       priority: 'Critical',
-      unlockStage: 1
+      isInitiallyUnlocked: true,
+      locationId: 'cryo_drill_vault'
     },
     {
-      id: 'nitrogen_vent_audit',
-      title: 'Emergency Coolant Manifold Audit Log',
-      subtitle: 'Automated Life Support SCADA Record',
-      details: 'Automated telemetry showing Level B4 liquid nitrogen coolant flood was initiated at 03:12 UTC using administrative keycard credential "DIR-OVERRIDE-02" assigned to Deputy Science Director Dr. Nikolai Vance.',
+      id: 'nitrogen_override_log',
+      title: 'SCADA Nitrogen Coolant Purge Log',
+      subtitle: 'The Real Murder Weapon',
+      details: 'Automated environmental record showing Level B4 liquid nitrogen flood was initiated at 03:22 UTC using administrative keycard "MEYER-ADMIN-77" belonging to Deputy Director Dr. Ingrid Meyer.',
       date: 'January 14, 2026',
-      location: 'Base Central Mainframe',
+      location: 'SCADA Mainframe Console',
       priority: 'Critical',
-      unlockStage: 1
+      isInitiallyUnlocked: false,
+      locationId: 'scada_control_room'
     },
     {
       id: 'looped_sleep_tracker',
       title: 'Falsified Biometric Sleep Telemetry',
-      subtitle: 'Crew Pod #3 Health Monitor',
-      details: 'Dr. Nikolai Vance\'s sleep band recorded steady REM sleep between 01:00 and 06:00 UTC. However, diagnostic analysis shows the heart rate waveform is a 12-minute repeating loop uploaded from an external memory stick at 02:45 UTC.',
+      subtitle: 'Ingrid\'s Fabricated Digital Alibi',
+      details: 'Dr. Ingrid Meyer\'s biometric wristband logged steady REM sleep in her bunk between 02:00 and 05:00 UTC. Forensic diagnostics reveal the telemetry was an 8-minute repeating simulator loop patched from a USB drive.',
       date: 'January 14, 2026',
-      location: 'Medical Monitoring Console',
-      priority: 'Critical',
-      unlockStage: 1
-    },
-    {
-      id: 'falsified_climate_core_report',
-      title: 'Subglacial Rare-Earth Mining Survey',
-      subtitle: 'Project DeepCore Confidential Findings',
-      details: 'Encrypted document showing Dr. Lindstrom caught Nikolai Vance falsifying polar climate models to hide a massive subterranean deposit of neodymium and lithium worth $40 billion, which Vance was secretly brokering to an offshore consortium.',
-      date: 'January 12, 2026',
-      location: 'Dr. Lindstrom\'s Biometric Tablet',
+      location: 'Habitat Ring Medical Server',
       priority: 'High',
-      unlockStage: 2
+      isInitiallyUnlocked: false,
+      locationId: 'scada_control_room'
     },
     {
-      id: 'clandestine_burst_transmission',
-      title: 'Encrypted High-Frequency Burst Log',
-      subtitle: 'Satellite Comm Channel 88-Delta',
-      details: 'Log of an unauthorized 30-second laser satellite burst beamed through the blizzard at 02:58 UTC to a private IP in Geneva, transmitting Lindstrom\'s private encryption keys and drill coordinates.',
-      date: 'January 14, 2026',
-      location: 'Comms Array Buffer Memory',
-      priority: 'High',
-      unlockStage: 2
-    },
-    {
-      id: 'pneumatic_rock_hammer',
-      title: 'Pneumatic Core-Sample Rock Hammer',
-      subtitle: 'Model Atlas-9 Heavy Impact Chisel',
-      details: 'Heavy 12-pound pneumatic percussion hammer retrieved from the snowcat exhaust duct. Traces of Lindstrom\'s blood and blue parka synthetic thread are present on the steel striking head.',
-      date: 'January 15, 2026',
-      location: 'Hangar Snowcat Exhaust Cowling',
+      id: 'rare_earth_mining_concession',
+      title: 'Subglacial $40B Rare-Earth Contract',
+      subtitle: 'The Incontrovertible Financial Motive',
+      details: 'Encrypted contract between Dr. Ingrid Meyer and Nordic Mining Holdings. Lindqvist had discovered Ingrid was falsifying climate core samples to permit subglacial strip-mining and was going to have her arrested upon relief transport arrival.',
+      date: 'January 13, 2026',
+      location: 'Ingrid Meyer\'s Encrypted Laptop',
       priority: 'Critical',
-      unlockStage: 3
-    },
-    {
-      id: 'cleanroom_thermal_parka',
-      title: 'Blue Polar Cleanroom Parka with Grease Stains',
-      subtitle: 'Personal Cold-Weather Gear',
-      details: 'Nikolai Vance\'s assigned thermal parka found stuffed behind the Level B2 HVAC filter. Chemical spectrometry confirms matching synthetic fibers from the broken helmet gasket and microscopic spatter of aerosolized liquid nitrogen lubricant on the cuffs.',
-      date: 'January 15, 2026',
-      location: 'HVAC Air Recirculation Duct',
-      priority: 'Critical',
-      unlockStage: 4
+      isInitiallyUnlocked: false,
+      locationId: 'ingrid_private_office'
     }
   ],
   suspects: [
     {
       id: 'nikolai_vance',
       name: 'Dr. Nikolai Vance',
-      role: 'Deputy Science Director & Geophysicist',
-      trait: 'Cold, hyper-intellectual, ruthless academic egoist with zero empathy',
-      initialTrust: 40,
-      initialStress: 30,
-      isPrimeSuspect: true,
+      role: 'Senior Drilling Specialist (False Confessor)',
+      trait: 'Shaken, remorseful scientist sobbing in the holding cell, clutching his head.',
+      personality: 'aggressive',
+      isInitiallyUnlocked: true,
       category: 'prime_suspect',
-      alibi: 'Claims he was asleep in his bunk pod from midnight until the morning klaxon sounded, pointing to his logged biometric sleep tracker as proof.',
-      motive: 'Lindstrom discovered Nikolai was falsifying climate core data to hide a multi-billion dollar lithium-platinum deposit that Nikolai was selling to a Swiss private military mining syndicate.',
-      privateKnowledge: 'He hacked his sleep monitor with a looped script at 02:45 UTC, took Sven\'s pneumatic hammer from the crib, cornered Lindstrom in Vault B4, opened the liquid nitrogen coolant valve, smashed Lindstrom\'s helmet faceplate when Lindstrom tried to activate the emergency beacon, and stashed his parka in the air duct.',
+      isPrimeSuspect: true,
+      initialTrust: 40,
+      initialStress: 85,
+      alibi: 'Admits to striking Lindqvist with a wrench during a dispute over drill data, then fleeing in sheer terror.',
+      motive: 'Lindqvist threatened to revoke his academic tenure and remove him from the station.',
+      privateKnowledge: 'Believes in his heart that his strike killed Lindqvist, not knowing Lindqvist was still breathing.',
       secrets: [
-        'Admitted looping his biometric sleep monitor using a programmed USB script',
-        'Confessed to transmitting the confidential core deposit coordinates to Geneva at 02:58 UTC',
-        'Admitted confronting Lindstrom in Vault B4 over the scientific fraud allegations',
-        'Cracked completely and confessed to venting the liquid nitrogen and smashing Lindstrom\'s helmet so he wouldn\'t freeze the Swiss mining contract'
+        'He was drinking high-proof ethanol in the machine shop before confronting Lindqvist.',
+        'He dropped the wrench and ran at exactly 03:02 UTC—twenty minutes before the nitrogen purge.',
+        'Saw Dr. Ingrid Meyer walking toward the B4 vault elevator as he was running away.'
+      ],
+      breakdownThreshold: 60,
+      dynamicUnlocks: [
+        {
+          type: 'location',
+          targetId: 'scada_control_room',
+          triggerStress: 90,
+          revealDialogue: "I swear I hit him and ran! But I never touched the nitrogen valves! When I was sprinting for the stairs, I saw Ingrid entering the elevator corridor with a keycard!"
+        }
+      ]
+    },
+    {
+      id: 'ingrid_meyer',
+      name: 'Dr. Ingrid Meyer',
+      role: 'Deputy Station Director (The Actual Killer)',
+      trait: 'Cold, hyper-composed, and seemingly helpful; speaks with detached scientific precision.',
+      personality: 'cunning',
+      isInitiallyUnlocked: true,
+      category: 'prime_suspect',
+      isPrimeSuspect: true,
+      initialTrust: 60,
+      initialStress: 15,
+      alibi: 'Claims she was asleep in Bunk Pod #2 throughout the night storm, supported by her biometric sleep band.',
+      motive: 'Lindqvist caught her selling $40 billion in subglacial mining concessions to Nordic Mining Holdings.',
+      privateKnowledge: 'Found Lindqvist unconscious on the deck after Nikolai\'s assault, seized the opportunity, and vented liquid nitrogen into the room to permanently silence him.',
+      secrets: [
+        'Her biometric sleep data is an uploaded loop designed to give her an airtight digital alibi.',
+        'Used her administrative override code to trigger the nitrogen flood.',
+        'Knew Nikolai\'s fight with the victim would provide the perfect cover story.'
       ],
       breakdownThreshold: 80,
-      evidenceReactions: {
-        looped_sleep_tracker: 'His clinical expression fractures. He tries to claim his sleep monitor must have experienced an electromagnetic glitch from the aurora.',
-        falsified_climate_core_report: 'He sneers: "Lindstrom was an academic dinosaur! That lithium deposit will power the next century of autonomous robotics!"',
-        cleanroom_thermal_parka: 'He clutches his temples and collapses onto the interrogation table: "He was going to destroy thirty years of my life\'s work!"'
-      }
+      dynamicUnlocks: [
+        {
+          type: 'location',
+          targetId: 'ingrid_private_office',
+          triggerStress: 65,
+          revealDialogue: "You have Nikolai's signed confession! Why are you rifling through my private research office? Everything in there is proprietary corporate property!"
+        },
+        {
+          type: 'evidence',
+          targetId: 'nitrogen_override_log',
+          triggerEvidenceId: 'shattered_faceplate',
+          revealDialogue: "The autopsy says asphyxiation? Well, accidents happen in polar cryo-vaults... but that doesn't link me to any valve malfunctions!"
+        }
+      ]
     },
     {
       id: 'maya_zhang',
-      name: 'Chief Engineer Maya Zhang',
-      role: 'Senior Life Support & Power Systems Engineer',
-      trait: 'Gruff, protective of crew survival, exhausted, disdainful of academic politics',
-      initialTrust: 55,
-      initialStress: 35,
-      isPrimeSuspect: true,
-      category: 'prime_suspect',
-      alibi: 'Claims she spent the whole night monitoring the main reactor heat exchangers in the generator room to prevent blackout during the storm.',
-      motive: 'Lindstrom had cut power to crew heating pods by 40% to run his sub-ice drills, which Maya openly stated would kill someone before winter ended.',
-      privateKnowledge: 'She saw someone entering the Level B elevator shaft at 03:00 UTC wearing a blue scientific parka, but assumed it was Lindstrom doing an inspection. She did not trip the nitrogen valve.',
+      name: 'Maya Zhang',
+      role: 'Chief Habitat Engineer',
+      trait: 'Methodical engineer in oil-stained overalls who knows every valve in the station.',
+      personality: 'defensive',
+      isInitiallyUnlocked: false,
+      category: 'witness',
+      isPrimeSuspect: false,
+      initialTrust: 70,
+      initialStress: 30,
+      alibi: 'Was in the generator room balancing the turbine load during the blizzard.',
+      motive: 'None. Respected Lindqvist\'s safety protocols.',
+      privateKnowledge: 'Confirmed the nitrogen purge cannot trigger by accident—it requires an executive override keycard.',
       secrets: [
-        'Admitted having a screaming match with Lindstrom at 18:00 UTC over habitat power cuts',
-        'Confessed she bypassed safety interlocks on the generator to keep the habitat warm',
-        'Revealed she saw Nikolai Vance whispering with Sven Olsen near the tool crib earlier that afternoon'
+        'Noticed Ingrid Meyer asking strange questions about the vault\'s automated purging system last week.',
+        'Examined the SCADA server and discovered the admin login originated from Meyer\'s credentials.'
       ],
       breakdownThreshold: 75,
-      evidenceReactions: {
-        nitrogen_vent_audit: 'Her eyes blaze: "That coolant loop is designed to preserve ice samples, not humans! Whoever opened that valve knew it would create an instant cryogenic coffin!"',
-        smashed_cryo_helmet: 'She shudders: "The force needed to smash that visor... It had to be a pneumatic percussion hammer. Nothing else could crack reinforced Lexan."'
-      }
-    },
-    {
-      id: 'sven_olsen',
-      name: 'Sven Olsen',
-      role: 'Heavy Drilling Rig Operator & Deep Miner',
-      trait: 'Massive, scarred, blunt-spoken, suspicious of corporate suits',
-      initialTrust: 45,
-      initialStress: 40,
-      isPrimeSuspect: true,
-      category: 'prime_suspect',
-      alibi: 'Claims he was rebuilding a frozen hydraulic fuel pump on snowcat tractor #2 in the vehicle bay.',
-      motive: 'Lindstrom caught Sven smuggling raw core crystal specimens into his private footlocker to sell on the black market.',
-      privateKnowledge: 'Sven noticed his pneumatic rock hammer was missing from rack #3 at 02:30 UTC when he went to service a drill bit. He went down to Level B4 looking for it and smelled nitrogen gas, panicked, and ran back up without reporting it.',
-      secrets: [
-        'Admitted his pneumatic hammer went missing hours before the murder',
-        'Confessed he went down to Level B4 around 03:20 UTC and saw thick white nitrogen fog spilling under the airlock door',
-        'Revealed Nikolai Vance offered him $50,000 in crypto to "lose" the drilling logs for core layer 88'
-      ],
-      breakdownThreshold: 70,
-      evidenceReactions: {
-        pneumatic_rock_hammer: 'He slams his fist: "That\'s my rig hammer! But look at the grease on the handle—I wear size 13 mittens, whoever held that had small hands like Vance!"',
-        falsified_climate_core_report: 'He spits on the floor: "Vance always talked like a savior, but he was measuring the mineral veins in dollar signs."'
-      }
-    },
-    {
-      id: 'dr_anya_petrova',
-      name: 'Dr. Anya Petrova',
-      role: 'Station Chief Medical Officer & Cryobiologist',
-      trait: 'Methodical, forensic mindset, calm under extreme pressure',
-      initialTrust: 65,
-      initialStress: 20,
-      isPrimeSuspect: false,
-      category: 'witness',
-      alibi: 'Analyzing tissue cultures in the main clinical lab on Level A.',
-      motive: 'None. Lindstrom was her mentor and close professional ally.',
-      privateKnowledge: 'During the initial examination of Lindstrom\'s frozen remains, she preserved microscopic fibers from the helmet shatter line before anyone could contaminate the scene. She recognized the blue dye from Vance\'s cleanroom gear.',
-      secrets: [
-        'Admitted she kept the blue synthetic fiber samples hidden because she suspected a senior officer',
-        'Confessed Lindstrom confided in her that he feared for his life two days prior to the storm',
-        'Revealed that Vance visited med-bay that morning asking if cryogenic shock leaves identifiable forensic toxins'
-      ],
-      breakdownThreshold: 65,
-      evidenceReactions: {
-        smashed_cryo_helmet: 'She nods gravely: "Blunt force trauma didn\'t kill him first; his lungs crystallized the second the nitrogen vapor breached the faceplate."',
-        cleanroom_thermal_parka: 'She compares the samples: "The spectrometer peaks are identical. These threads came from Nikolai Vance\'s parka."'
-      }
-    },
-    {
-      id: 'jonas_reed',
-      name: 'Jonas Reed',
-      role: 'Communications Specialist & Radar Tech',
-      trait: 'Nervous, caffeinated, tech savant, terrified of isolation',
-      initialTrust: 60,
-      initialStress: 30,
-      isPrimeSuspect: false,
-      category: 'witness',
-      alibi: 'At the radar console attempting to align the emergency storm transponder.',
-      motive: 'None. Only wants the storm to pass so the supply transport can evacuate the station.',
-      privateKnowledge: 'He intercepted the high-frequency burst transmission at 02:58 UTC. Because it bypassed the main console firewall, it could only have been sent using the director\'s emergency cryptographic token—which Nikolai Vance had stolen from Lindstrom\'s desk.',
-      secrets: [
-        'Admitted capturing the raw encrypted packet of the secret 02:58 UTC burst',
-        'Confessed Vance ordered him to wipe the satellite relay logs at 06:00 UTC under threat of termination',
-        'Revealed the destination server was registered to Aegis Polar Resources in Geneva'
-      ],
-      breakdownThreshold: 60,
-      evidenceReactions: {
-        clandestine_burst_transmission: 'He nods frantically: "That\'s the packet! I logged the handshake ID: it used Vance\'s private encryption signature!"',
-        looped_sleep_tracker: 'He laughs nervously: "That script is an amateur loop. Anyone with a high school coding certificate could spot the identical heartbeat rhythm."'
-      }
-    },
-    {
-      id: 'kari_vinter',
-      name: 'Kari Vinter',
-      role: 'Station Quartermaster & Logistics Head',
-      trait: 'Meticulous, strict inventory keeper, suspicious of anyone touching supplies',
-      initialTrust: 70,
-      initialStress: 15,
-      isPrimeSuspect: false,
-      category: 'witness',
-      alibi: 'Conducting emergency food and heating fuel audits in storage pod 2.',
-      motive: 'None. Strict rules-and-regulations officer.',
-      privateKnowledge: 'Nikolai Vance came to her supply desk at 21:00 UTC requesting access to the Level B4 emergency nitrogen isolation panel keys, claiming he needed to calibrate the sample chillers before the blizzard knocked out the auxiliary grid.',
-      secrets: [
-        'Admitted giving Nikolai Vance the emergency isolation panel key override card at 21:00 UTC',
-        'Confessed Vance was breathing erratically and refused to sign the checkout registry',
-        'Revealed Vance returned the key at 04:00 UTC with fresh frost on his boots'
-      ],
-      breakdownThreshold: 65,
-      evidenceReactions: {
-        nitrogen_vent_audit: 'She confirms: "DIR-OVERRIDE-02 is the exact access badge I handed to Nikolai Vance last night."',
-        pneumatic_rock_hammer: 'She checks her clipboard: "Sven didn\'t take that hammer out. That tool was logged out under a master research override."'
-      }
-    }
-  ],
-  stages: [
-    {
-      stage: 1,
-      title: 'Stage 1: The Initial Scene (The Falsified Sleep Log)',
-      description: 'Discover how the pressurized drill vault was breached during base lockdown and expose the looped biometric alibi.',
-      gateRules: 'The detective must prove that the liquid nitrogen coolant was vented intentionally and that Dr. Nikolai Vance\'s sleep telemetry was a fraudulent programmed loop created to fake an alibi.',
-      unlockEvidenceIds: ['falsified_climate_core_report', 'clandestine_burst_transmission'],
-      unlockLocationIds: ['central_habitat_quarters']
-    },
-    {
-      stage: 2,
-      title: 'Stage 2: The Hidden Web (The Stolen Rare-Earth Deposit)',
-      description: 'Uncover the real motive behind the murder of the station director and decode the clandestine burst transmission.',
-      gateRules: 'The detective must establish the financial motive: Lindstrom caught Nikolai Vance falsifying climate models to secretly broker a multi-billion dollar subterranean lithium-platinum deposit to a Swiss syndicate.',
-      unlockEvidenceIds: ['pneumatic_rock_hammer'],
-      unlockLocationIds: ['engineering_tool_crib']
-    },
-    {
-      stage: 3,
-      title: 'Stage 3: The Cornered Suspects (The Weapon & Broken Visor)',
-      description: 'Pin down the murder weapon and identify whose cleanroom gear was present during the fatal cryogenic decompression.',
-      gateRules: 'The detective must identify that the pneumatic core-sample rock hammer was used to shatter Lindstrom\'s helmet faceplate and match the blue cleanroom parka fibers to Nikolai Vance.',
-      unlockEvidenceIds: ['cleanroom_thermal_parka'],
-      unlockLocationIds: ['communications_array_hub']
-    },
-    {
-      stage: 4,
-      title: 'Stage 4: The Final Squeeze',
-      description: 'Confront Dr. Nikolai Vance with the recovered parka fibers, cryptographic burst transmission, and pneumatic hammer forensics to force a full confession before rescue aircraft arrive.',
-      gateRules: 'Submit the definitive Arrest Warrant and forensic brief to the Polar Bureau Tribunal.',
-      unlockEvidenceIds: [],
-      unlockLocationIds: []
+      dynamicUnlocks: [
+        {
+          type: 'evidence',
+          targetId: 'looped_sleep_tracker',
+          triggerStress: 50,
+          revealDialogue: "Check the medical telemetry server! Dr. Meyer's heart rate doesn't have a single normal arrhythmia—it's a synthetic loop file!"
+        }
+      ]
     }
   ],
   groundTruth: {
-    killer: 'nikolai_vance',
-    motive: 'falsified_climate_core_report',
-    weapon: 'pneumatic_rock_hammer',
-    keyContradiction: 'looped_sleep_tracker',
-    timelineSummary: 'Nikolai Vance falsified Project DeepCore research data to hide a $40 billion lithium deposit. Lindstrom caught him and prepared to expose his fraud. Vance looped his biometric sleep tracker, transmitted the core coordinates to Geneva at 02:58 UTC, cornered Lindstrom in Vault B4, opened the liquid nitrogen coolant valve, and smashed Lindstrom\'s helmet faceplate with a pneumatic rock hammer to ensure immediate cryogenic death.'
+    killer: 'ingrid_meyer',
+    motive: 'rare_earth_mining_concession',
+    weapon: 'nitrogen_override_log',
+    keyContradiction: 'shattered_faceplate',
+    timelineSummary: 'Nikolai struck Lindqvist with a wrench at 03:02 UTC and fled in terror, believing he killed him. However, Lindqvist was merely unconscious. At 03:22 UTC, Dr. Ingrid Meyer arrived to find Lindqvist down, used her administrative override to flood the vault with liquid nitrogen to protect her $40B rare-earth mining deal, and looped her biometric sleep tracker to create an alibi.',
+    archetype: 'cause_of_death_twist',
+    trueFatalMechanism: 'Liquid nitrogen cryogenic flash-freeze and oxygen displacement, not the non-fatal skull trauma admitted to by Nikolai Vance'
+  },
+  isDefault: false
+};
+
+// ============================================================================
+// CASE 4: The Velvet Alibi (Classic Fair-Play Procedural Noir)
+// Trope: Direct Procedural Fair-Play Noir
+// ============================================================================
+export const JAZZ_STORY: IStory = {
+  title: 'The Velvet Alibi: Jazz & Blood at the Blue Note',
+  caseNumber: '1952-0814-BN',
+  leadDetective: 'Lieutenant Jack Callahan',
+  status: 'Active Homicide Investigation',
+  victimProfile: {
+    name: "Vincent 'Lucky' Moretti",
+    age: 47,
+    occupation: 'Nightclub Proprietor & Syndicate Loan Shark',
+    discovered: 'August 14, 1952, 11:55 PM in the VIP Backroom of the Blue Note Lounge',
+    causeOfDeath: 'Single gunshot wound to the thoracic cavity from a .38 caliber snubnose revolver',
+    timeOfDeath: 'Between 11:35 PM and 11:45 PM during the final trumpet crescendo'
+  },
+  briefing: {
+    initialBriefing: 'Syndicate boss and nightclub owner Vincent Moretti was found slumped across his counting table in the soundproofed VIP backroom of the Blue Note Lounge. A single bullet from a .38 revolver pierced his heart. The shooting occurred during the climax of the club\'s midnight jazz set, masking the gunshot report behind roaring brass and drums.',
+    detectiveInsights: 'Moretti made a fortune running loan operations and extortion rackets. The club was packed with patrons, but backstage access is restricted to band members, the club singer, and his enforcer. Pianist Frankie Valenti swears he never left the piano bench, but the sound booth recording tells a different story.'
+  },
+  objectives: {
+    progress: [
+      'Secured Blue Note VIP counting backroom and impounded the safe contents',
+      'Corralled musicians and club staff in the main parlor',
+      'Dispatched coroner for ballistics extraction'
+    ],
+    currentObjectives: [
+      'Interrogate primary suspects Frankie Valenti and songstress Dolores Dawn',
+      'Canvass the stage piano and backstage alley for the murder weapon',
+      'Break suspect composure to uncover syndicate associates and hidden witnesses',
+      'Review the sound booth recording wire to expose the musical timeline contradiction',
+      'Submit the formal arrest warrant with definitive physical ballistics'
+    ]
+  },
+  locations: [
+    {
+      id: 'vip_backroom',
+      title: 'Blue Note VIP Counting Parlor',
+      subtitle: 'Behind Soundproofed Velvet Curtains',
+      status: 'Primary Crime Scene',
+      lastVisited: 'August 14, 1952',
+      witnesses: 'Bartender Leo Russo, Enforcer Big Tony',
+      notes: 'Soundproofed mahogany room with leather banquettes and a steel safe. Smoke hangs heavy in the air; gunpowder stippling on the doorframe.',
+      isInitiallyUnlocked: true,
+      hiddenEvidenceIds: ['spent_38_casing', 'moretti_extortion_ledger'],
+      canvassReport: 'Forensics dusted the counting table and recovered a spent .38 caliber brass casing with custom cross-groove striations, along with Moretti\'s black extortion ledger.'
+    },
+    {
+      id: 'main_stage_piano',
+      title: 'The Blue Note Stage & Parlor Piano',
+      subtitle: 'Main Lounge Performance Area',
+      status: 'Performance Venue',
+      lastVisited: 'August 15, 1952',
+      witnesses: 'Frankie Valenti, Dolores Dawn',
+      notes: 'Velvet-lined stage with a vintage Steinway upright piano, brass horns, and drum kit. Acoustic soundboards behind the piano bench.',
+      isInitiallyUnlocked: true,
+      hiddenEvidenceIds: ['snubnose_revolver', 'sound_booth_recording_wire'],
+      canvassReport: 'CSI opened the lower acoustic soundbox of the upright piano and recovered a nickel-plated .38 snubnose revolver wrapped in an oily polishing cloth, warm from recent discharge.'
+    },
+    {
+      id: 'backstage_alley_exit',
+      title: 'Musicians\' Backstage Dressing Alley',
+      subtitle: 'Rear Service Corridor onto 4th Street',
+      status: 'Secondary Search Site',
+      lastVisited: 'Pending Detective Sweep',
+      witnesses: 'Dolores Dawn',
+      notes: 'Damp brick alleyway with fire escapes and trash bins. Service mirrors line the backstage door.',
+      isInitiallyUnlocked: false,
+      hiddenEvidenceIds: ['pawn_ticket_38', 'lipstick_cigarette_butt'],
+      canvassReport: 'Found a damp lipstick-stained Turkish cigarette in the backstage ashcan, along with a 3-day-old pawnshop ticket registered to Frankie Valenti for a .38 caliber revolver.'
+    }
+  ],
+  evidence: [
+    {
+      id: 'snubnose_revolver',
+      title: 'Nickel-Plated .38 Snubnose Revolver',
+      subtitle: 'The Murder Weapon',
+      details: 'Smith & Wesson .38 Special hidden inside the Steinway piano soundbox. Ballistics rifling matches the bullet extracted from Moretti\'s chest. Fingerprints on the cylinder match Frankie Valenti.',
+      date: 'August 15, 1952',
+      location: 'Steinway Piano Soundbox',
+      priority: 'Critical',
+      isInitiallyUnlocked: false,
+      locationId: 'main_stage_piano'
+    },
+    {
+      id: 'sound_booth_recording_wire',
+      title: 'Blue Note Audio Recording Wire',
+      subtitle: 'The Decisive Musical Contradiction',
+      details: 'Sound engineer wire spool recording the full midnight set. While Frankie claimed he played non-stop piano chords throughout the set, the recording wire proves the piano was completely silent between 11:36 PM and 11:44 PM during an extended drum solo.',
+      date: 'August 15, 1952',
+      location: 'Sound Engineer Booth',
+      priority: 'Critical',
+      isInitiallyUnlocked: false,
+      locationId: 'main_stage_piano'
+    },
+    {
+      id: 'spent_38_casing',
+      title: 'Spent .38 Caliber Shell Casing',
+      subtitle: 'Crime Scene Ballistic Exhibit',
+      details: 'Remington-Peters .38 cartridge case ejected onto the Persian rug. Gunpowder burn residue indicates the shot was fired from less than three feet away.',
+      date: 'August 14, 1952',
+      location: 'VIP Backroom Rug',
+      priority: 'High',
+      isInitiallyUnlocked: true,
+      locationId: 'vip_backroom'
+    },
+    {
+      id: 'moretti_extortion_ledger',
+      title: 'Moretti\'s Syndicate Debt Ledger',
+      subtitle: 'The Incontrovertible Motive Document',
+      details: 'Black leather book recording Frankie Valenti\'s $12,000 gambling debt and signed lifetime copyright surrender. A notation states: "Frankie pays in full by midnight or fingers get broken."',
+      date: 'August 14, 1952',
+      location: 'Moretti\'s Counting Safe',
+      priority: 'Critical',
+      isInitiallyUnlocked: false,
+      locationId: 'vip_backroom'
+    },
+    {
+      id: 'pawn_ticket_38',
+      title: 'Pawn Ticket for .38 Revolver',
+      subtitle: 'Premeditation Paper Trail',
+      details: 'Pawn redemption receipt from Goldblatt\'s Loan Office dated August 11, 1952, logging redemption of the nickel .38 revolver by Frankie Valenti.',
+      date: 'August 15, 1952',
+      location: 'Backstage Alley Wastecan',
+      priority: 'High',
+      isInitiallyUnlocked: false,
+      locationId: 'backstage_alley_exit'
+    }
+  ],
+  suspects: [
+    {
+      id: 'frankie_valenti',
+      name: "Frankie 'Keys' Valenti",
+      role: 'Club Pianist & Arranger',
+      trait: 'Sweating musician in a rumpled tux, nervously drumming his fingers on his knees.',
+      personality: 'cunning',
+      isInitiallyUnlocked: true,
+      category: 'prime_suspect',
+      isPrimeSuspect: true,
+      initialTrust: 45,
+      initialStress: 35,
+      alibi: 'Swears on his mother\'s grave he was glued to the piano bench playing non-stop from 11:15 PM until the police arrived at midnight.',
+      motive: 'Moretti owned his music rights and was extorting his life savings under threat of violence.',
+      privateKnowledge: 'Knows he slipped into the backroom during the 8-minute drum solo, shot Moretti point-blank, and stuffed the gun into the piano.',
+      secrets: [
+        'He owed $12,000 to Moretti\'s loan shark syndicate.',
+        'He arranged the extended 8-minute drum solo specifically to create a window to kill Moretti.',
+        'His right French cuff has microscopic gunpowder burn residue.'
+      ],
+      breakdownThreshold: 80,
+      dynamicUnlocks: [
+        {
+          type: 'location',
+          targetId: 'backstage_alley_exit',
+          triggerStress: 60,
+          revealDialogue: "Look, I had a cigarette out in the alley before the set with Dolores! That's all! Search the alley if you don't believe me!"
+        },
+        {
+          type: 'evidence',
+          targetId: 'sound_booth_recording_wire',
+          triggerStress: 75,
+          revealDialogue: "The sound booth wire? What about it? We were just improvising on stage... lots of rhythm changes..."
+        }
+      ]
+    },
+    {
+      id: 'dolores_dawn',
+      name: 'Dolores Dawn',
+      role: 'Jazz Torch Singer',
+      trait: 'Smoky-voiced songstress in emerald satin, smoking through an ivory holder.',
+      personality: 'defensive',
+      isInitiallyUnlocked: true,
+      category: 'prime_suspect',
+      isPrimeSuspect: true,
+      initialTrust: 55,
+      initialStress: 40,
+      alibi: 'Was on stage singing vocal choruses, and taking a powder in the dressing room between songs.',
+      motive: 'Was Moretti\'s secret lover, but discovered he was two-timing her with a chorus dancer.',
+      privateKnowledge: 'Noticed Frankie slipped away from the piano during the drum solo and returned looking pale as a ghost.',
+      secrets: [
+        'Moretti threatened to fire her and ruin her recording contract.',
+        'Lent Frankie a cigarette backstage right before the midnight set.',
+        'Saw Frankie stash something heavy into the piano casing after the applause died down.'
+      ],
+      breakdownThreshold: 75,
+      dynamicUnlocks: [
+        {
+          type: 'evidence',
+          targetId: 'snubnose_revolver',
+          triggerStress: 65,
+          revealDialogue: "Frankie didn't just play the piano! I saw him reach into the lower cabinet behind the pedals after the drum solo! Check the piano soundbox!"
+        }
+      ]
+    },
+    {
+      id: 'big_tony_marcone',
+      name: "Big Tony Marcone",
+      role: 'Syndicate Enforcer & Bodyguard',
+      trait: 'Heavy-set bruiser with broken knuckles and a sharp pinstripe suit.',
+      personality: 'aggressive',
+      isInitiallyUnlocked: false,
+      category: 'person_of_interest',
+      isPrimeSuspect: false,
+      initialTrust: 30,
+      initialStress: 25,
+      alibi: 'Was out front by the velvet rope turning away drunken patrons.',
+      motive: 'Had a dispute over his cut of the casino loan collection.',
+      privateKnowledge: 'Moretti told him earlier that evening he was going to squeeze Frankie Valenti until he bled dry.',
+      secrets: [
+        'He carries a .45 automatic, not a .38 caliber revolver.',
+        'Heard the muffled gunshot but thought it was the drummer hitting the rimshot.'
+      ],
+      breakdownThreshold: 85,
+      dynamicUnlocks: [
+        {
+          type: 'evidence',
+          targetId: 'moretti_extortion_ledger',
+          triggerStress: 50,
+          revealDialogue: "Moretti kept all his debts in the safe behind the painting. Check the ledger—Frankie was on the hook for twelve grand and his hands were about to be broken."
+        }
+      ]
+    }
+  ],
+  groundTruth: {
+    killer: 'frankie_valenti',
+    motive: 'moretti_extortion_ledger',
+    weapon: 'snubnose_revolver',
+    keyContradiction: 'sound_booth_recording_wire',
+    timelineSummary: 'Frankie Valenti owed Moretti $12,000 and faced having his hands broken. Frankie arranged an extended 8-minute drum solo into the midnight set, slipped off the piano bench at 11:36 PM, entered the soundproofed VIP room, shot Moretti in the chest with his pawned .38 snubnose, hid the weapon inside the piano soundbox, and resumed playing at 11:44 PM.',
+    archetype: 'classic_procedural'
+  },
+  isDefault: false
+};
+
+// ============================================================================
+// CASE 5: A Coerced Silence (The False Confession Scapegoat)
+// Trope: Coerced Scapegoat Under Maximum Stress
+// ============================================================================
+export const HARBOR_STORY: IStory = {
+  title: 'A Coerced Silence: The Pier 42 Homicide',
+  caseNumber: '1978-1103-P42',
+  leadDetective: 'Detective Ray Kowalski',
+  status: 'Active Waterfront Homicide Investigation',
+  victimProfile: {
+    name: "Donald 'Big Don' Higgins",
+    age: 56,
+    occupation: 'Longshoremen Union Local 302 President',
+    discovered: 'November 3, 1978, 06:15 AM floating beneath Pier 42 pilings',
+    causeOfDeath: 'Manual ligature strangulation with galvanized industrial wire prior to water submersion',
+    timeOfDeath: 'Between 10:00 PM and 11:30 PM, November 2, 1978'
+  },
+  briefing: {
+    initialBriefing: 'Union boss Donald Higgins was pulled dead from the freezing river beneath Pier 42. Under aggressive squad room pressure, 19-year-old forklift apprentice Tommy Ryan broke down and confessed: "I pushed him off the container crane into the river! I saw him drown!" However, the medical examiner preliminary autopsy tells an entirely different story: Higgins was strangled to death inside a dry warehouse two hours before entering the water, and his lungs contain zero river water.',
+    detectiveInsights: 'A hasty detective will take Tommy\'s tearful confession and close the case, winning a false conviction and leaving the true harbor syndicate untouched. Harbor Master Sean Callahan has been suspiciously eager to push Tommy into the electric chair, while contraband manifests from Warehouse 9 are mysteriously missing.'
+  },
+  objectives: {
+    progress: [
+      'Impounded Pier 42 container crane logbooks',
+      'Secured coroner autopsy preliminary findings',
+      'Took Tommy Ryan into precinct custody'
+    ],
+    currentObjectives: [
+      'Examine the autopsy to prove the victim was strangled, not drowned from the crane',
+      'Canvass Warehouse 9 for the real murder scene and industrial mooring wire',
+      'Interrogate Harbor Master Sean Callahan regarding shipping contraband kickbacks',
+      'Avoid convicting the coerced teen and indict the real killer'
+    ]
+  },
+  locations: [
+    {
+      id: 'pier_42_docks',
+      title: 'Pier 42 Shipping Gantry & Pilings',
+      subtitle: 'Waterfront Container Crane Deck',
+      status: 'Recovery Location',
+      lastVisited: 'November 3, 1978',
+      witnesses: 'Derrick Operator Mac Sullivan, Tommy Ryan',
+      notes: 'Fog-shrouded shipping slip where the body was pulled from the water. Crane cab towers 80 feet above the bay.',
+      isInitiallyUnlocked: true,
+      hiddenEvidenceIds: ['water_recovery_log', 'crane_shift_roster'],
+      canvassReport: 'CSI swept the crane gantry where Tommy claimed to push the victim; zero signs of struggle or blood. Recovery logs confirm the victim\'s watch was broken during the drag down the pier.'
+    },
+    {
+      id: 'warehouse_9_drydock',
+      title: 'Warehouse 9 Secure Storage',
+      subtitle: 'Customs Bonded Freight Terminal',
+      status: 'Primary Crime Scene',
+      lastVisited: 'Pending Detective Sweep',
+      witnesses: 'Harbor Master Sean Callahan',
+      notes: 'Industrial warehouse filled with wooden crates and heavy mooring cable spools. Heavy grease stains on the concrete floor.',
+      isInitiallyUnlocked: true,
+      hiddenEvidenceIds: ['galvanized_mooring_wire', 'bloodstained_freight_manifest'],
+      canvassReport: 'Forensics detected Higgins\'s blood spatter behind crate pallet #408, alongside a severed spool of galvanized mooring wire matching the ligature wounds on the victim\'s neck.'
+    },
+    {
+      id: 'harbor_master_office',
+      title: 'Harbor Master Administrative Office',
+      subtitle: 'Pier 42 Pierhead Building',
+      status: 'Restricted Office',
+      lastVisited: 'Pending Detective Sweep',
+      witnesses: 'Sean Callahan',
+      notes: 'Overlooks the shipping channel. Steel desk with customs cargo clearance stamps and encrypted Telex machine.',
+      isInitiallyUnlocked: false,
+      hiddenEvidenceIds: ['contraband_smuggling_audit', 'callahan_flight_ticket'],
+      canvassReport: 'Recovered a hidden audit detailing $500,000 in unmanifested electronics smuggled through Warehouse 9, which Higgins had flagged for federal customs seizure.'
+    }
+  ],
+  evidence: [
+    {
+      id: 'coroner_submersion_report',
+      title: 'Medical Examiner Strangulation Autopsy',
+      subtitle: 'Proof of the False Confession',
+      details: 'Autopsy conclusively establishing cause of death as ligature strangulation with thin wire, fracturing the thyroid cartilage. Zero water found in the lungs, proving the victim was dead hours before entering the river. Tommy\'s confession that he "pushed him off the crane to drown" is impossible.',
+      date: 'November 3, 1978',
+      location: 'County Morgue Record',
+      priority: 'Critical',
+      isInitiallyUnlocked: true,
+      locationId: 'pier_42_docks'
+    },
+    {
+      id: 'galvanized_mooring_wire',
+      title: 'Galvanized Industrial Mooring Wire',
+      subtitle: 'The True Murder Weapon',
+      details: 'High-tensile steel cable with traces of petroleum grease and victim skin cells. Found stashed behind oil drums in Warehouse 9. Wire gauge matches the deep horizontal throat grooves exactly.',
+      date: 'November 3, 1978',
+      location: 'Warehouse 9 Floor',
+      priority: 'Critical',
+      isInitiallyUnlocked: false,
+      locationId: 'warehouse_9_drydock'
+    },
+    {
+      id: 'bloodstained_freight_manifest',
+      title: 'Blood-Spattered Shipping Manifest',
+      subtitle: 'Crime Scene Proximity Exhibit',
+      details: 'Customs manifest for Container Ship Titan-4 spattered with Higgins\'s Type-A blood, stamped with Harbor Master Sean Callahan\'s private inspection seal.',
+      date: 'November 3, 1978',
+      location: 'Warehouse 9 Pallet #408',
+      priority: 'High',
+      isInitiallyUnlocked: false,
+      locationId: 'warehouse_9_drydock'
+    },
+    {
+      id: 'contraband_smuggling_audit',
+      title: 'Port Authority Smuggling Indictment',
+      subtitle: 'The Incontrovertible Motive',
+      details: 'Audit prepared by Donald Higgins detailing Sean Callahan\'s multi-million dollar smuggling pipeline through Pier 42. Higgins was scheduled to deliver it to the FBI the morning after his murder.',
+      date: 'November 2, 1978',
+      location: 'Harbor Master Desk Drawer',
+      priority: 'Critical',
+      isInitiallyUnlocked: false,
+      locationId: 'harbor_master_office'
+    }
+  ],
+  suspects: [
+    {
+      id: 'tommy_ryan',
+      name: 'Tommy Ryan',
+      role: 'Apprentice Forklift Driver (Coerced Scapegoat)',
+      trait: '19-year-old kid terrified of the police, trembling in handcuffs, desperate to protect his ailing mother.',
+      personality: 'nervous',
+      isInitiallyUnlocked: true,
+      category: 'prime_suspect',
+      isPrimeSuspect: true,
+      initialTrust: 45,
+      initialStress: 75,
+      alibi: 'Gives a frantic, coerced confession claiming he pushed Higgins off the crane gantry after an argument.',
+      motive: 'Higgins fired his father from the union last month for alcohol abuse.',
+      privateKnowledge: 'Falsely confessed because detective interrogators threatened to charge his mother with harboring stolen tools.',
+      secrets: [
+        'He was actually asleep in the break room locker at 11:00 PM.',
+        'He has no idea what weapon was used and guessed "pushing him off the crane" because that\'s where the body was found.',
+        'Saw Sean Callahan dragging a heavy tarp toward the pier edge at midnight.'
+      ],
+      breakdownThreshold: 85,
+      dynamicUnlocks: [
+        {
+          type: 'location',
+          targetId: 'harbor_master_office',
+          triggerStress: 90,
+          revealDialogue: "I lied! I lied to make you stop yelling! I didn't push him! I was hiding in the breakroom! It was Sean Callahan—I saw him dragging something heavy out of Warehouse 9!"
+        }
+      ]
+    },
+    {
+      id: 'sean_callahan',
+      name: 'Sean Callahan',
+      role: 'Pier 42 Harbor Master (The Actual Killer)',
+      trait: 'Aggressive, arrogant dock boss who chews unlit cigars and yells at detectives.',
+      personality: 'aggressive',
+      isInitiallyUnlocked: true,
+      category: 'prime_suspect',
+      isPrimeSuspect: true,
+      initialTrust: 30,
+      initialStress: 20,
+      alibi: 'Claims he was doing paperwork in his office and having dinner at the diner across the street.',
+      motive: 'Higgins discovered his contraband smuggling operation and was reporting him to federal marshals.',
+      privateKnowledge: 'Ambushed Higgins in Warehouse 9, strangled him with mooring wire, and dumped his corpse in the water using the crane hoist.',
+      secrets: [
+        'His fingerprints are on the bloodstained manifest in Warehouse 9.',
+        'He coerced the night watchman to alter the pier gate logs.',
+        'Booked a one-way flight to Rio under an alias for tomorrow morning.'
+      ],
+      breakdownThreshold: 80,
+      dynamicUnlocks: [
+        {
+          type: 'evidence',
+          targetId: 'galvanized_mooring_wire',
+          triggerEvidenceId: 'coroner_submersion_report',
+          revealDialogue: "Higgins didn't drown? What kind of coroner quack are you listening to? Warehouse 9 is a working pier, you won't find anything there!"
+        },
+        {
+          type: 'evidence',
+          targetId: 'contraband_smuggling_audit',
+          triggerStress: 75,
+          revealDialogue: "You want to talk about manifests? The Port Authority has been riding my back for months! Higgins had no right to snoop in my freight!"
+        }
+      ]
+    },
+    {
+      id: 'martha_higgins',
+      name: 'Martha Higgins',
+      role: 'Victim\'s Widow',
+      trait: 'Grief-stricken but sharp woman who knows all the politics of the dockworkers union.',
+      personality: 'defensive',
+      isInitiallyUnlocked: false,
+      category: 'witness',
+      isPrimeSuspect: false,
+      initialTrust: 65,
+      initialStress: 40,
+      alibi: 'At home waiting for Don to return for late supper.',
+      motive: 'None. Loved her husband of 30 years.',
+      privateKnowledge: 'Don told her that Callahan was threatening his life over a federal smuggling investigation.',
+      secrets: [
+        'Don kept an emergency safety copy of his audit notes in his home lockbox.',
+        'Said: "If anything happens to me, tell the police to look at Callahan\'s offshore bank accounts."'
+      ],
+      breakdownThreshold: 75,
+      dynamicUnlocks: [
+        {
+          type: 'evidence',
+          targetId: 'bloodstained_freight_manifest',
+          triggerStress: 55,
+          revealDialogue: "Don told me Callahan had been forging freight manifests for months. Look in Warehouse 9 where Callahan keeps his private cargo!"
+        }
+      ]
+    }
+  ],
+  groundTruth: {
+    killer: 'sean_callahan',
+    motive: 'contraband_smuggling_audit',
+    weapon: 'galvanized_mooring_wire',
+    keyContradiction: 'coroner_submersion_report',
+    timelineSummary: 'Sean Callahan was running an illegal $500,000 smuggling ring through Warehouse 9. When union president Donald Higgins prepared an audit for the FBI, Callahan ambushed him in Warehouse 9 at 10:45 PM, strangled him with galvanized mooring wire, and dumped his corpse under Pier 42. When 19-year-old Tommy Ryan broke under aggressive interrogation and falsely confessed to drowning him, Callahan tried to let the boy take the rap.',
+    archetype: 'false_confession',
+    fallGuy: 'tommy_ryan'
+  },
+  isDefault: false
+};
+
+// ============================================================================
+// CASE 6: The Cobblestone Web (Non-Linear Web of Lies)
+// Trope: 3 Guilty Suspects, 1 Lethal Window
+// ============================================================================
+export const MANOR_STORY: IStory = {
+  title: 'The Cobblestone Web: Murder at Ravenscroft',
+  caseNumber: '1928-1115-RM',
+  leadDetective: 'Inspector Alistair Finch',
+  status: 'Active Country Estate Homicide',
+  victimProfile: {
+    name: 'Lord Alistair Ravenscroft',
+    age: 84,
+    occupation: 'Railway Tycoon & Devonshire Landowner',
+    discovered: 'November 15, 1928, 00:15 AM in his locked library armchair',
+    causeOfDeath: 'Mechanical asphyxiation via velvet parlor pillow smothering while paralyzed by sub-lethal arsenic',
+    timeOfDeath: 'Exactly between 11:35 PM and 11:40 PM, November 14, 1928'
+  },
+  briefing: {
+    initialBriefing: 'During a tempestuous thunderstorm at Ravenscroft Manor, 84-year-old railway baron Lord Alistair Ravenscroft was found dead in his winged armchair in the locked library. Three different suspects entered the study that night, each guilty of a sinister act: the butler slipped arsenic into his bedtime port, his disowned son broke through the terrace window with a brass poker to steal the will, and his young widow Lady Eleanor smothered him with a parlor pillow while he was incapacitated. Advancing through the investigation will strip away their alibis, leaving all three looking guilty of murder.',
+    detectiveInsights: 'This is not a case of who wanted him dead—they all did. The challenge is calculating the exact lethal timeline window: arsenic takes four hours to kill and only caused stomach cramps; the son broke the window at 11:45 PM and found his father already cold; only Lady Eleanor entered at 11:35 PM when the lethal smothering occurred.'
+  },
+  objectives: {
+    progress: [
+      'Secured Ravenscroft Manor library and impounded the will drafts',
+      'Isolated Lady Eleanor, Arthur Jenkins, and Roderick in the drawing room',
+      'Summoned county physician for toxicological analysis'
+    ],
+    currentObjectives: [
+      'Examine the library armchair pillow for mechanical smothering fibers',
+      'Determine why the arsenic dose administered by Jenkins was not the lethal cause',
+      'Establish the exact 11:35 PM lethal window before Roderick broke the window',
+      'Indict Lady Eleanor for execution-style murder, not the other two schemers'
+    ]
+  },
+  locations: [
+    {
+      id: 'manor_library',
+      title: 'The Great Oak Library',
+      subtitle: 'Ravenscroft Manor - West Wing Ground Floor',
+      status: 'Primary Crime Scene',
+      lastVisited: 'November 15, 1928',
+      witnesses: 'Butler Arthur Jenkins, Maid Clara Pemberton',
+      notes: 'Grand two-story library with a massive stone hearth. Rain lashes through a shattered terrace French door. Velvet armchair rests near the fireplace.',
+      isInitiallyUnlocked: true,
+      hiddenEvidenceIds: ['pillow_down_fibers', 'half_empty_port_goblet'],
+      canvassReport: 'Forensic sweep discovered microscopic goose-down pillow feathers packed inside the victim\'s nasal cavity and petechial hemorrhages in his eyelids, proving death was caused by rapid mechanical smothering.'
+    },
+    {
+      id: 'butler_pantry_service',
+      title: 'Butler\'s Pantry & Silver Vault',
+      subtitle: 'Domestic Service Wing',
+      status: 'Secondary Search Site',
+      lastVisited: 'Pending Detective Sweep',
+      witnesses: 'Arthur Jenkins',
+      notes: 'Lined with silver tea sets and decanters. A concealed dumbwaiter leads up to the master bedchamber.',
+      isInitiallyUnlocked: true,
+      hiddenEvidenceIds: ['arsenic_pest_powder', 'jenkins_stolen_folios'],
+      canvassReport: 'Found an opened tin of white arsenic trioxide pest powder behind the crystal decanters, alongside three priceless stolen first-edition Shakespeare folios.'
+    },
+    {
+      id: 'terrace_conservatory',
+      title: 'South Terrace & Conservatory',
+      subtitle: 'Exterior Garden Entrance',
+      status: 'Intrusion Site',
+      lastVisited: 'Pending Detective Sweep',
+      witnesses: 'Roderick Ravenscroft',
+      notes: 'Muddy flagstones beneath the broken library terrace window. Trellis vines torn away by a heavy climber.',
+      isInitiallyUnlocked: false,
+      hiddenEvidenceIds: ['shattered_terrace_glass', 'roderick_gold_cufflink'],
+      canvassReport: 'Recovered a heavy brass fireplace poker dropped in the mud, along with Roderick\'s monogrammed gold cufflink and muddy bootprints stamped at 11:45 PM.'
+    },
+    {
+      id: 'eleanor_boudoir',
+      title: 'Lady Eleanor\'s Private Boudoir',
+      subtitle: 'East Wing Master Suite',
+      status: 'Restricted Suite',
+      lastVisited: 'Pending Detective Sweep',
+      witnesses: 'Lady Eleanor Ravenscroft',
+      notes: 'Opulent French boudoir with silk tapestries. Grandfather clock in the foyer chimes on the half hour.',
+      isInitiallyUnlocked: false,
+      hiddenEvidenceIds: ['revised_inheritance_will', 'down_feathered_dressing_gown'],
+      canvassReport: 'Discovered the newly drafted revised will leaving 100% of the railway fortune to Eleanor, plus a silk dressing gown bearing two crushed goose-down feathers on the sleeve.'
+    }
+  ],
+  evidence: [
+    {
+      id: 'pillow_down_fibers',
+      title: 'Velvet Parlor Pillow & Facial Down Feathers',
+      subtitle: 'The Real Lethal Mechanism',
+      details: 'Microscopic analysis of the velvet armchair pillow reveals saliva and deep epidermal abrasions. Down feathers match fibers found compressed inside Lord Alistair\'s nostrils and mouth, establishing suffocation as the immediate cause of death.',
+      date: 'November 15, 1928',
+      location: 'Library Armchair',
+      priority: 'Critical',
+      isInitiallyUnlocked: true,
+      locationId: 'manor_library'
+    },
+    {
+      id: 'half_empty_port_goblet',
+      title: 'Drugged Crystal Port Goblet',
+      subtitle: 'Jenkins\'s Sub-Lethal Arsenic Dose',
+      details: 'Goblet containing 20-year-old vintage port laced with 50mg of arsenic trioxide. Chemical pathology proves this sub-lethal dose caused severe muscular weakness and paralysis at 11:30 PM, but takes 4 to 6 hours to be fatal. It incapacitated the victim so he could not fight off the smothering pillow.',
+      date: 'November 15, 1928',
+      location: 'Library Side Table',
+      priority: 'High',
+      isInitiallyUnlocked: true,
+      locationId: 'manor_library'
+    },
+    {
+      id: 'roderick_gold_cufflink',
+      title: 'Roderick\'s Broken Gold Cufflink',
+      subtitle: 'Proof of Late Intrusion at 11:45 PM',
+      details: 'Gold monogrammed cufflink snagged on the broken terrace glass. Mud timestamp matches 11:45 PM—proving Roderick arrived 10 minutes after his father was already dead.',
+      date: 'November 15, 1928',
+      location: 'Terrace Flagstones',
+      priority: 'High',
+      isInitiallyUnlocked: false,
+      locationId: 'terrace_conservatory'
+    },
+    {
+      id: 'down_feathered_dressing_gown',
+      title: 'Silk Dressing Gown with Down Feathers',
+      subtitle: 'The Decisive Physical Match',
+      details: 'Lady Eleanor\'s emerald silk dressing gown. The cuff contains two crushed white down feathers identical to the filler in the library smothering pillow, proving physical contact with the pillow.',
+      date: 'November 15, 1928',
+      location: 'Lady Eleanor\'s Wardrobe',
+      priority: 'Critical',
+      isInitiallyUnlocked: false,
+      locationId: 'eleanor_boudoir'
+    },
+    {
+      id: 'revised_inheritance_will',
+      title: 'Revised Ravenscroft Testament',
+      subtitle: 'The Incontrovertible Motive Document',
+      details: 'Lord Alistair\'s newly penned will dated November 14, disinheriting Roderick entirely and leaving the entire £2,000,000 estate to Lady Eleanor, provided she remained his wife at his time of death.',
+      date: 'November 15, 1928',
+      location: 'Eleanor\'s Secret Vanity Drawer',
+      priority: 'Critical',
+      isInitiallyUnlocked: false,
+      locationId: 'eleanor_boudoir'
+    }
+  ],
+  suspects: [
+    {
+      id: 'lady_eleanor_ravenscroft',
+      name: 'Lady Eleanor Ravenscroft',
+      role: 'Young Widow & Sole Beneficiary (The Actual Killer)',
+      trait: 'Composed, beautiful, and calculating 38-year-old widow who maintains imperial dignity.',
+      personality: 'confident',
+      isInitiallyUnlocked: true,
+      category: 'prime_suspect',
+      isPrimeSuspect: true,
+      initialTrust: 50,
+      initialStress: 20,
+      alibi: 'Claims she was reading novels in her second-floor boudoir from 10:00 PM until the maid discovered the body at midnight.',
+      motive: 'Inherited the entire £2,000,000 railway fortune; Alistair was threatening to divorce her tomorrow morning.',
+      privateKnowledge: 'Knew Jenkins was drugging Alistair\'s port. Slipped into the library at 11:35 PM while Alistair was paralyzed, held the pillow over his face until he stopped moving, and slipped back up the service stair.',
+      secrets: [
+        'Alistair caught her having an affair and drafted divorce papers scheduled for delivery tomorrow.',
+        'Her dressing gown cuff has two down feathers from the murder pillow.',
+        'Maid Clara saw her shadow slip out of the library passage at the 11:30 half-hour chime.'
+      ],
+      breakdownThreshold: 80,
+      dynamicUnlocks: [
+        {
+          type: 'location',
+          targetId: 'eleanor_boudoir',
+          triggerStress: 60,
+          revealDialogue: "My boudoir is private! You have no right to rummage through my personal effects! Alistair loved me and provided for me!"
+        },
+        {
+          type: 'evidence',
+          targetId: 'down_feathered_dressing_gown',
+          triggerEvidenceId: 'pillow_down_fibers',
+          revealDialogue: "Pillow feathers? In his throat? Why are you asking me about pillows when Jenkins was poisoning his wine and Roderick smashed the terrace window?"
+        }
+      ]
+    },
+    {
+      id: 'arthur_jenkins',
+      name: 'Arthur Jenkins',
+      role: 'Head Butler (The Poisoner)',
+      trait: 'Fastidious, dignified butler of 30 years who speaks in polite, measured whispers.',
+      personality: 'cunning',
+      isInitiallyUnlocked: true,
+      category: 'prime_suspect',
+      isPrimeSuspect: true,
+      initialTrust: 45,
+      initialStress: 45,
+      alibi: 'Served Lord Alistair his evening port at 10:30 PM, then retired to polish silver in the pantry.',
+      motive: 'Lord Alistair discovered he was stealing rare first-edition folios from the library and selling them to London dealers.',
+      privateKnowledge: 'Admitted slipping arsenic into the port to cause an incapacitating illness so he could flee with the stolen books.',
+      secrets: [
+        'He poisoned the wine, but arsenic takes 4 hours to kill—he was stunned to hear Alistair died before midnight.',
+        'Kept three stolen Shakespeare folios hidden in his pantry silver vault.',
+        'Saw Lady Eleanor sneaking down the west service stairs in her silk robe at 11:32 PM.'
+      ],
+      breakdownThreshold: 75,
+      dynamicUnlocks: [
+        {
+          type: 'location',
+          targetId: 'terrace_conservatory',
+          triggerStress: 65,
+          revealDialogue: "I didn't break into the library! Look at the terrace! Roderick was shouting outside in the garden with a brass poker!"
+        },
+        {
+          type: 'character',
+          targetId: 'roderick_ravenscroft',
+          triggerStress: 70,
+          revealDialogue: "Roderick Ravenscroft came back to the estate tonight! He swore he would kill his father if he didn't get his inheritance!"
+        }
+      ]
+    },
+    {
+      id: 'roderick_ravenscroft',
+      name: 'Roderick Ravenscroft',
+      role: 'Disowned Gambler Son (The Break-In Intruder)',
+      trait: 'Hot-headed, aggressive young aristocrat in wet tweed with mud on his boots.',
+      personality: 'aggressive',
+      isInitiallyUnlocked: false,
+      category: 'prime_suspect',
+      isPrimeSuspect: true,
+      initialTrust: 30,
+      initialStress: 65,
+      alibi: 'Claims he was in London playing cards at the Mayfair Club all evening.',
+      motive: 'Was completely cut out of his father\'s will and owed £30,000 to ruthless loan sharks.',
+      privateKnowledge: 'Climbed the terrace trellis at 11:45 PM with a brass poker, smashed the window, but found his father already dead and cold in the armchair!',
+      secrets: [
+        'He broke the terrace glass, cut his hand, and dropped his gold cufflink.',
+        'He arrived at 11:45 PM—after the murder had already occurred.',
+        'Panicked when he touched his father\'s face and felt no pulse, dropping the poker and fleeing into the storm.'
+      ],
+      breakdownThreshold: 75,
+      dynamicUnlocks: [
+        {
+          type: 'evidence',
+          targetId: 'roderick_gold_cufflink',
+          triggerStress: 70,
+          revealDialogue: "Alright! Yes, I smashed the terrace window at a quarter to midnight! But he was already dead! His hands were cold and his eyes were open! I didn't touch him!"
+        }
+      ]
+    },
+    {
+      id: 'clara_pemberton',
+      name: 'Clara Pemberton',
+      role: 'Parlour Maid',
+      trait: 'Observant young maid who knows all the domestic secrets of the manor.',
+      personality: 'nervous',
+      isInitiallyUnlocked: false,
+      category: 'witness',
+      isPrimeSuspect: false,
+      initialTrust: 75,
+      initialStress: 35,
+      alibi: 'Extinguishing hallway gaslamps and checking bedroom hearths.',
+      motive: 'None. Devoted servant.',
+      privateKnowledge: 'Heard the grandfather clock chime 11:30 PM just as Lady Eleanor passed her in the corridor toward the library.',
+      secrets: [
+        'Saw Lady Eleanor wearing her green silk robe heading toward the library passage.',
+        'Noticed Lady Eleanor was breathing heavily and hiding something in her pocket when she returned upstairs at 11:42 PM.'
+      ],
+      breakdownThreshold: 70,
+      dynamicUnlocks: [
+        {
+          type: 'evidence',
+          targetId: 'revised_inheritance_will',
+          triggerStress: 50,
+          revealDialogue: "Milady Eleanor had Lord Alistair sign a new will yesterday morning. She told me to make sure the library was kept completely quiet tonight."
+        }
+      ]
+    }
+  ],
+  groundTruth: {
+    killer: 'lady_eleanor_ravenscroft',
+    motive: 'revised_inheritance_will',
+    weapon: 'pillow_down_fibers',
+    keyContradiction: 'down_feathered_dressing_gown',
+    timelineSummary: 'Three suspects acted against Lord Alistair: Jenkins poisoned his port with slow-acting arsenic at 10:30 PM, causing paralysis by 11:30 PM. At 11:35 PM, Lady Eleanor entered the library, used the velvet parlor pillow to smother the paralyzed Lord to secure his £2M estate before he could file for divorce, and fled by 11:40 PM. At 11:45 PM, Roderick smashed the terrace window with a poker, found his father already dead, and fled in panic.',
+    archetype: 'non_linear_web'
   },
   isDefault: false
 };

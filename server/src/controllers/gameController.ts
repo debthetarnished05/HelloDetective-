@@ -2,7 +2,13 @@ import { Request, Response } from 'express';
 import GameSession from '../models/GameSession';
 import Story from '../models/StoryData';
 import { DEFAULT_STORY } from '../data/defaultStory';
-import { OPERA_STORY, ARCTIC_STORY } from '../data/seedStories';
+import {
+  OPERA_STORY,
+  ARCTIC_STORY,
+  JAZZ_STORY,
+  HARBOR_STORY,
+  MANOR_STORY
+} from '../data/seedStories';
 import { GroqService } from '../services/GroqService';
 import { IStory, ISuspectRuntimeState } from '../types/index';
 
@@ -21,23 +27,37 @@ export async function seedDefaultStories() {
     defaultStory.evidence = DEFAULT_STORY.evidence as any;
     defaultStory.suspects = DEFAULT_STORY.suspects as any;
     defaultStory.groundTruth = DEFAULT_STORY.groundTruth as any;
+    defaultStory.briefing = DEFAULT_STORY.briefing as any;
+    defaultStory.objectives = DEFAULT_STORY.objectives as any;
+    defaultStory.victimProfile = DEFAULT_STORY.victimProfile as any;
     await defaultStory.save();
   }
 
-  // 2. Ensure OPERA_STORY (The Gilded Aria)
-  let operaStory = await Story.findOne({ caseNumber: OPERA_STORY.caseNumber });
-  if (!operaStory) {
-    operaStory = new Story(OPERA_STORY);
-    await operaStory.save();
-    console.log('Seeded story: The Gilded Aria');
-  }
+  // 2. Ensure all other archetypal stories are seeded and updated
+  const ALL_SEED_STORIES = [
+    OPERA_STORY,
+    ARCTIC_STORY,
+    JAZZ_STORY,
+    HARBOR_STORY,
+    MANOR_STORY
+  ];
 
-  // 3. Ensure ARCTIC_STORY (The Frostbite Protocol)
-  let arcticStory = await Story.findOne({ caseNumber: ARCTIC_STORY.caseNumber });
-  if (!arcticStory) {
-    arcticStory = new Story(ARCTIC_STORY);
-    await arcticStory.save();
-    console.log('Seeded story: The Frostbite Protocol');
+  for (const seed of ALL_SEED_STORIES) {
+    let doc = await Story.findOne({ caseNumber: seed.caseNumber });
+    if (!doc) {
+      doc = new Story(seed);
+      await doc.save();
+      console.log(`Seeded story: ${seed.title}`);
+    } else {
+      doc.locations = seed.locations as any;
+      doc.evidence = seed.evidence as any;
+      doc.suspects = seed.suspects as any;
+      doc.groundTruth = seed.groundTruth as any;
+      doc.briefing = seed.briefing as any;
+      doc.objectives = seed.objectives as any;
+      doc.victimProfile = seed.victimProfile as any;
+      await doc.save();
+    }
   }
 
   return defaultStory;

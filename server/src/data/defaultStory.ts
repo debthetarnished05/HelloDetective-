@@ -25,10 +25,10 @@ export const DEFAULT_STORY: IStory = {
       'Began interrogations of partners, relatives, and staff'
     ],
     currentObjectives: [
-      'Interrogate Marcus Chen, Sarah Reynolds, and Diana Wilkins',
-      'Test suspect alibis against physical evidence and timeline',
-      'Present deduction to Officer Davis to advance investigation to Stage 2',
-      'Locate the murder weapon and establish incontrovertible motive'
+      'Interrogate primary persons of interest Marcus Chen and Sarah Reynolds',
+      'Canvass the crime scenes to uncover physical evidence and security traces',
+      'Cross-examine statements and break suspect composure to reveal undisclosed associates',
+      'Uncover the decisive contradiction and submit the official arrest warrant'
     ]
   },
   locations: [
@@ -424,7 +424,10 @@ export const DEFAULT_STORY: IStory = {
     motive: 'patent_theft_and_coverup',
     weapon: 'damascus_letter_opener',
     keyContradiction: 'coffee_shop_alibi_vs_parkade_log',
-    timelineSummary: 'Marcus met Aegis Global to sell TechVision neural patents for $14M. Michael discovered the betrayal and threatened criminal prosecution. Marcus staged an alibi at Riverside Brews, drove his Audi to the parkade at 10:48 PM, had Diana disable the cameras, stabbed Michael with the desk letter opener during an argument, dropped the weapon in the rear alley storm drain, and fled at 11:22 PM.'
+    timelineSummary: 'Marcus met Aegis Global to sell TechVision neural patents for $14M. Michael discovered the betrayal and threatened criminal prosecution. Marcus staged an alibi at Riverside Brews, drove his Audi to the parkade at 10:48 PM, had Diana disable the cameras, stabbed Michael with the desk letter opener during an argument, dropped the weapon in the rear alley storm drain, and fled at 11:22 PM.',
+    archetype: 'multi_crime_convergence',
+    fallGuy: 'diana_wilkins',
+    redHerringCrime: 'Diana Wilkins embezzled $2.3M in bearer bonds and accessed the executive safe at 10:45 PM; Sarah Reynolds engaged in a violent shouting match at 9:45 PM and shattered a wine glass. Both act guilty of their respective crimes, but neither committed homicide.'
   },
   isDefault: true
 };

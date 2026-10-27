@@ -218,23 +218,38 @@ Return your response in JSON:
       content: m.content
     }));
 
-    const completion = await groq.chat.completions.create({
-      model: MODEL_NAME,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...historyMessages,
-        { role: 'user', content: userMessage }
-      ],
-      response_format: { type: 'json_object' },
-      temperature: 0.6,
-      max_tokens: 300
-    });
-
     try {
+      const completion = await groq.chat.completions.create({
+        model: MODEL_NAME,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...historyMessages,
+          { role: 'user', content: userMessage }
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.6,
+        max_tokens: 300
+      });
+
       const parsed = JSON.parse(completion.choices[0]?.message?.content || '{}');
       return parsed.dialogue || "Keep shaking the tree, Detective. Someone's bound to slip up.";
-    } catch (e) {
-      return "I'm holding down the precinct desk, Detective. What's your play?";
+    } catch (err) {
+      console.warn('Groq json_object mode in chatWithOfficerAdvisor failed, retrying plain text:', err);
+      try {
+        const fallbackCompletion = await groq.chat.completions.create({
+          model: MODEL_NAME,
+          messages: [
+            { role: 'system', content: `You are Officer Davis, a gritty noir desk officer. Advise the lead detective concisely (1-2 sentences). Do NOT output JSON.` },
+            ...historyMessages,
+            { role: 'user', content: userMessage }
+          ],
+          temperature: 0.6,
+          max_tokens: 250
+        });
+        return fallbackCompletion.choices[0]?.message?.content?.trim() || "Keep shaking the tree, Detective. Someone's bound to slip up.";
+      } catch (fallbackErr) {
+        return "I'm holding down the precinct desk, Detective. What's your play?";
+      }
     }
   }
 
