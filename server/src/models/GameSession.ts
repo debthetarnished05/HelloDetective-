@@ -1,39 +1,85 @@
-import mongoose, { Schema, Document } from 'mongoose';
-
-export interface ISuspectState {
-  suspectId: string;
-  trustScore: number;
-  revealedFacts: string[]; // The Revealed Facts Ledger
-}
+import mongoose, { Schema, Document, Types } from 'mongoose';
+import { ISuspectRuntimeState, IChatMessage, IOfficerChatMessage, IRecordedClue } from '../types/index';
 
 export interface IGameSession extends Document {
+  storyId: Types.ObjectId;
   currentStage: number;
   unlockedEvidence: string[];
   unlockedLocations: string[];
-  suspects: Map<string, ISuspectState>;
-  groundTruth: Record<string, any>; // The actual murder details for the Judge AI
+  suspects: Map<string, ISuspectRuntimeState>;
+  officerChatHistory: IOfficerChatMessage[];
+  notes: string;
+  recordedClues: IRecordedClue[];
+  groundTruth: Record<string, any>;
+  status: 'active' | 'solved';
+  verdict?: {
+    suspect: string;
+    motive: string;
+    weapon: string;
+    keyContradiction: string;
+    outcome: string;
+    epilogue: string;
+    score: number;
+  };
 }
 
-const SuspectStateSchema = new Schema({
+const ChatMessageSchema = new Schema({
+  role: { type: String, enum: ['user', 'assistant'], required: true },
+  content: { type: String, required: true },
+  timestamp: { type: Date, default: Date.now },
+  attachedEvidence: { type: String, default: null }
+}, { _id: false });
+
+const SuspectRuntimeStateSchema = new Schema({
   suspectId: { type: String, required: true },
   trustScore: { type: Number, default: 50 },
-  revealedFacts: [{ type: String }]
-});
+  stressLevel: { type: Number, default: 20 },
+  mood: { type: String, enum: ['composed', 'defensive', 'nervous', 'broken_down'], default: 'composed' },
+  revealedFacts: [{ type: String }],
+  chatHistory: [ChatMessageSchema]
+}, { _id: false });
 
-const GameSessionSchema = new Schema({
+const OfficerChatMessageSchema = new Schema({
+  role: { type: String, enum: ['user', 'assistant'], required: true },
+  content: { type: String, required: true },
+  timestamp: { type: Date, default: Date.now },
+  isApproved: { type: Boolean, default: false }
+}, { _id: false });
+
+const RecordedClueSchema = new Schema({
+  id: { type: String, required: true },
+  suspectId: { type: String, required: true },
+  suspectName: { type: String, required: true },
+  statement: { type: String, required: true },
+  timestamp: { type: Date, default: Date.now }
+}, { _id: false });
+
+const GameSessionSchema = new Schema<IGameSession>({
+  storyId: { type: Schema.Types.ObjectId, ref: 'Story', required: true },
   currentStage: { type: Number, default: 1 },
   unlockedEvidence: [{ type: String }],
   unlockedLocations: [{ type: String }],
   suspects: {
     type: Map,
-    of: SuspectStateSchema,
-    default: () => ({
-      marcus_chen: { suspectId: 'marcus_chen', trustScore: 50, revealedFacts: [] },
-      sarah_reynolds: { suspectId: 'sarah_reynolds', trustScore: 40, revealedFacts: [] },
-      diana_wilkins: { suspectId: 'diana_wilkins', trustScore: 60, revealedFacts: [] }
-    })
+    of: SuspectRuntimeStateSchema,
+    default: () => new Map()
   },
-  groundTruth: { type: Object, required: true }
+  officerChatHistory: [OfficerChatMessageSchema],
+  notes: { type: String, default: '' },
+  recordedClues: [RecordedClueSchema],
+  groundTruth: { type: Object, required: true },
+  status: { type: String, enum: ['active', 'solved'], default: 'active' },
+  verdict: {
+    suspect: String,
+    motive: String,
+    weapon: String,
+    keyContradiction: String,
+    outcome: String,
+    epilogue: String,
+    score: Number
+  }
+}, {
+  timestamps: true
 });
 
 export default mongoose.model<IGameSession>('GameSession', GameSessionSchema);

@@ -1,155 +1,175 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useGameStore } from '../store/gameStore';
-
-// Mock database to provide details for the evidence items
-const EVIDENCE_DB: Record<string, { title: string; subtitle: string; details: string; date: string; location: string }> = {
-  'security_footage': {
-    title: 'Security Footage',
-    subtitle: 'Parkade Camera #3',
-    details: 'Footage shows an unidentified figure entering the building at 10:45 PM. The figure appears to be of similar build to Marcus Chen.',
-    date: 'April 17, 2025',
-    location: 'Riverside Corporate Center'
-  },
-  'autopsy_report': {
-    title: 'Autopsy Report',
-    subtitle: 'Medical Examiner Office',
-    details: 'Report indicates time of death between 10:00 PM and 11:30 PM. Cause of death is blunt force trauma to the back of the head.',
-    date: 'April 18, 2025',
-    location: 'Riverside Morgue'
-  },
-  'crime_scene_photos': {
-    title: 'Crime Scene Photos',
-    subtitle: "Victim's Office",
-    details: 'Photos show signs of a struggle. A shattered coffee mug is visible near the desk, and the secure file cabinet was left open.',
-    date: 'April 17, 2025',
-    location: 'Riverside Corporate Center'
-  }
-};
-
-const getEvidenceData = (id: string) => {
-  return EVIDENCE_DB[id] || {
-    title: id.replace(/_/g, ' '),
-    subtitle: 'Unknown Source',
-    details: 'Details pending analysis.',
-    date: 'Unknown',
-    location: 'Evidence Locker'
-  };
-};
+import type { IEvidenceItem } from '../types/index';
 
 export default function EvidenceLocker() {
-  const { unlockedEvidence } = useGameStore();
-  const [selectedEvidence, setSelectedEvidence] = useState<string | null>(null);
+  const { story, unlockedEvidence, setDraggedEvidence } = useGameStore();
+  const [selectedEvidenceId, setSelectedEvidenceId] = useState<string | null>(null);
 
-  // For testing purposes, forcefully injecting evidence if the array is empty
-  const displayEvidence = unlockedEvidence.length > 0 ? unlockedEvidence : ['security_footage', 'autopsy_report', 'crime_scene_photos'];
+  const allEvidence = story?.evidence || [];
+  const displayEvidence = allEvidence.filter(e => unlockedEvidence.includes(e.id));
+  const selectedEvidence = allEvidence.find(e => e.id === selectedEvidenceId);
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'Critical': return '#b71c1c';
+      case 'High': return '#e65100';
+      case 'Medium': return '#f57f17';
+      case 'Low':
+      default: return '#2e7d32';
+    }
+  };
 
   return (
     <div className="page-wrapper">
       <div className="taped-title handwritten">
-        Evidence Locker
+        Evidence Locker ({displayEvidence.length} Clues Unlocked)
       </div>
 
-      <div style={styles.grid}>
-        {displayEvidence.map((evidenceId, idx) => (
-          <div 
-            key={idx} 
-            className="paper-note center-tape-note" 
-            style={{ 
-              transform: `rotate(${idx % 2 === 0 ? 2 : -2}deg)`,
-              cursor: 'pointer',
-              transition: 'transform 0.2s',
-              width: '250px'
-            }}
-            onClick={() => setSelectedEvidence(evidenceId)}
-            onMouseEnter={(e) => e.currentTarget.style.transform = `rotate(0deg) scale(1.05)`}
-            onMouseLeave={(e) => e.currentTarget.style.transform = `rotate(${idx % 2 === 0 ? 2 : -2}deg) scale(1)`}
-          >
-            <h3 className="handwritten" style={{ textTransform: 'capitalize', color: '#2c3e50', textAlign: 'center' }}>
-              {evidenceId.replace(/_/g, ' ')}
-            </h3>
-            <div style={styles.evidenceImagePlaceholder}>
-              [Image of {evidenceId.replace(/_/g, ' ')}]
+      <p style={{ color: 'white', fontFamily: 'monospace', fontSize: '0.95rem', marginBottom: '20px', textAlign: 'center' }}>
+        Tip: Drag any clue onto a suspect during interrogation, or click to examine forensic reports.
+      </p>
+
+      {displayEvidence.length === 0 ? (
+        <div className="paper-note center-tape-note" style={{ textAlign: 'center', padding: '30px', maxWidth: '500px' }}>
+          <p className="handwritten" style={{ fontSize: '1.6rem', color: '#8b3a3a' }}>
+            No evidence logged yet.
+          </p>
+          <p style={{ fontFamily: 'monospace', fontSize: '0.9rem' }}>
+            Consult with Officer Davis or check the primary crime scene.
+          </p>
+        </div>
+      ) : (
+        <div style={styles.grid}>
+          {displayEvidence.map((ev, idx) => (
+            <div
+              key={ev.id}
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.setData('text/plain', ev.id);
+                setDraggedEvidence(ev.id);
+              }}
+              onDragEnd={() => setDraggedEvidence(null)}
+              className="paper-note center-tape-note"
+              style={{
+                transform: `rotate(${idx % 2 === 0 ? 2 : -2}deg)`,
+                cursor: 'grab',
+                transition: 'transform 0.2s',
+                width: '270px',
+                userSelect: 'none'
+              }}
+              onClick={() => setSelectedEvidenceId(ev.id)}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'rotate(0deg) scale(1.05)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = `rotate(${idx % 2 === 0 ? 2 : -2}deg) scale(1)`}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span
+                  style={{
+                    backgroundColor: getPriorityColor(ev.priority),
+                    color: 'white',
+                    fontFamily: 'monospace',
+                    fontSize: '0.72rem',
+                    padding: '2px 8px',
+                    borderRadius: '8px',
+                    textTransform: 'uppercase',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  {ev.priority}
+                </span>
+                <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#666' }}>
+                  Stage {ev.unlockStage}
+                </span>
+              </div>
+
+              <h3 className="handwritten" style={{ color: '#2c3e50', textAlign: 'center', fontSize: '1.8rem', margin: '4px 0' }}>
+                {ev.title}
+              </h3>
+
+              <div style={styles.evidenceImagePlaceholder}>
+                <span style={{ fontSize: '2rem' }}>📁</span>
+                <span style={{ marginTop: '4px', fontStyle: 'italic', fontSize: '0.8rem', color: '#555' }}>
+                  {ev.subtitle}
+                </span>
+              </div>
+
+              <p style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: '#444', marginTop: '10px', lineHeight: '1.4' }}>
+                {ev.details.length > 85 ? `${ev.details.slice(0, 85)}...` : ev.details}
+              </p>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px', borderTop: '1px solid rgba(0,0,0,0.1)', paddingTop: '8px' }}>
+                <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#777' }}>
+                  {ev.date}
+                </span>
+                <span className="handwritten" style={{ fontSize: '1.2rem', color: '#8b3a3a', fontWeight: 'bold' }}>
+                  Inspect ➔
+                </span>
+              </div>
             </div>
-            <p className="handwritten" style={{ fontSize: '1.2rem', marginTop: '10px', textAlign: 'center', color: '#8b3a3a' }}>
-              View Details
-            </p>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {selectedEvidence && (
-        <EvidenceDetailModal 
-          evidenceId={selectedEvidence} 
-          onClose={() => setSelectedEvidence(null)} 
+        <EvidenceDetailModal
+          evidence={selectedEvidence}
+          onClose={() => setSelectedEvidenceId(null)}
         />
       )}
     </div>
   );
 }
 
-// --- Detail Modal Component (Paper Aesthetic) ---
-// --- Detail Modal Component (Flat Paper Aesthetic) ---
-function EvidenceDetailModal({ evidenceId, onClose }: { evidenceId: string, onClose: () => void }) {
-  const data = getEvidenceData(evidenceId);
-
+function EvidenceDetailModal({ evidence, onClose }: { evidence: IEvidenceItem; onClose: () => void }) {
   return (
     <div style={styles.modalOverlay} onClick={onClose}>
-      {/* Classes removed to strip the tape, styling applied directly */}
       <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-        <button style={styles.closeButton} onClick={onClose}>X</button>
-        
-        <h2 className="handwritten" style={styles.modalTitle}>{data.title}</h2>
-        <p style={styles.modalSubtitle}>{data.subtitle}</p>
+        <button style={styles.closeButton} onClick={onClose}>✕</button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '5px' }}>
+          <h2 className="handwritten" style={styles.modalTitle}>{evidence.title}</h2>
+          <span
+            style={{
+              backgroundColor: '#8b3a3a',
+              color: 'white',
+              fontFamily: 'monospace',
+              fontSize: '0.8rem',
+              padding: '3px 10px',
+              borderRadius: '10px'
+            }}
+          >
+            {evidence.priority} Priority
+          </span>
+        </div>
+        <p style={styles.modalSubtitle}>{evidence.subtitle}</p>
 
         <div style={styles.infoBox}>
-          
           {/* Details Row */}
           <div style={styles.row}>
-            <div style={styles.iconContainer}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8b3a3a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-                <line x1="16" y1="13" x2="8" y2="13"></line>
-                <line x1="16" y1="17" x2="8" y2="17"></line>
-                <polyline points="10 9 9 9 8 9"></polyline>
-              </svg>
-            </div>
+            <div style={styles.iconContainer}>📄</div>
             <div>
-              <h4 style={styles.rowLabel}>Exhibit Details</h4>
-              <p style={styles.rowText}>{data.details}</p>
+              <h4 style={styles.rowLabel}>Forensic Exhibit Details</h4>
+              <p style={styles.rowText}>{evidence.details}</p>
             </div>
           </div>
 
-          {/* Date Found Row */}
+          {/* Date Row */}
           <div style={styles.row}>
-            <div style={styles.iconContainer}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8b3a3a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="16" y1="2" x2="16" y2="6"></line>
-                <line x1="8" y1="2" x2="8" y2="6"></line>
-                <line x1="3" y1="10" x2="21" y2="10"></line>
-              </svg>
-            </div>
+            <div style={styles.iconContainer}>📅</div>
             <div>
               <h4 style={styles.rowLabel}>Date Logged</h4>
-              <p style={styles.rowText}>{data.date}</p>
+              <p style={styles.rowText}>{evidence.date}</p>
             </div>
           </div>
 
           {/* Location Row */}
           <div style={styles.row}>
-            <div style={styles.iconContainer}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8b3a3a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                <circle cx="12" cy="10" r="3"></circle>
-              </svg>
-            </div>
+            <div style={styles.iconContainer}>📍</div>
             <div>
               <h4 style={styles.rowLabel}>Recovery Location</h4>
-              <p style={styles.rowText}>{data.location}</p>
+              <p style={styles.rowText}>{evidence.location}</p>
             </div>
           </div>
-
         </div>
       </div>
     </div>
@@ -158,54 +178,99 @@ function EvidenceDetailModal({ evidenceId, onClose }: { evidenceId: string, onCl
 
 const styles = {
   grid: {
-    display: 'flex', gap: '40px', flexWrap: 'wrap' as const, justifyContent: 'center', maxWidth: '1000px', marginTop: '20px'
+    display: 'flex',
+    gap: '30px',
+    flexWrap: 'wrap' as const,
+    justifyContent: 'center',
+    maxWidth: '1200px',
+    marginTop: '10px'
   },
   evidenceImagePlaceholder: {
-    width: '100%', height: '140px', backgroundColor: 'rgba(0,0,0,0.05)', marginTop: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontStyle: 'italic', color: '#555', fontSize: '0.9rem', border: '1px solid rgba(0,0,0,0.2)'
+    width: '100%',
+    height: '110px',
+    backgroundColor: 'rgba(0,0,0,0.06)',
+    marginTop: '8px',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: '1px solid rgba(0,0,0,0.15)',
+    borderRadius: '3px'
   },
   modalOverlay: {
     position: 'fixed' as const,
-    top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.8)',
     zIndex: 3000,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     padding: '20px'
   },
-modalContent: {
+  modalContent: {
     width: '100%',
-    maxWidth: '700px',
-    padding: '40px',
-    backgroundColor: '#c9d6b8', // Matches the faded green paper
-    boxShadow: '2px 4px 15px rgba(0, 0, 0, 0.4)',
-    transform: 'none', // Ensures 0 tilt
+    maxWidth: '750px',
+    padding: '35px',
+    backgroundColor: '#c9d6b8',
+    boxShadow: '2px 4px 20px rgba(0, 0, 0, 0.5)',
     position: 'relative' as const,
-    cursor: 'default'
+    borderRadius: '4px'
   },
   closeButton: {
     position: 'absolute' as const,
-    top: '20px', right: '25px',
-    background: 'none', border: 'none',
-    color: '#8b3a3a', fontFamily: 'Caveat, cursive', fontSize: '1.8rem',
-    cursor: 'pointer', fontWeight: 'bold'
-  },alTitle: {
-    fontSize: '3rem', margin: '0 0 5px 0', color: '#2c3e50'
+    top: '15px',
+    right: '20px',
+    background: 'none',
+    border: 'none',
+    color: '#8b3a3a',
+    fontSize: '1.6rem',
+    cursor: 'pointer',
+    fontWeight: 'bold'
+  },
+  modalTitle: {
+    fontSize: '2.8rem',
+    margin: 0,
+    color: '#2c3e50'
   },
   modalSubtitle: {
-    fontFamily: 'monospace', fontSize: '1.1rem', color: '#555', margin: '0 0 30px 0', paddingBottom: '15px', borderBottom: '2px solid rgba(0,0,0,0.1)'
+    fontFamily: 'monospace',
+    fontSize: '1.05rem',
+    color: '#555',
+    margin: '0 0 25px 0',
+    paddingBottom: '12px',
+    borderBottom: '2px solid rgba(0,0,0,0.1)'
   },
   infoBox: {
-    display: 'flex', flexDirection: 'column' as const, gap: '30px'
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '24px'
   },
   row: {
-    display: 'flex', alignItems: 'flex-start', gap: '20px'
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '15px'
   },
   iconContainer: {
+    fontSize: '1.5rem',
     marginTop: '2px'
   },
   rowLabel: {
-    margin: '0 0 5px 0', fontFamily: 'monospace', fontSize: '1.1rem', fontWeight: 600, color: '#333', textTransform: 'uppercase' as const, letterSpacing: '1px'
+    margin: '0 0 4px 0',
+    fontFamily: 'monospace',
+    fontSize: '1rem',
+    fontWeight: 600,
+    color: '#333',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '1px'
   },
   rowText: {
-    margin: 0, fontFamily: 'monospace', fontSize: '1.1rem', color: '#444', lineHeight: '1.6'
+    margin: 0,
+    fontFamily: 'monospace',
+    fontSize: '1rem',
+    color: '#444',
+    lineHeight: '1.6'
   }
 };

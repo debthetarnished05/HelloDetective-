@@ -1,0 +1,124 @@
+export interface IVictimProfile {
+  name: string;
+  age: number;
+  occupation: string;
+  discovered: string;
+  causeOfDeath: string;
+  timeOfDeath: string;
+}
+
+export interface IBriefing {
+  initialBriefing: string;
+  detectiveInsights: string;
+}
+
+export interface IObjectives {
+  progress: string[];
+  currentObjectives: string[];
+}
+
+export interface ILocationItem {
+  id: string;
+  title: string;
+  subtitle: string;
+  status: string;
+  lastVisited: string;
+  witnesses: string;
+  notes: string;
+  unlockStage: number; // 1 to 4
+  imageUrl?: string;
+}
+
+export interface IEvidenceItem {
+  id: string;
+  title: string;
+  subtitle: string;
+  details: string;
+  date: string;
+  location: string;
+  priority: 'Low' | 'Medium' | 'High' | 'Critical';
+  unlockStage: number; // 1 to 4
+  imageUrl?: string;
+}
+
+export interface ISuspectItem {
+  id: string;
+  name: string;
+  role: string;
+  trait: string;
+  initialTrust: number; // 0 - 100
+  initialStress: number; // 0 - 100
+  alibi: string;
+  motive: string;
+  privateKnowledge: string; // The private facts they know
+  secrets: string[]; // Confessions unlocked when stress >= breakdownThreshold or confronted
+  breakdownThreshold: number; // e.g., 75-85
+  evidenceReactions?: Record<string, string>; // Special reactions to specific evidence IDs
+  avatarUrl?: string;
+  isPrimeSuspect?: boolean;
+  category?: 'prime_suspect' | 'person_of_interest' | 'witness';
+}
+
+export interface IStageDefinition {
+  stage: number;
+  title: string;
+  description: string;
+  gateRules: string; // Evaluation rules for Officer Davis
+  unlockEvidenceIds: string[];
+  unlockLocationIds: string[];
+}
+
+export interface IGroundTruth {
+  killer: string; // suspectId
+  motive: string;
+  weapon: string;
+  keyContradiction: string;
+  timelineSummary: string;
+}
+
+export interface IStory {
+  title: string;
+  caseNumber: string;
+  leadDetective: string;
+  status: string;
+  victimProfile: IVictimProfile;
+  briefing: IBriefing;
+  objectives: IObjectives;
+  locations: ILocationItem[];
+  evidence: IEvidenceItem[];
+  suspects: ISuspectItem[];
+  stages: IStageDefinition[];
+  groundTruth: IGroundTruth;
+  isDefault?: boolean;
+}
+
+export interface IChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+  attachedEvidence?: string | null;
+}
+
+export interface ISuspectRuntimeState {
+  suspectId: string;
+  trustScore: number; // 0 to 100
+  stressLevel: number; // 0 to 100
+  mood: 'composed' | 'defensive' | 'nervous' | 'broken_down';
+  revealedFacts: string[]; // Revealed Facts Ledger
+  chatHistory: IChatMessage[];
+}
+
+export interface IOfficerChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+  isApproved?: boolean;
+}
+
+export interface IRecordedClue {
+  id: string;
+  suspectId: string;
+  suspectName: string;
+  statement: string;
+  timestamp: Date;
+}

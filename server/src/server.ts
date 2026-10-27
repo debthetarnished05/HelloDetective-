@@ -12,9 +12,13 @@ app.use(express.json());
 
 app.use('/api/game', gameRoutes);
 
+const PORT = process.env.PORT || 3001;
+
 mongoose.connect(process.env.MONGODB_URI as string)
   .then(() => {
     console.log('Connected to MongoDB');
-    app.listen(3001, () => console.log('Detective AI Backend running on port 3001'));
+    app.listen(PORT, () => console.log(`Detective AI Backend running on port ${PORT}`));
   })
-  .catch(err => console.error(err));
+  .catch(err => {
+    console.error('MongoDB connection error:', err);
+  });

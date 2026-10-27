@@ -1,35 +1,89 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { useGameStore } from '../store/gameStore';
+import { gameApi } from '../api/client';
 
 export default function Warrant() {
+  const { sessionId, story, unlockedEvidence, recordedClues, currentStage } = useGameStore();
+
   const [suspect, setSuspect] = useState('');
   const [motive, setMotive] = useState('');
   const [weapon, setWeapon] = useState('');
-  const [epilogue, setEpilogue] = useState<string | null>(null);
+  const [keyContradiction, setKeyContradiction] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [verdict, setVerdict] = useState<{
+    outcome: string;
+    score: number;
+    verdictTitle: string;
+    epilogue: string;
+  } | null>(null);
 
-const handleSubmit = async (e: React.FormEvent) => {
+  const availableEvidence = (story?.evidence || []).filter(e => unlockedEvidence.includes(e.id));
+  const suspects = story?.suspects || [];
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!suspect || !motive || !weapon) return;
-    
-    // Optional: Add a loading state here if you want to show "The Jury is deliberating..."
+    if (!suspect || !motive || !weapon || !keyContradiction || !sessionId) return;
+
+    setLoading(true);
     try {
-      // sessionId needs to be pulled from useGameStore() at the top of the component
-      const result = await gameApi.submitWarrant(sessionId!, { suspect, motive, weapon });
-      setEpilogue(result.epilogue);
+      const result = await gameApi.submitWarrant(sessionId, {
+        suspect,
+        motive,
+        weapon,
+        keyContradiction
+      });
+      setVerdict(result);
     } catch (error) {
-      console.error(error);
-      setEpilogue("The court proceedings were interrupted due to a technical error.");
+      console.error('Failed to submit warrant:', error);
+      alert('Court proceedings failed due to server error. Please retry.');
+    } finally {
+      setLoading(false);
     }
   };
-  if (epilogue) {
+
+  if (verdict) {
+    const isConvicted = verdict.outcome === 'perfect';
     return (
-      <div className="page-wrapper">
-        <div style={{...styles.clipboard, transform: 'rotate(-1deg)'}}>
+      <div className="page-wrapper" style={{ paddingBottom: '80px' }}>
+        <div style={{ ...styles.clipboard, maxWidth: '850px' }}>
           <div style={styles.clip}>
             <div style={styles.clipHinge}></div>
           </div>
           <div style={styles.paper}>
-            <h2 className="handwritten" style={{ fontSize: '2.5rem', marginBottom: '20px' }}>Case Closed</h2>
-            <p className="handwritten" style={{ fontSize: '1.5rem', lineHeight: '2rem' }}>{epilogue}</p>
+            <div style={{ textAlign: 'center', borderBottom: '2px solid rgba(0,0,0,0.15)', paddingBottom: '15px', marginBottom: '20px' }}>
+              <span
+                style={{
+                  backgroundColor: isConvicted ? '#2e7d32' : verdict.outcome === 'wrong_suspect' ? '#b71c1c' : '#e65100',
+                  color: 'white',
+                  fontFamily: 'monospace',
+                  fontSize: '0.9rem',
+                  padding: '5px 15px',
+                  borderRadius: '20px',
+                  fontWeight: 'bold',
+                  textTransform: 'uppercase'
+                }}
+              >
+                {verdict.verdictTitle} · CASE SCORE: {verdict.score}/100
+              </span>
+              <h2 className="handwritten" style={{ fontSize: '3rem', margin: '10px 0 0 0', color: '#2c3e50' }}>
+                Supreme Court Judicial Epilogue
+              </h2>
+            </div>
+
+            <div style={{ fontFamily: 'monospace', fontSize: '1.05rem', lineHeight: '1.8', color: '#222', whiteSpace: 'pre-wrap' }}>
+              {verdict.epilogue}
+            </div>
+
+            <div style={{ marginTop: '35px', textAlign: 'center' }}>
+              <button
+                type="button"
+                className="action-button"
+                style={{ maxWidth: '300px', padding: '12px 24px', fontSize: '1.1rem' }}
+                onClick={() => setVerdict(null)}
+              >
+                Review Warrant
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -38,80 +92,114 @@ const handleSubmit = async (e: React.FormEvent) => {
 
   return (
     <div className="page-wrapper" style={{ paddingBottom: '100px' }}>
-      
-      {/* The Clipboard Container */}
       <div style={styles.clipboard}>
-        
-        {/* The Metal Clip at the top */}
+        {/* Metal Clip */}
         <div style={styles.clip}>
           <div style={styles.clipHinge}></div>
         </div>
 
-        {/* The Lined Paper */}
+        {/* Lined Paper */}
         <div style={styles.paper}>
-          <h2 className="handwritten" style={{ fontSize: '2.8rem', color: '#2c3e50', textAlign: 'center', marginBottom: '10px' }}>
-            Official Arrest Warrant
+          <h2 className="handwritten" style={{ fontSize: '2.8rem', color: '#2c3e50', textAlign: 'center', marginBottom: '5px' }}>
+            Official Arrest Warrant & Prosecution Form
           </h2>
-          <p style={{ fontFamily: 'monospace', textAlign: 'center', color: '#555', marginBottom: '30px' }}>
-            Submit your final deductions. This action ends the investigation.
+          <p style={{ fontFamily: 'monospace', textAlign: 'center', color: '#555', marginBottom: '25px', fontSize: '0.9rem' }}>
+            Stage {currentStage} / 4. Present your definitive accusation to the Superior Court.
           </p>
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
+            {/* 1. Primary Suspect Dropdown */}
             <div style={styles.inputGroup}>
-              <label style={styles.label}>Primary Suspect:</label>
-              <textarea 
-                value={suspect} 
-                onChange={(e) => setSuspect(e.target.value)} 
-                style={styles.textArea}
-                
-                rows={1}
+              <label style={styles.label}>1. The Accused Perpetrator:</label>
+              <select
+                value={suspect}
+                onChange={(e) => setSuspect(e.target.value)}
+                style={styles.select}
+                required
+              >
+                <option value="">-- Select Person of Interest --</option>
+                {suspects.map(s => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({s.role})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* 2. Motive Input / Select */}
+            <div style={styles.inputGroup}>
+              <label style={styles.label}>2. The Incontrovertible Motive:</label>
+              <input
+                type="text"
+                value={motive}
+                onChange={(e) => setMotive(e.target.value)}
+                placeholder="e.g. Patent theft and corporate fraud coverup, or financial insurance fraud..."
+                style={styles.input}
+                required
               />
             </div>
 
+            {/* 3. Weapon / Opportunity Evidence Dropdown */}
             <div style={styles.inputGroup}>
-              <label style={styles.label}>Motive & Supporting Evidence:</label>
-              <textarea 
-                value={motive} 
-                onChange={(e) => setMotive(e.target.value)} 
-                style={{...styles.textArea, height: '6rem'}}
-                
-              />
+              <label style={styles.label}>3. Murder Weapon / Opportunity Evidence:</label>
+              <select
+                value={weapon}
+                onChange={(e) => setWeapon(e.target.value)}
+                style={styles.select}
+                required
+              >
+                <option value="">-- Select from Unlocked Evidence Locker --</option>
+                {availableEvidence.map(ev => (
+                  <option key={ev.id} value={ev.id}>
+                    [{ev.priority}] {ev.title} ({ev.location})
+                  </option>
+                ))}
+              </select>
             </div>
 
+            {/* 4. Key Contradiction */}
             <div style={styles.inputGroup}>
-              <label style={styles.label}>Murder Weapon & Execution:</label>
-              <textarea 
-                value={weapon} 
-                onChange={(e) => setWeapon(e.target.value)} 
-                style={{...styles.textArea, height: '4rem'}}
-                
-              />
+              <label style={styles.label}>4. The Key Contradiction That Broke Their Alibi:</label>
+              <select
+                value={keyContradiction}
+                onChange={(e) => setKeyContradiction(e.target.value)}
+                style={styles.select}
+                required
+              >
+                <option value="">-- Select Decisive Contradiction Clue --</option>
+                {availableEvidence.map(ev => (
+                  <option key={ev.id} value={ev.id}>
+                    Clue: {ev.title}
+                  </option>
+                ))}
+                {recordedClues.map(c => (
+                  <option key={c.id} value={c.statement}>
+                    Admission: {c.suspectName} - "{c.statement.slice(0, 45)}..."
+                  </option>
+                ))}
+              </select>
             </div>
 
-            <button type="submit" className="action-button" style={styles.submitBtn}>
-              Submit to District Attorney
+            <button
+              type="submit"
+              className="action-button"
+              style={styles.submitBtn}
+              disabled={loading || !suspect || !motive || !weapon || !keyContradiction}
+            >
+              {loading ? 'The Grand Jury & Judge Are Deliberating...' : 'Submit Warrant to District Attorney & Court'}
             </button>
           </form>
 
-          {/* The Pen resting on the bottom corner */}
-{/* The Pen resting on the wooden margin */}
+          {/* Pen Artwork */}
           <div style={styles.penContainer}>
-            {/* Increased width and height to make the pen 50% larger */}
-            <svg width="300" height="45" viewBox="0 0 200 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-              {/* Pen Tip (Silver) */}
-              <path d="M0 15 L25 8 L25 22 Z" fill="#d1d5db" stroke="#9ca3af" strokeWidth="1"/>
-              {/* Pen Grip (Black) */}
-              <path d="M25 8 L60 8 L60 22 L25 22 Z" fill="#1f2937"/>
-              {/* Pen Body (Dark Blue/Grey) */}
-              <rect x="60" y="6" width="120" height="18" rx="2" fill="#374151" stroke="#1f2937" strokeWidth="1"/>
-              {/* Pen Clip (Silver) */}
-              <rect x="130" y="3" width="40" height="4" rx="2" fill="#e5e7eb" stroke="#9ca3af" strokeWidth="0.5"/>
-              {/* Pen Cap End */}
-              <path d="M180 6 L195 10 L195 20 L180 24 Z" fill="#1f2937"/>
+            <svg width="280" height="40" viewBox="0 0 200 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M0 15 L25 8 L25 22 Z" fill="#d1d5db" stroke="#9ca3af" strokeWidth="1" />
+              <path d="M25 8 L60 8 L60 22 L25 22 Z" fill="#1f2937" />
+              <rect x="60" y="6" width="120" height="18" rx="2" fill="#374151" stroke="#1f2937" strokeWidth="1" />
+              <rect x="130" y="3" width="40" height="4" rx="2" fill="#e5e7eb" stroke="#9ca3af" strokeWidth="0.5" />
+              <path d="M180 6 L195 10 L195 20 L180 24 Z" fill="#1f2937" />
             </svg>
           </div>
-
         </div>
       </div>
     </div>
@@ -120,15 +208,15 @@ const handleSubmit = async (e: React.FormEvent) => {
 
 const styles = {
   clipboard: {
-    backgroundColor: '#3e2723', // Dark brown clipboard board
+    backgroundColor: '#3e2723',
     padding: '30px 20px 20px 20px',
     borderRadius: '12px',
     boxShadow: '4px 10px 25px rgba(0,0,0,0.6)',
     width: '100%',
-    maxWidth: '750px',
+    maxWidth: '780px',
     position: 'relative' as const,
-    transform: 'rotate(2deg)', // Tilted board
-    marginTop: '40px'
+    transform: 'rotate(1deg)',
+    marginTop: '30px'
   },
   clip: {
     position: 'absolute' as const,
@@ -137,7 +225,7 @@ const styles = {
     transform: 'translateX(-50%)',
     width: '120px',
     height: '45px',
-    backgroundColor: '#cbd5e1', // Silver metal clip
+    backgroundColor: '#cbd5e1',
     borderRadius: '8px',
     boxShadow: '0 4px 6px rgba(0,0,0,0.5), inset 0 2px 4px rgba(255,255,255,0.7)',
     zIndex: 10,
@@ -153,54 +241,53 @@ const styles = {
     boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5)'
   },
   paper: {
-    backgroundColor: '#fdfbf7', // Warm paper color
-    padding: '50px 40px',
+    backgroundColor: '#fdfbf7',
+    padding: '45px 40px',
     borderRadius: '4px',
-    minHeight: '600px',
+    minHeight: '580px',
     boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-    // Lined paper effect matching image_5f44b7.png
-    backgroundImage: 'linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px)',
-    backgroundSize: '100% 2rem',
-    backgroundPosition: '0 40px',
-    position: 'relative' as const,
+    position: 'relative' as const
   },
   inputGroup: {
     display: 'flex',
-    flexDirection: 'column' as const,
+    flexDirection: 'column' as const
   },
   label: {
     fontFamily: 'monospace',
     fontWeight: 'bold',
-    fontSize: '1.2rem',
+    fontSize: '1rem',
     color: '#333',
-    marginBottom: '5px'
+    marginBottom: '6px'
   },
-  textArea: {
-    width: '100%',
-    backgroundColor: 'transparent',
-    border: 'none',
-    outline: 'none',
-    resize: 'none' as const,
-    fontFamily: 'Caveat, cursive',
-    fontSize: '1.8rem',
-    color: '#1a365d', // Dark blue ink
-    lineHeight: '2rem', // MUST match backgroundSize of paper for lines to align
-    padding: '0',
-    overflow: 'hidden'
+  select: {
+    padding: '12px',
+    fontFamily: 'monospace',
+    fontSize: '1rem',
+    border: '2px solid #ccc',
+    borderRadius: '4px',
+    backgroundColor: 'white'
+  },
+  input: {
+    padding: '12px',
+    fontFamily: 'monospace',
+    fontSize: '1rem',
+    border: '2px solid #ccc',
+    borderRadius: '4px',
+    backgroundColor: 'white'
   },
   submitBtn: {
-    marginTop: '30px',
+    marginTop: '20px',
     backgroundColor: '#2c3e50',
-    padding: '15px',
-    fontSize: '1.2rem',
+    padding: '16px',
+    fontSize: '1.15rem',
     fontFamily: 'monospace',
-    letterSpacing: '1px'
+    letterSpacing: '0.5px'
   },
   penContainer: {
     position: 'absolute' as const,
-    top: '45%',           /* Moves the pen down to the middle of the page */
-    right: '-160px',       /* Pushes it outside the paper onto the brown clipboard margin */
-    transform: 'rotate(-70deg)', /* Rotates it to sit vertically along that right edge */
+    top: '45%',
+    right: '-150px',
+    transform: 'rotate(-70deg)',
     filter: 'drop-shadow(3px 5px 6px rgba(0,0,0,0.5))',
     zIndex: 20
   }
