@@ -35,8 +35,8 @@ export default function CaseSolutionsTab({ stories }: CaseSolutionsTabProps) {
     const matchesSearch =
       story.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       story.caseNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      story.victimProfile?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      story.leadDetective.toLowerCase().includes(searchTerm.toLowerCase());
+      (story.victimProfile?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (story.leadDetective || '').toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesArchetype =
       selectedArchetype === 'all' ||

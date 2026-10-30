@@ -3,6 +3,11 @@ import { ISuspectRuntimeState, IChatMessage, IOfficerChatMessage, IRecordedClue 
 
 export interface IGameSession extends Document {
   storyId: Types.ObjectId;
+  userId?: Types.ObjectId;
+  isGuest: boolean;
+  leadDetectiveName: string;
+  evidencePresentedCount: number;
+  warrantAttemptsCount: number;
   currentStage?: number;
   unlockedEvidence: string[];
   unlockedLocations: string[];
@@ -62,6 +67,11 @@ const RecordedClueSchema = new Schema({
 
 const GameSessionSchema = new Schema<IGameSession>({
   storyId: { type: Schema.Types.ObjectId, ref: 'Story', required: true },
+  userId: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+  isGuest: { type: Boolean, default: true },
+  leadDetectiveName: { type: String, default: 'Guest Detective' },
+  evidencePresentedCount: { type: Number, default: 0 },
+  warrantAttemptsCount: { type: Number, default: 0 },
   currentStage: { type: Number, default: 1 },
   unlockedEvidence: [{ type: String }],
   unlockedLocations: [{ type: String }],

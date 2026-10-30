@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useGameStore } from '../store/gameStore';
+import { useAuthStore } from '../store/authStore';
 import { gameApi } from '../api/client';
 
 export default function Warrant() {
   const { sessionId, story, unlockedEvidence, recordedClues, caseClosingTriggered, remainingClosingQuestions, interrogationLocked, unlockedSuspects } = useGameStore();
+  const { isGuest, openAuthModal, updateUserStatsAndBadges } = useAuthStore();
 
   const [suspect, setSuspect] = useState('');
   const [motive, setMotive] = useState('');
@@ -15,6 +17,9 @@ export default function Warrant() {
     score: number;
     verdictTitle: string;
     epilogue: string;
+    userRank?: any;
+    newBadges?: string[];
+    userStats?: any;
   } | null>(null);
 
   const availableEvidence = (story?.evidence || []).filter(e => unlockedEvidence.includes(e.id));
@@ -33,6 +38,13 @@ export default function Warrant() {
         keyContradiction
       });
       setVerdict(result);
+      if (result.userRank || result.userStats || result.newBadges) {
+        updateUserStatsAndBadges({
+          userRank: result.userRank,
+          newBadges: result.newBadges,
+          userStats: result.userStats
+        });
+      }
     } catch (error) {
       console.error('Failed to submit warrant:', error);
       alert('Court proceedings failed due to server error. Please retry.');
@@ -42,7 +54,7 @@ export default function Warrant() {
   };
 
   if (verdict) {
-    const isConvicted = verdict.outcome === 'perfect';
+    const isConvicted = verdict.outcome === 'perfect' || verdict.outcome === 'guilty';
     return (
       <div className="page-wrapper" style={{ paddingBottom: '80px' }}>
         <div style={{ ...styles.clipboard, maxWidth: '850px' }}>
@@ -69,6 +81,75 @@ export default function Warrant() {
                 Supreme Court Judicial Epilogue
               </h2>
             </div>
+
+            {/* Rank / Badge Commendations Banner */}
+            {verdict.userRank && (
+              <div style={{
+                backgroundColor: '#fff8e1',
+                border: '2px solid #ffb300',
+                borderRadius: '6px',
+                padding: '12px 16px',
+                marginBottom: '15px',
+                fontFamily: "'Special Elite', monospace",
+                color: '#5d4037',
+                fontSize: '0.95rem',
+                textAlign: 'center'
+              }}>
+                🎖️ BUREAU COMMISSION RECORD: Promoted to <strong>{verdict.userRank}</strong>!
+              </div>
+            )}
+
+            {verdict.newBadges && verdict.newBadges.length > 0 && (
+              <div style={{
+                backgroundColor: '#e8f5e9',
+                border: '2px solid #66bb6a',
+                borderRadius: '6px',
+                padding: '12px 16px',
+                marginBottom: '15px',
+                fontFamily: "'Special Elite', monospace",
+                color: '#1b5e20',
+                fontSize: '0.95rem',
+                textAlign: 'center'
+              }}>
+                ⭐ COMMENDATION MEDAL EARNED: {verdict.newBadges.join(', ')}!
+              </div>
+            )}
+
+            {isGuest && (
+              <div style={{
+                backgroundColor: '#efebe9',
+                border: '1.5px dashed #8d6e63',
+                borderRadius: '6px',
+                padding: '12px 18px',
+                marginBottom: '18px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '10px'
+              }}>
+                <span style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: '#4e342e' }}>
+                  🕵️ <strong>Playing as Guest:</strong> Issue a free Detective Badge or Sign In to permanently link this conviction to your dossier.
+                </span>
+                <button
+                  type="button"
+                  onClick={() => openAuthModal('register', 'Register an official badge to archive this conviction and claim your rank!')}
+                  style={{
+                    backgroundColor: '#8b3a3a',
+                    color: '#ffd54f',
+                    border: '1px solid #5c1818',
+                    padding: '6px 14px',
+                    borderRadius: '4px',
+                    fontFamily: "'Special Elite', monospace",
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  Claim Official Badge ➔
+                </button>
+              </div>
+            )}
 
             <div style={{ fontFamily: 'monospace', fontSize: '1.05rem', lineHeight: '1.8', color: '#222', whiteSpace: 'pre-wrap' }}>
               {verdict.epilogue}

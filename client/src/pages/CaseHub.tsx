@@ -1,7 +1,9 @@
 import { useGameStore } from '../store/gameStore';
+import { useAuthStore } from '../store/authStore';
 
 export default function CaseHub() {
   const { story, unlockedSuspects } = useGameStore();
+  const { user } = useAuthStore();
 
   if (!story) {
     return (
@@ -11,6 +13,7 @@ export default function CaseHub() {
     );
   }
 
+  const leadDetectiveDisplay = user ? `Detective ${user.username}` : (story.leadDetective || 'Guest Detective');
   const allSuspects = story.suspects || [];
   const displaySuspects = allSuspects.filter(s => unlockedSuspects.includes(s.id));
 
@@ -18,7 +21,7 @@ export default function CaseHub() {
     <div className="page-wrapper">
       {/* Title Card */}
       <div className="taped-title handwritten">
-        {story.title} · Active Case File
+        {story.title}
       </div>
 
       {/* Grid Layout for the Dashboard Notes */}
@@ -31,7 +34,12 @@ export default function CaseHub() {
           <div style={styles.contentBlock}>
             <p><strong>Case Number:</strong> {story.caseNumber}</p>
             <p><strong>Status:</strong> {story.status}</p>
-            <p><strong>Lead Detective:</strong> {story.leadDetective}</p>
+            <p>
+              <strong>Lead Detective:</strong>{' '}
+              <span style={{ color: '#8b3a3a', fontWeight: 'bold' }}>
+                {user ? `⭐ ${leadDetectiveDisplay}` : `🕵️ ${leadDetectiveDisplay}`}
+              </span>
+            </p>
           </div>
           
           <div style={styles.contentBlock}>

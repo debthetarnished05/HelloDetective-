@@ -1,17 +1,24 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import gameRoutes from './routes/gameRoutes';
+import authRoutes from './routes/authRoutes';
 
 import { seedDefaultStories } from './controllers/gameController';
 
 dotenv.config();
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+  credentials: true
+}));
 app.use(express.json());
+app.use(cookieParser());
 
+app.use('/api/auth', authRoutes);
 app.use('/api/game', gameRoutes);
 
 const PORT = process.env.PORT || 3001;

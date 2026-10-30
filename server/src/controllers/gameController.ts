@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import GameSession from '../models/GameSession';
 import Story from '../models/StoryData';
+import User, { calculateDetectiveRank } from '../models/User';
+import { AuthRequest } from '../middleware/authMiddleware';
 import { DEFAULT_STORY } from '../data/defaultStory';
 import {
   OPERA_STORY,
@@ -63,7 +65,7 @@ export async function seedDefaultStories() {
   return defaultStory;
 }
 
-export const startNewGame = async (req: Request, res: Response) => {
+export const startNewGame = async (req: AuthRequest, res: Response) => {
   try {
     const { storyId } = req.body;
     let story: any;
@@ -77,6 +79,8 @@ export const startNewGame = async (req: Request, res: Response) => {
     if (!story) {
       return res.status(500).json({ error: 'Failed to find or seed detective story.' });
     }
+
+    const leadDetectiveName = req.user ? `Detective ${req.user.username}` : 'Guest Detective';
 
     // Determine initial unlocks for dynamic lead-web
     const initialEvidence = (story.evidence || [])
@@ -114,6 +118,9 @@ export const startNewGame = async (req: Request, res: Response) => {
     }
 
     const session = new GameSession({
+      userId: req.user ? req.user._id : undefined,
+      isGuest: !req.user,
+      leadDetectiveName,
       storyId: story._id,
       unlockedEvidence: initialEvidence,
       unlockedLocations: initialLocations,
@@ -123,11 +130,13 @@ export const startNewGame = async (req: Request, res: Response) => {
       remainingClosingQuestions: 12,
       interrogationLocked: false,
       closingNotificationSent: false,
+      evidencePresentedCount: 0,
+      warrantAttemptsCount: 0,
       suspects: suspectsMap,
       officerChatHistory: [
         {
           role: 'assistant',
-          content: `Welcome to the precinct, Detective. We've got a fresh homicide: ${story.victimProfile.name}, found dead in ${story.locations[0]?.title || 'the crime scene'}. Canvas the crime scene and interrogate our prime suspects. When every lead is uncovered, I'll alert you to prepare the final indictment.`,
+          content: `Welcome to the precinct, ${leadDetectiveName}. We've got a fresh homicide: ${story.victimProfile.name}, found dead in ${story.locations[0]?.title || 'the crime scene'}. Canvas the crime scene and interrogate our prime suspects. When every lead is uncovered, I'll alert you to prepare the final indictment.`,
           timestamp: new Date()
         }
       ],
@@ -139,10 +148,13 @@ export const startNewGame = async (req: Request, res: Response) => {
 
     await session.save();
 
+    const storyObj = story.toObject ? story.toObject() : { ...story };
+    storyObj.leadDetective = leadDetectiveName;
+
     res.status(200).json({
       sessionId: session._id,
       session,
-      story
+      story: storyObj
     });
   } catch (error: any) {
     console.error('startNewGame error:', error);
@@ -150,7 +162,7 @@ export const startNewGame = async (req: Request, res: Response) => {
   }
 };
 
-export const getSessionState = async (req: Request, res: Response) => {
+export const getSessionState = async (req: AuthRequest, res: Response) => {
   try {
     const { sessionId } = req.params;
     const session = await GameSession.findById(sessionId);
@@ -161,10 +173,26 @@ export const getSessionState = async (req: Request, res: Response) => {
       story = await seedDefaultStories();
     }
 
+    let leadDetectiveName = session.leadDetectiveName || 'Guest Detective';
+    if (req.user) {
+      leadDetectiveName = `Detective ${req.user.username}`;
+      if (session.isGuest || !session.userId) {
+        session.userId = req.user._id;
+        session.isGuest = false;
+        session.leadDetectiveName = leadDetectiveName;
+        await session.save();
+      }
+    }
+
+    const storyObj = story ? (story.toObject ? story.toObject() : { ...story }) : null;
+    if (storyObj) {
+      storyObj.leadDetective = leadDetectiveName;
+    }
+
     res.status(200).json({
       sessionId: session._id,
       session,
-      story
+      story: storyObj
     });
   } catch (error: any) {
     console.error('getSessionState error:', error);
@@ -489,7 +517,7 @@ export const submitDeduction = async (req: Request, res: Response) => {
   return chatOfficer(req, res);
 };
 
-export const submitWarrant = async (req: Request, res: Response) => {
+export const submitWarrant = async (req: AuthRequest, res: Response) => {
   try {
     const { sessionId, suspect, motive, weapon, keyContradiction } = req.body;
     const session = await GameSession.findById(sessionId);
@@ -498,13 +526,15 @@ export const submitWarrant = async (req: Request, res: Response) => {
     const story = await Story.findById(session.storyId);
     if (!story) return res.status(404).json({ error: 'Story not found' });
 
+    session.warrantAttemptsCount = (session.warrantAttemptsCount || 0) + 1;
+
     const verdict = await GroqService.evaluateWarrant(
       { suspect, motive, weapon, keyContradiction },
       story.groundTruth,
       story.title
     );
 
-    session.status = 'solved';
+    session.status = verdict.outcome === 'guilty' ? 'solved' : 'active';
     session.verdict = {
       suspect,
       motive,
@@ -517,11 +547,111 @@ export const submitWarrant = async (req: Request, res: Response) => {
 
     await session.save();
 
+    let userRank: string | undefined;
+    let newlyUnlockedBadges: string[] = [];
+    let userStats: any = undefined;
+
+    if (req.user) {
+      const user = await User.findById(req.user._id);
+      if (user) {
+        user.stats.totalWarrantsFiled = (user.stats.totalWarrantsFiled || 0) + 1;
+        if (verdict.outcome === 'guilty') {
+          user.stats.totalConvictions = (user.stats.totalConvictions || 0) + 1;
+          const storyIdStr = story._id.toString();
+          if (!user.casesSolved.includes(storyIdStr)) {
+            user.casesSolved.push(storyIdStr);
+          }
+          user.rank = calculateDetectiveRank(user.casesSolved.length);
+
+          const existingBadgeIds = new Set(user.badges.map((b: any) => b.id));
+
+          if (!existingBadgeIds.has('smoking_gun') && (session.unlockedEvidence || []).length >= 3) {
+            user.badges.push({
+              id: 'smoking_gun',
+              title: 'Smoking Gun',
+              icon: '🔫',
+              description: 'Cracked the case with conclusive physical evidence.',
+              unlockedAt: new Date(),
+              caseTitle: story.title
+            });
+            newlyUnlockedBadges.push('Smoking Gun');
+          }
+
+          if (!existingBadgeIds.has('forensic_eagle') && (session.canvassedLocations || []).length >= (story.locations || []).length) {
+            user.badges.push({
+              id: 'forensic_eagle',
+              title: 'Forensic Eagle',
+              icon: '🦅',
+              description: 'Scoured every single crime scene location without missing a clue.',
+              unlockedAt: new Date(),
+              caseTitle: story.title
+            });
+            newlyUnlockedBadges.push('Forensic Eagle');
+          }
+
+          if (!existingBadgeIds.has('flawless_juror') && verdict.score >= 90) {
+            user.badges.push({
+              id: 'flawless_juror',
+              title: 'Flawless Juror',
+              icon: '⚖️',
+              description: 'Secured an indictment score of 90 or above before the Grand Jury.',
+              unlockedAt: new Date(),
+              caseTitle: story.title
+            });
+            newlyUnlockedBadges.push('Flawless Juror');
+          }
+
+          if (!existingBadgeIds.has('beat_the_clock') && session.caseClosingTriggered && (session.remainingClosingQuestions || 0) > 0) {
+            user.badges.push({
+              id: 'beat_the_clock',
+              title: 'Beat the Clock',
+              icon: '⏳',
+              description: 'Secured the indictment before the 12-hour interrogation limit expired.',
+              unlockedAt: new Date(),
+              caseTitle: story.title
+            });
+            newlyUnlockedBadges.push('Beat the Clock');
+          }
+
+          if (!existingBadgeIds.has('patsy_shield') && session.warrantAttemptsCount === 1) {
+            user.badges.push({
+              id: 'patsy_shield',
+              title: 'Patsy Shield',
+              icon: '🛡️',
+              description: 'Saw through the red herrings and indicted the real culprit on first attempt.',
+              unlockedAt: new Date(),
+              caseTitle: story.title
+            });
+            newlyUnlockedBadges.push('Patsy Shield');
+          }
+
+          if (!existingBadgeIds.has('mastermind_catcher') && user.casesSolved.length >= 3) {
+            user.badges.push({
+              id: 'mastermind_catcher',
+              title: 'Mastermind Catcher',
+              icon: '🎖️',
+              description: 'Brought 3 or more criminal masterminds to justice.',
+              unlockedAt: new Date(),
+              caseTitle: story.title
+            });
+            newlyUnlockedBadges.push('Mastermind Catcher');
+          }
+        }
+
+        await user.save();
+        userRank = user.rank;
+        userStats = user.stats;
+      }
+    }
+
     res.status(200).json({
       outcome: verdict.outcome,
       score: verdict.score,
       verdictTitle: verdict.verdictTitle,
-      epilogue: verdict.epilogue
+      epilogue: verdict.epilogue,
+      userRank,
+      newBadges: newlyUnlockedBadges,
+      userStats
     });
   } catch (error: any) {
     console.error('submitWarrant error:', error);
@@ -565,22 +695,31 @@ export const recordClue = async (req: Request, res: Response) => {
 
 // ================= STORY MANAGEMENT ENDPOINTS =================
 
-export const listStories = async (req: Request, res: Response) => {
+export const listStories = async (req: AuthRequest, res: Response) => {
   try {
     await seedDefaultStories();
-    const stories = await Story.find().select('title caseNumber leadDetective status isDefault createdAt victimProfile briefing suspects locations evidence groundTruth');
+    const storiesDocs = await Story.find().select('title caseNumber leadDetective status isDefault createdAt victimProfile briefing suspects locations evidence groundTruth');
+    const leadDetectiveName = req.user ? `Detective ${req.user.username}` : 'Guest Detective';
+    const stories = storiesDocs.map(doc => {
+      const obj = doc.toObject();
+      obj.leadDetective = leadDetectiveName;
+      return obj;
+    });
     res.status(200).json({ stories });
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Failed to list stories' });
   }
 };
 
-export const getStoryById = async (req: Request, res: Response) => {
+export const getStoryById = async (req: AuthRequest, res: Response) => {
   try {
     const { storyId } = req.params;
     const story = await Story.findById(storyId);
     if (!story) return res.status(404).json({ error: 'Story not found' });
-    res.status(200).json({ story });
+    const leadDetectiveName = req.user ? `Detective ${req.user.username}` : 'Guest Detective';
+    const storyObj = story.toObject();
+    storyObj.leadDetective = leadDetectiveName;
+    res.status(200).json({ story: storyObj });
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Failed to get story' });
   }

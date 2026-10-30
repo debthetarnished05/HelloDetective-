@@ -2,8 +2,11 @@ import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { gameApi } from './api/client';
 import { useGameStore } from './store/gameStore';
+import { useAuthStore } from './store/authStore';
 import Navigation from './components/Navigation';
 import NotepadSidebar from './components/NotepadSidebar';
+import AuthModal from './components/AuthModal';
+import DetectiveProfileModal from './components/DetectiveProfileModal';
 
 import CaseHub from './pages/CaseHub';
 import SuspectsDirectory from './pages/SuspectsDirectory';
@@ -15,7 +18,22 @@ import StoryCreator from './pages/StoryCreator';
 
 function App() {
   const { sessionId, setSessionData } = useGameStore();
+  const { initAuth, user } = useAuthStore();
   const [initError, setInitError] = useState<string | null>(null);
+
+  // Initialize auth credentials on app start
+  useEffect(() => {
+    initAuth();
+  }, [initAuth]);
+
+  // When user logs in/registers and session is active, refresh session data to sync Detective name
+  useEffect(() => {
+    if (sessionId && user) {
+      gameApi.getSession(sessionId)
+        .then((result) => setSessionData(result))
+        .catch((err) => console.warn('Syncing user session error:', err));
+    }
+  }, [sessionId, user?.id, setSessionData]);
 
   useEffect(() => {
     const initGame = async () => {
@@ -69,6 +87,8 @@ function App() {
     <Router>
       <Navigation />
       <NotepadSidebar />
+      <AuthModal />
+      <DetectiveProfileModal />
 
       <div style={{ paddingTop: '70px', minHeight: '100vh' }}>
         <Routes>

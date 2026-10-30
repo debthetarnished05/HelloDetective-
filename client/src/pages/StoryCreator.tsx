@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { gameApi } from '../api/client';
 import { useGameStore } from '../store/gameStore';
+import { useAuthStore } from '../store/authStore';
 import type { IStory, MysteryArchetype } from '../types/index';
 import { useNavigate } from 'react-router-dom';
 import CaseSolutionsTab from '../components/CaseSolutionsTab';
+import OpenCaseFolderModal from '../components/OpenCaseFolderModal';
 
 export const ARCHETYPE_OPTIONS: {
   value: MysteryArchetype;
@@ -62,6 +64,13 @@ export const ARCHETYPE_OPTIONS: {
     trap: 'No suspect is obviously innocent by the time all leads are secured; player must pinpoint the exact 5-minute lethal window rather than relying on order of discovery.'
   }
 ];
+
+export function getCleanArchetypeTitle(archetype?: string): string {
+  if (!archetype) return 'Classic Procedural';
+  const opt = ARCHETYPE_OPTIONS.find((a) => a.value === archetype);
+  if (!opt) return archetype;
+  return opt.label.replace(/^\d+\.\s*/, '').split('(')[0].trim();
+}
 
 interface FormLocation {
   id: string;
@@ -429,8 +438,17 @@ export default function StoryCreator() {
   // Form State
   const [formData, setFormData] = useState<CaseFormData>(BLANK_TEMPLATE);
 
+  const { user, isGuest, openAuthModal } = useAuthStore();
   const { story: currentStory, setSessionData } = useGameStore();
   const navigate = useNavigate();
+
+  const handleTabClick = (tab: 'manage' | 'ai' | 'form' | 'solutions') => {
+    if (tab !== 'manage' && isGuest) {
+      openAuthModal('register', 'Bureau Clearance Required: The AI Mystery Generator, Case Builder Form, and Confidential Case Solutions are reserved for registered detectives.');
+      return;
+    }
+    setActiveTab(tab);
+  };
 
   const loadStories = async () => {
     try {
@@ -447,6 +465,12 @@ export default function StoryCreator() {
   useEffect(() => {
     loadStories();
   }, []);
+
+  useEffect(() => {
+    if (user && formData.leadDetective === 'Lead Detective') {
+      setFormData(prev => ({ ...prev, leadDetective: `Detective ${user.username}` }));
+    }
+  }, [user]);
 
   const handleStartGameWithStory = async (storyId: string) => {
     try {
@@ -768,28 +792,43 @@ export default function StoryCreator() {
 
       <div style={styles.tabBar}>
         <button
-          onClick={() => setActiveTab('manage')}
+          onClick={() => handleTabClick('manage')}
           style={{ ...styles.tabBtn, backgroundColor: activeTab === 'manage' ? '#8b3a3a' : '#2c3e50' }}
         >
           📂 All Saved Cases ({stories.length})
         </button>
         <button
-          onClick={() => setActiveTab('ai')}
-          style={{ ...styles.tabBtn, backgroundColor: activeTab === 'ai' ? '#8b3a3a' : '#2c3e50' }}
+          onClick={() => handleTabClick('ai')}
+          style={{
+            ...styles.tabBtn,
+            backgroundColor: activeTab === 'ai' ? '#8b3a3a' : '#2c3e50',
+            opacity: isGuest ? 0.85 : 1
+          }}
+          title={isGuest ? 'Restricted to Registered Detectives' : 'AI Mystery Generator'}
         >
-          ✨ AI Mystery Generator
+          {isGuest ? '🔒 ' : ''}✨ AI Mystery Generator
         </button>
         <button
-          onClick={() => setActiveTab('form')}
-          style={{ ...styles.tabBtn, backgroundColor: activeTab === 'form' ? '#8b3a3a' : '#2c3e50' }}
+          onClick={() => handleTabClick('form')}
+          style={{
+            ...styles.tabBtn,
+            backgroundColor: activeTab === 'form' ? '#8b3a3a' : '#2c3e50',
+            opacity: isGuest ? 0.85 : 1
+          }}
+          title={isGuest ? 'Restricted to Registered Detectives' : 'Case Builder Form'}
         >
-          📝 Case Builder Form
+          {isGuest ? '🔒 ' : ''}📝 Case Builder Form
         </button>
         <button
-          onClick={() => setActiveTab('solutions')}
-          style={{ ...styles.tabBtn, backgroundColor: activeTab === 'solutions' ? '#8b3a3a' : '#2c3e50' }}
+          onClick={() => handleTabClick('solutions')}
+          style={{
+            ...styles.tabBtn,
+            backgroundColor: activeTab === 'solutions' ? '#8b3a3a' : '#2c3e50',
+            opacity: isGuest ? 0.85 : 1
+          }}
+          title={isGuest ? 'Restricted to Registered Detectives' : 'Confidential Case Solutions'}
         >
-          📖 Case Solutions & True Stories ({stories.length})
+          {isGuest ? '🔒 ' : ''}📖 Case Solutions & True Stories ({stories.length})
         </button>
       </div>
 
@@ -996,7 +1035,7 @@ export default function StoryCreator() {
                       )}
                       {s.groundTruth?.archetype && (
                         <div style={{ marginTop: '4px', fontSize: '0.67rem', color: '#5a4638' }}>
-                          <strong>TROPE:</strong> {ARCHETYPE_OPTIONS.find(a => a.value === s.groundTruth.archetype)?.tagline || s.groundTruth.archetype}
+                          <strong>ARCHETYPE:</strong> {getCleanArchetypeTitle(s.groundTruth.archetype)}
                         </div>
                       )}
                     </div>
@@ -1046,229 +1085,102 @@ export default function StoryCreator() {
             })}
           </div>
 
-          {/* INSPECTION DOSSIER MODAL */}
+          {/* OPEN MANILA CASE FILE FOLDER MODAL */}
           {inspectedStory && (
-            <div style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.85)',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              zIndex: 9999,
-              padding: '20px',
-              boxSizing: 'border-box'
-            }}>
-              <div style={{
-                maxWidth: '850px',
-                width: '100%',
-                maxHeight: '90vh',
-                overflowY: 'auto',
-                backgroundColor: '#f6f1e6',
-                backgroundImage: 'linear-gradient(to bottom, #faf6ee 0%, #f1e9da 100%)',
-                borderRadius: '6px',
-                border: '2px solid #bda893',
-                boxShadow: '0 20px 60px rgba(0,0,0,0.9)',
-                padding: '30px 35px',
-                position: 'relative',
-                boxSizing: 'border-box'
-              }}>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'flex-start',
-                  borderBottom: '2px solid #8b3a3a',
-                  paddingBottom: '15px',
-                  marginBottom: '20px'
-                }}>
-                  <div>
-                    <span style={{
-                      backgroundColor: '#1a1410',
-                      color: '#fff',
-                      fontFamily: 'monospace',
-                      fontSize: '0.72rem',
-                      letterSpacing: '2px',
-                      padding: '3px 8px',
-                      borderRadius: '2px',
-                      fontWeight: 'bold'
-                    }}>
-                      CONFIDENTIAL HOMICIDE DOSSIER
-                    </span>
-                    <h2 style={{ fontFamily: 'Georgia, serif', color: '#2c3e50', fontSize: '1.8rem', margin: '8px 0 4px 0' }}>
-                      {inspectedStory.title}
-                    </h2>
-                    <p style={{ margin: 0, fontFamily: 'monospace', fontSize: '0.85rem', color: '#666' }}>
-                      CASE #: <strong>{inspectedStory.caseNumber}</strong> · LEAD: <strong>{inspectedStory.leadDetective}</strong> · STATUS: <span style={{ color: '#8b3a3a' }}>{inspectedStory.status}</span>
-                    </p>
-                    {inspectedStory.groundTruth?.archetype && (
-                      <div style={{
-                        marginTop: '6px',
-                        display: 'inline-block',
-                        backgroundColor: '#2e2620',
-                        color: '#f6eedb',
-                        fontFamily: 'monospace',
-                        fontSize: '0.74rem',
-                        letterSpacing: '1px',
-                        padding: '4px 10px',
-                        borderRadius: '3px'
-                      }}>
-                        MYSTERY ARCHETYPE: {ARCHETYPE_OPTIONS.find(a => a.value === inspectedStory.groundTruth.archetype)?.label || inspectedStory.groundTruth.archetype}
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => setInspectedStory(null)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      fontSize: '1.6rem',
-                      cursor: 'pointer',
-                      color: '#8b3a3a',
-                      fontWeight: 'bold',
-                      padding: '4px 8px'
-                    }}
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                {/* Victim Profile */}
-                {inspectedStory.victimProfile && (
-                  <div style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.75)',
-                    border: '1px solid #dcd5c9',
-                    borderRadius: '4px',
-                    padding: '16px',
-                    marginBottom: '20px',
-                    fontFamily: 'monospace',
-                    fontSize: '0.88rem'
-                  }}>
-                    <strong style={{ color: '#8b3a3a', fontSize: '1rem', display: 'block', marginBottom: '8px', borderBottom: '1px dashed #ccc', paddingBottom: '4px' }}>
-                      📋 OFFICIAL AUTOPSY & VICTIM PROFILE
-                    </strong>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
-                      <div><strong>Victim:</strong> {inspectedStory.victimProfile.name}</div>
-                      <div><strong>Age:</strong> {inspectedStory.victimProfile.age} y/o</div>
-                      <div><strong>Occupation:</strong> {inspectedStory.victimProfile.occupation}</div>
-                      <div><strong>Discovered:</strong> {inspectedStory.victimProfile.discovered}</div>
-                      <div style={{ gridColumn: 'span 2' }}><strong>Cause of Death:</strong> {inspectedStory.victimProfile.causeOfDeath}</div>
-                      <div style={{ gridColumn: 'span 2' }}><strong>Est. Time of Death:</strong> {inspectedStory.victimProfile.timeOfDeath}</div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Briefing */}
-                {inspectedStory.briefing && (
-                  <div style={{ marginBottom: '20px' }}>
-                    <strong style={{ fontFamily: 'Georgia, serif', color: '#2c3e50', fontSize: '1.05rem', display: 'block', marginBottom: '6px' }}>
-                      Scene Briefing:
-                    </strong>
-                    <p style={{
-                      fontFamily: 'Georgia, serif',
-                      fontStyle: 'italic',
-                      color: '#333',
-                      lineHeight: '1.6',
-                      margin: '0 0 12px 0',
-                      backgroundColor: 'rgba(255,255,255,0.6)',
-                      padding: '12px 16px',
-                      borderRadius: '4px',
-                      borderLeft: '4px solid #8b3a3a'
-                    }}>
-                      "{inspectedStory.briefing.initialBriefing}"
-                    </p>
-                    <strong style={{ fontFamily: 'Georgia, serif', color: '#2c3e50', fontSize: '1.05rem', display: 'block', marginBottom: '6px' }}>
-                      Detective Insights:
-                    </strong>
-                    <p style={{
-                      fontFamily: 'monospace',
-                      color: '#444',
-                      lineHeight: '1.5',
-                      margin: 0,
-                      backgroundColor: 'rgba(255,255,255,0.6)',
-                      padding: '10px 14px',
-                      borderRadius: '4px'
-                    }}>
-                      {inspectedStory.briefing.detectiveInsights}
-                    </p>
-                  </div>
-                )}
-
-                {/* Suspects & Evidence Summary */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '15px', marginBottom: '25px' }}>
-                  <div style={{ backgroundColor: 'rgba(255,255,255,0.7)', padding: '14px', borderRadius: '4px', border: '1px solid #ddd' }}>
-                    <strong style={{ fontFamily: 'monospace', color: '#2c3e50', display: 'block', marginBottom: '8px' }}>
-                      👥 SUSPECTS & PERSONS OF INTEREST:
-                    </strong>
-                    <ul style={{ margin: 0, paddingLeft: '18px', fontFamily: 'monospace', fontSize: '0.82rem', color: '#444' }}>
-                      {(inspectedStory.suspects || []).map((s, idx) => (
-                        <li key={idx} style={{ marginBottom: '4px' }}>
-                          <strong>{s.name}</strong> ({s.role}) {s.isPrimeSuspect && <span style={{ color: '#8b3a3a' }}>[Prime Suspect]</span>}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div style={{ backgroundColor: 'rgba(255,255,255,0.7)', padding: '14px', borderRadius: '4px', border: '1px solid #ddd' }}>
-                    <strong style={{ fontFamily: 'monospace', color: '#2c3e50', display: 'block', marginBottom: '8px' }}>
-                      🔍 FORENSIC EVIDENCE ITEMS:
-                    </strong>
-                    <ul style={{ margin: 0, paddingLeft: '18px', fontFamily: 'monospace', fontSize: '0.82rem', color: '#444' }}>
-                      {(inspectedStory.evidence || []).map((e, idx) => (
-                        <li key={idx} style={{ marginBottom: '4px' }}>
-                          <strong>{e.title}</strong> — <span style={{ color: '#8b3a3a' }}>[{e.priority}]</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-
-                {/* Action buttons in modal */}
-                <div style={{ display: 'flex', gap: '15px', justifyContent: 'flex-end', borderTop: '1px solid #ddd', paddingTop: '15px', flexWrap: 'wrap' }}>
-                  <button
-                    onClick={() => setInspectedStory(null)}
-                    style={{
-                      padding: '10px 20px',
-                      backgroundColor: '#555',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '4px',
-                      fontFamily: 'monospace',
-                      fontWeight: 'bold',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    ✕ Return to Case Board
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (inspectedStory._id) {
-                        handleStartGameWithStory(inspectedStory._id);
-                      }
-                    }}
-                    className="action-button"
-                    style={{
-                      margin: 0,
-                      padding: '10px 24px',
-                      backgroundColor: '#8b3a3a',
-                      fontSize: '1rem',
-                      letterSpacing: '1px'
-                    }}
-                    disabled={loading}
-                  >
-                    🚨 Launch Active Playthrough With This Case ➔
-                  </button>
-                </div>
-              </div>
-            </div>
+            <OpenCaseFolderModal
+              story={inspectedStory}
+              onClose={() => setInspectedStory(null)}
+              onLaunch={handleStartGameWithStory}
+              isLoading={loading}
+            />
           )}
         </div>
       )}
 
+      {/* RESTRICTED ACCESS CLEARANCE GATE FOR GUESTS */}
+      {isGuest && activeTab !== 'manage' && (
+        <div style={{
+          maxWidth: '720px',
+          margin: '30px auto',
+          backgroundColor: '#f6f1e3',
+          backgroundImage: `
+            radial-gradient(circle at 50% 0%, rgba(255, 235, 180, 0.25) 0%, rgba(240, 225, 195, 0.95) 100%),
+            url('https://www.transparenttextures.com/patterns/aged-paper.png')
+          `,
+          border: '2px solid #5d4037',
+          boxShadow: '0 12px 35px rgba(0,0,0,0.5), 0 0 0 4px #d7ccc8',
+          borderRadius: '6px',
+          padding: '35px 30px',
+          textAlign: 'center',
+          fontFamily: "'Courier New', Courier, monospace"
+        }}>
+          <div style={{
+            fontFamily: "'Special Elite', monospace",
+            fontSize: '0.9rem',
+            color: '#b71c1c',
+            letterSpacing: '1.5px',
+            border: '2px solid #b71c1c',
+            display: 'inline-block',
+            padding: '3px 10px',
+            borderRadius: '3px',
+            marginBottom: '15px'
+          }}>
+            RESTRICTED // HOMICIDE BUREAU CLEARANCE REQUIRED
+          </div>
+
+          <div style={{ fontSize: '3rem', margin: '8px 0' }}>🔒</div>
+
+          <h3 style={{ fontFamily: "'Special Elite', monospace", fontSize: '1.9rem', color: '#3e2723', margin: '0 0 10px 0' }}>
+            {activeTab === 'ai'
+              ? 'AI Mystery Generator is Locked'
+              : activeTab === 'form'
+              ? 'Custom Case Builder Form is Locked'
+              : 'Confidential Case Solutions are Locked'}
+          </h3>
+
+          <p style={{ color: '#5d4037', fontSize: '0.95rem', lineHeight: '1.6', maxWidth: '580px', margin: '0 auto 20px auto' }}>
+            Guests can freely investigate and play all saved cases. However, AI mystery generation algorithms, custom homicide authoring, and sealed case solutions require an official Department Detective Badge.
+          </p>
+
+          <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => openAuthModal('register', 'Register an official badge to unlock AI Generation, Case Creation, and Case Solutions!')}
+              style={{
+                backgroundColor: '#8b3a3a',
+                color: '#ffd54f',
+                border: '2px solid #5c1818',
+                padding: '12px 24px',
+                borderRadius: '4px',
+                fontFamily: "'Special Elite', monospace",
+                fontSize: '1rem',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                boxShadow: '0 3px 8px rgba(0,0,0,0.3)'
+              }}
+            >
+              🎖️ Issue Official Detective Badge (Free)
+            </button>
+            <button
+              onClick={() => openAuthModal('login')}
+              style={{
+                backgroundColor: '#3e2723',
+                color: '#fff',
+                border: '1px solid #5d4037',
+                padding: '12px 20px',
+                borderRadius: '4px',
+                fontFamily: "'Special Elite', monospace",
+                fontSize: '0.95rem',
+                cursor: 'pointer'
+              }}
+            >
+              📂 Sign In to Existing Badge
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* TAB 2: AI MYSTERY GENERATOR */}
-      {activeTab === 'ai' && (
+      {!isGuest && activeTab === 'ai' && (
         <div style={styles.container}>
           <h2 className="handwritten" style={{ fontSize: '2.5rem', color: '#2c3e50', marginBottom: '10px' }}>
             AI Dynamic Lead-Web Mystery Generator
@@ -1376,7 +1288,7 @@ export default function StoryCreator() {
       )}
 
       {/* TAB 3: CUSTOM CASE BUILDER FORM */}
-      {activeTab === 'form' && (
+      {!isGuest && activeTab === 'form' && (
         <div style={{ ...styles.container, maxWidth: '1000px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px', marginBottom: '15px' }}>
             <h2 className="handwritten" style={{ fontSize: '2.5rem', color: '#2c3e50', margin: 0 }}>
@@ -2408,7 +2320,7 @@ export default function StoryCreator() {
       )}
 
       {/* TAB 4: CASE SOLUTIONS & TRUE STORIES */}
-      {activeTab === 'solutions' && (
+      {!isGuest && activeTab === 'solutions' && (
         <CaseSolutionsTab stories={stories} />
       )}
     </div>
