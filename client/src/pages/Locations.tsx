@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { gameApi } from '../api/client';
 import type { ILocationItem, IEvidenceItem } from '../types/index';
+import MobileCarousel from '../components/MobileCarousel';
 
 export default function Locations() {
   const { story, unlockedLocations, canvassedLocations, sessionId, markLocationCanvassed, setClosingState } = useGameStore();
@@ -21,7 +22,11 @@ export default function Locations() {
         Dispatch forensic sweeps across unlocked crime scenes and establishments. Canvassing undiscovered angles reveals critical physical evidence and timeline traces.
       </p>
 
-      <div style={styles.grid}>
+      <MobileCarousel
+        itemCount={displayLocations.length}
+        itemLabel="Location"
+        style={styles.grid}
+      >
         {displayLocations.map((loc, idx) => {
           const isCanvassed = canvassedLocations.includes(loc.id);
 
@@ -33,7 +38,8 @@ export default function Locations() {
                 transform: `rotate(${idx % 2 === 0 ? -2 : 2}deg)`,
                 cursor: 'pointer',
                 transition: 'transform 0.2s',
-                width: '240px',
+                width: 'min(240px, 84vw)',
+                boxSizing: 'border-box',
                 backgroundColor: isCanvassed ? '#fffdfa' : '#fefcf8'
               }}
               onClick={() => setSelectedLocationId(loc.id)}
@@ -73,7 +79,7 @@ export default function Locations() {
             </div>
           );
         })}
-      </div>
+      </MobileCarousel>
 
       {selectedLocation && sessionId && (
         <LocationDetailModal
@@ -295,16 +301,22 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: '20px'
+    padding: '16px',
+    boxSizing: 'border-box' as const,
+    overflowY: 'auto' as const
   },
   modalContent: {
     width: '100%',
     maxWidth: '750px',
-    padding: '35px',
+    maxHeight: '90vh',
+    overflowY: 'auto' as const,
+    margin: 'auto',
+    padding: 'clamp(20px, 4vw, 35px)',
     backgroundColor: '#c9d6b8',
     boxShadow: '2px 4px 20px rgba(0, 0, 0, 0.5)',
     position: 'relative' as const,
-    borderRadius: '4px'
+    borderRadius: '4px',
+    boxSizing: 'border-box' as const
   },
   closeButton: {
     position: 'absolute' as const,
@@ -318,7 +330,7 @@ const styles = {
     fontWeight: 'bold'
   },
   modalTitle: {
-    fontSize: '2.8rem',
+    fontSize: 'clamp(1.8rem, 5vw, 2.8rem)',
     margin: 0,
     color: '#2c3e50'
   },

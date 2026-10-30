@@ -72,7 +72,11 @@ export default function DetectiveProfileModal() {
 
   return (
     <div style={styles.overlay} onClick={closeProfileModal}>
-      <div style={styles.modalBox} onClick={(e) => e.stopPropagation()}>
+      <div 
+        className="custom-detective-scroll"
+        style={styles.modalBox} 
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header Bar */}
         <div style={styles.topBar}>
           <div style={styles.stampHeader}>
@@ -232,7 +236,9 @@ const styles = {
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 9999,
-    padding: '20px'
+    padding: '16px',
+    boxSizing: 'border-box' as const,
+    overflowY: 'auto' as const
   },
   modalBox: {
     backgroundColor: '#f6f1e3',
@@ -244,9 +250,10 @@ const styles = {
     maxWidth: '680px',
     maxHeight: '90vh',
     overflowY: 'auto' as const,
+    margin: 'auto',
     borderRadius: '6px',
     boxShadow: '0 20px 50px rgba(0,0,0,0.7), 0 0 0 2px #5d4037, 0 0 0 6px #d7ccc8',
-    padding: '26px 28px',
+    padding: 'clamp(16px, 3.5vw, 26px)',
     boxSizing: 'border-box' as const,
     color: '#2d241e',
     fontFamily: "'Courier New', Courier, monospace"
@@ -389,24 +396,24 @@ const styles = {
   },
   statsGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(75px, 1fr))',
     gap: '10px'
   },
   statBox: {
     backgroundColor: '#fffdf7',
     border: '1px solid #bcaaa4',
-    padding: '10px 6px',
+    padding: '10px 4px',
     borderRadius: '4px',
     textAlign: 'center' as const
   },
   statVal: {
     fontFamily: "'Special Elite', monospace",
-    fontSize: '1.45rem',
+    fontSize: 'clamp(1.2rem, 3.5vw, 1.45rem)',
     color: '#8b3a3a',
     fontWeight: 'bold'
   },
   statLbl: {
-    fontSize: '0.66rem',
+    fontSize: '0.64rem',
     color: '#5d4037',
     fontWeight: 'bold',
     letterSpacing: '0.5px',
@@ -414,7 +421,7 @@ const styles = {
   },
   badgesGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
     gap: '10px'
   },
   badgeItem: {

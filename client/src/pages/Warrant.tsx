@@ -77,9 +77,9 @@ export default function Warrant() {
               >
                 {verdict.verdictTitle} · CASE SCORE: {verdict.score}/100
               </span>
-              <h2 className="handwritten" style={{ fontSize: '3rem', margin: '10px 0 0 0', color: '#2c3e50' }}>
-                Supreme Court Judicial Epilogue
-              </h2>
+            <h2 className="handwritten" style={{ fontSize: 'clamp(1.8rem, 5vw, 3rem)', margin: '10px 0 0 0', color: '#2c3e50' }}>
+              Supreme Court Judicial Epilogue
+            </h2>
             </div>
 
             {/* Rank / Badge Commendations Banner */}
@@ -301,8 +301,8 @@ export default function Warrant() {
             </button>
           </form>
 
-          {/* Pen Artwork */}
-          <div style={styles.penContainer}>
+          {/* Pen Artwork (Hidden on screens <= 1100px) */}
+          <div className="warrant-pen-artwork" style={styles.penContainer}>
             <svg width="280" height="40" viewBox="0 0 200 30" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M0 15 L25 8 L25 22 Z" fill="#d1d5db" stroke="#9ca3af" strokeWidth="1" />
               <path d="M25 8 L60 8 L60 22 L25 22 Z" fill="#1f2937" />
@@ -320,14 +320,14 @@ export default function Warrant() {
 const styles = {
   clipboard: {
     backgroundColor: '#3e2723',
-    padding: '30px 20px 20px 20px',
+    padding: 'clamp(20px, 3vw, 30px) clamp(12px, 2.5vw, 20px)',
     borderRadius: '12px',
     boxShadow: '4px 10px 25px rgba(0,0,0,0.6)',
     width: '100%',
     maxWidth: '780px',
     position: 'relative' as const,
-    transform: 'rotate(1deg)',
-    marginTop: '30px'
+    boxSizing: 'border-box' as const,
+    marginTop: '20px'
   },
   clip: {
     position: 'absolute' as const,
@@ -353,11 +353,12 @@ const styles = {
   },
   paper: {
     backgroundColor: '#fdfbf7',
-    padding: '45px 40px',
+    padding: 'clamp(24px, 4vw, 45px) clamp(16px, 3.5vw, 40px)',
     borderRadius: '4px',
-    minHeight: '580px',
+    minHeight: '520px',
     boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-    position: 'relative' as const
+    position: 'relative' as const,
+    boxSizing: 'border-box' as const
   },
   inputGroup: {
     display: 'flex',

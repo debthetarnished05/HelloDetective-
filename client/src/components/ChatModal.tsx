@@ -595,7 +595,7 @@ const styles = {
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: '20px'
+    padding: 'clamp(8px, 2vw, 20px)'
   },
   modal: {
     width: '100%',
@@ -604,7 +604,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column' as const,
     position: 'relative' as const,
-    padding: '25px',
+    padding: 'clamp(14px, 2.5vw, 25px)',
     boxSizing: 'border-box' as const
   },
   closeBtn: {
@@ -625,12 +625,15 @@ const styles = {
     borderBottom: '2px solid rgba(0,0,0,0.1)',
     paddingBottom: '15px',
     flexWrap: 'wrap' as const,
-    gap: '20px'
+    gap: '15px'
   },
   metersContainer: {
     display: 'flex',
-    gap: '25px',
-    minWidth: '350px'
+    gap: '15px',
+    minWidth: 'auto',
+    width: '100%',
+    maxWidth: '450px',
+    flexWrap: 'wrap' as const
   },
   meterBlock: {
     flex: 1
@@ -704,20 +707,24 @@ const styles = {
   },
   inputArea: {
     display: 'flex',
-    gap: '12px'
+    gap: '10px',
+    flexWrap: 'wrap' as const
   },
   input: {
-    flex: 1,
-    padding: '14px',
+    flex: '1 1 200px',
+    padding: '12px 14px',
     fontFamily: 'monospace',
-    fontSize: '1rem',
+    fontSize: '0.95rem',
     border: '2px solid #ccc',
     borderRadius: '4px',
     outline: 'none'
   },
   sendBtn: {
     marginTop: 0,
-    width: '140px',
-    fontSize: '1rem'
+    width: 'auto',
+    minWidth: '120px',
+    fontSize: '0.95rem',
+    padding: '12px 18px',
+    flexShrink: 0
   }
 };

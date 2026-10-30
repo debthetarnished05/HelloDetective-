@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import ChatModal from '../components/ChatModal';
+import MobileCarousel from '../components/MobileCarousel';
 import { useGameStore } from '../store/gameStore';
 
 export default function SuspectsDirectory() {
@@ -123,8 +124,13 @@ export default function SuspectsDirectory() {
         </button>
       </div>
 
-      {/* Suspect Cards Grid */}
-      <div className="suspect-board" style={{ maxWidth: '1200px', marginTop: '15px' }}>
+      {/* Suspect Cards Grid / Mobile Sideways Carousel */}
+      <MobileCarousel
+        itemCount={displayedSuspects.length}
+        itemLabel="Suspect"
+        className="suspect-board"
+        style={{ maxWidth: '1200px', marginTop: '15px' }}
+      >
         {displayedSuspects.map((suspect, index) => {
           const state = suspectStates[suspect.id] || {
             trustScore: suspect.initialTrust ?? 50,
@@ -141,7 +147,8 @@ export default function SuspectsDirectory() {
               className="polaroid"
               style={{
                 transform: `rotate(${index % 2 === 0 ? 1.5 : -1.5}deg)`,
-                width: '280px',
+                width: 'min(280px, 84vw)',
+                boxSizing: 'border-box',
                 padding: '14px 14px 20px 14px',
                 cursor: interrogationLocked ? 'not-allowed' : 'pointer',
                 transition: 'transform 0.2s',
@@ -308,7 +315,7 @@ export default function SuspectsDirectory() {
             </div>
           );
         })}
-      </div>
+      </MobileCarousel>
 
       {activeSuspectId && sessionId && (
         <ChatModal
@@ -346,8 +353,10 @@ const styles = {
     backgroundColor: '#b45309',
     border: '2px solid #fbbf24',
     borderRadius: '8px',
-    padding: '12px 20px',
+    padding: '12px 16px',
     maxWidth: '900px',
+    width: '100%',
+    boxSizing: 'border-box' as const,
     margin: '0 auto 20px auto',
     boxShadow: '0 4px 15px rgba(217,119,6,0.3)'
   },
@@ -358,8 +367,10 @@ const styles = {
     backgroundColor: '#7f1d1d',
     border: '2px solid #f87171',
     borderRadius: '8px',
-    padding: '12px 20px',
+    padding: '12px 16px',
     maxWidth: '900px',
+    width: '100%',
+    boxSizing: 'border-box' as const,
     margin: '0 auto 20px auto',
     boxShadow: '0 4px 15px rgba(185,28,28,0.4)'
   }

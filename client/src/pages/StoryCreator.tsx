@@ -6,6 +6,7 @@ import type { IStory, MysteryArchetype } from '../types/index';
 import { useNavigate } from 'react-router-dom';
 import CaseSolutionsTab from '../components/CaseSolutionsTab';
 import OpenCaseFolderModal from '../components/OpenCaseFolderModal';
+import MobileCarousel from '../components/MobileCarousel';
 
 export const ARCHETYPE_OPTIONS: {
   value: MysteryArchetype;
@@ -872,14 +873,19 @@ export default function StoryCreator() {
             </h2>
           </div>
 
-          {/* Grid of Manila Dossier Folders hanging from pins & red string */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 360px))',
-            gap: '50px 35px',
-            justifyContent: 'center',
-            padding: '10px 10px 30px'
-          }}>
+          {/* Grid of Manila Dossier Folders hanging from pins & red string / Mobile Sideways Carousel */}
+          <MobileCarousel
+            itemCount={stories.length}
+            itemLabel="Case File"
+            className="case-files-carousel-track"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 360px))',
+              gap: '35px 25px',
+              justifyContent: 'center',
+              padding: '10px 0 30px'
+            }}
+          >
             {stories.map((s) => {
               const isCurrent = currentStory?._id === s._id;
               const victim = s.victimProfile;
@@ -890,7 +896,7 @@ export default function StoryCreator() {
                   onClick={() => setInspectedStory(s)}
                   style={{
                     position: 'relative',
-                    width: '100%',
+                    width: 'min(330px, 84vw)',
                     maxWidth: '350px',
                     margin: '0 auto',
                     minHeight: '480px',
@@ -1083,7 +1089,7 @@ export default function StoryCreator() {
                 </div>
               );
             })}
-          </div>
+          </MobileCarousel>
 
           {/* OPEN MANILA CASE FILE FOLDER MODAL */}
           {inspectedStory && (
@@ -2330,18 +2336,18 @@ export default function StoryCreator() {
 const styles = {
   tabBar: {
     display: 'flex',
-    gap: '15px',
-    marginBottom: '25px',
+    gap: '10px',
+    marginBottom: '20px',
     flexWrap: 'wrap' as const,
     justifyContent: 'center'
   },
   tabBtn: {
-    padding: '12px 24px',
+    padding: '10px 18px',
     color: 'white',
     border: 'none',
     borderRadius: '4px',
     fontFamily: 'monospace',
-    fontSize: '1rem',
+    fontSize: '0.9rem',
     cursor: 'pointer',
     boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
   },
@@ -2360,7 +2366,7 @@ const styles = {
     width: '100%',
     maxWidth: '950px',
     backgroundColor: '#c9d6b8',
-    padding: '35px 40px',
+    padding: 'clamp(18px, 4vw, 35px)',
     boxShadow: '2px 4px 15px rgba(0, 0, 0, 0.4)',
     borderRadius: '4px',
     boxSizing: 'border-box' as const
@@ -2417,8 +2423,8 @@ const formStyles = {
   },
   row: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-    gap: '16px',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
+    gap: '14px',
     marginBottom: '14px'
   },
   fieldGroup: {

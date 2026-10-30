@@ -32,16 +32,16 @@ export default function NotepadSidebar() {
         style={{
           position: 'fixed',
           top: '50%',
-          right: isOpen ? '380px' : '0',
+          right: isOpen ? 'min(380px, 92vw)' : '0',
           transform: 'translateY(-50%)',
           backgroundColor: '#8b3a3a',
           color: 'white',
-          padding: '18px 10px',
+          padding: '14px 8px',
           cursor: 'pointer',
           writingMode: 'vertical-rl',
           textOrientation: 'mixed',
           fontFamily: 'Caveat, cursive',
-          fontSize: '1.4rem',
+          fontSize: '1.25rem',
           borderTopLeftRadius: '8px',
           borderBottomLeftRadius: '8px',
           boxShadow: '-3px 0 8px rgba(0,0,0,0.3)',
@@ -58,23 +58,41 @@ export default function NotepadSidebar() {
         className="notebook"
         style={{
           position: 'fixed',
-          top: '64px',
-          right: isOpen ? '0' : '-380px',
-          width: '380px',
-          height: 'calc(100vh - 64px)',
+          top: '55px',
+          right: isOpen ? '0' : '-400px',
+          width: 'min(380px, 92vw)',
+          height: 'calc(100vh - 55px)',
           zIndex: 1000,
           transition: 'right 0.3s ease',
           boxShadow: '-4px 0 15px rgba(0,0,0,0.35)',
           display: 'flex',
           flexDirection: 'column',
-          padding: '20px 25px',
+          padding: '20px 20px',
           margin: 0,
           boxSizing: 'border-box'
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #ccc', paddingBottom: '8px' }}>
-          <h2 className="handwritten" style={{ margin: 0, fontSize: '2rem' }}>Case Notebook</h2>
-          {saveStatus && <span style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: '#666' }}>{saveStatus}</span>}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h2 className="handwritten" style={{ margin: 0, fontSize: '1.85rem' }}>Case Notebook</h2>
+            {saveStatus && <span style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#666' }}>{saveStatus}</span>}
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsOpen(false)}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '1.3rem',
+              cursor: 'pointer',
+              color: '#8b3a3a',
+              fontWeight: 'bold',
+              padding: '2px 6px'
+            }}
+            title="Close Notebook"
+          >
+            ✕
+          </button>
         </div>
 
         {/* Tab switch */}

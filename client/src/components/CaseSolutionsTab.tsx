@@ -326,7 +326,7 @@ const styles = {
     backgroundColor: '#fffdf8',
     border: '2px solid #8b3a3a',
     borderRadius: '6px',
-    padding: '24px 28px',
+    padding: 'clamp(16px, 3.5vw, 24px)',
     marginBottom: '24px',
     boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
   },
@@ -346,7 +346,7 @@ const styles = {
     alignItems: 'center',
     flexWrap: 'wrap' as const,
     backgroundColor: 'rgba(255,255,255,0.85)',
-    padding: '16px 20px',
+    padding: 'clamp(12px, 2.5vw, 16px) clamp(12px, 3vw, 20px)',
     borderRadius: '6px',
     marginBottom: '24px',
     border: '1px solid #ccc'
@@ -405,7 +405,7 @@ const styles = {
     overflow: 'hidden' as const
   },
   caseCardHeader: {
-    padding: '20px 24px',
+    padding: 'clamp(14px, 3vw, 20px)',
     borderBottom: '1px solid #eee',
     backgroundColor: '#fbf9f4',
     display: 'flex',
@@ -428,7 +428,7 @@ const styles = {
   },
   caseTitle: {
     margin: '4px 0 6px 0',
-    fontSize: '1.9rem',
+    fontSize: 'clamp(1.4rem, 4vw, 1.9rem)',
     color: '#2c3e50'
   },
   caseMeta: {

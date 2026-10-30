@@ -71,14 +71,14 @@ export default function OfficerDesk() {
           minHeight: '82vh',
           display: 'flex',
           flexDirection: 'column',
-          padding: '30px 40px',
+          padding: 'clamp(16px, 3.5vw, 35px)',
           boxSizing: 'border-box'
         }}
       >
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid rgba(0,0,0,0.15)', paddingBottom: '12px', marginBottom: '15px', flexWrap: 'wrap', gap: '15px' }}>
           <div>
-            <h2 className="handwritten" style={{ fontSize: '2.8rem', margin: 0, color: '#2c3e50' }}>
+            <h2 className="handwritten" style={{ fontSize: 'clamp(1.8rem, 5vw, 2.8rem)', margin: 0, color: '#2c3e50' }}>
               Officer Davis's Desk
             </h2>
             <p style={{ margin: '4px 0 0 0', fontFamily: 'monospace', fontSize: '0.95rem', color: '#555' }}>
@@ -280,7 +280,7 @@ export default function OfficerDesk() {
             e.preventDefault();
             handleSend(message);
           }}
-          style={{ display: 'flex', gap: '12px' }}
+          style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}
         >
           <input
             type="text"
@@ -288,10 +288,10 @@ export default function OfficerDesk() {
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Consult Officer Davis or ask: 'What is our current status tally?'..."
             style={{
-              flex: 1,
-              padding: '14px 18px',
+              flex: '1 1 240px',
+              padding: '12px 14px',
               fontFamily: 'monospace',
-              fontSize: '1rem',
+              fontSize: '0.95rem',
               border: '2px solid #ccc',
               borderRadius: '4px',
               outline: 'none',
@@ -302,7 +302,13 @@ export default function OfficerDesk() {
           <button
             type="submit"
             className="action-button"
-            style={{ padding: '0 25px', fontSize: '1rem', marginTop: 0, width: 'auto' }}
+            style={{
+              padding: '12px 22px',
+              fontSize: '0.95rem',
+              marginTop: 0,
+              width: 'auto',
+              flexShrink: 0
+            }}
             disabled={loading || !message.trim()}
           >
             {loading ? 'Consulting...' : 'Ask Davis'}

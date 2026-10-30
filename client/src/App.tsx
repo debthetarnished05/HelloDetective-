@@ -90,7 +90,7 @@ function App() {
       <AuthModal />
       <DetectiveProfileModal />
 
-      <div style={{ paddingTop: '70px', minHeight: '100vh' }}>
+      <div className="main-content-layout">
         <Routes>
           <Route path="/" element={<CaseHub />} />
           <Route path="/suspects" element={<SuspectsDirectory />} />

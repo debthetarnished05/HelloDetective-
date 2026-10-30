@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import type { IEvidenceItem } from '../types/index';
+import MobileCarousel from '../components/MobileCarousel';
 
 export default function EvidenceLocker() {
   const { story, unlockedEvidence, setDraggedEvidence } = useGameStore();
@@ -40,7 +41,11 @@ export default function EvidenceLocker() {
           </p>
         </div>
       ) : (
-        <div style={styles.grid}>
+        <MobileCarousel
+          itemCount={displayEvidence.length}
+          itemLabel="Clue"
+          style={styles.grid}
+        >
           {displayEvidence.map((ev, idx) => (
             <div
               key={ev.id}
@@ -55,7 +60,8 @@ export default function EvidenceLocker() {
                 transform: `rotate(${idx % 2 === 0 ? 2 : -2}deg)`,
                 cursor: 'grab',
                 transition: 'transform 0.2s',
-                width: '270px',
+                width: 'min(270px, 84vw)',
+                boxSizing: 'border-box',
                 userSelect: 'none'
               }}
               onClick={() => setSelectedEvidenceId(ev.id)}
@@ -107,7 +113,7 @@ export default function EvidenceLocker() {
               </div>
             </div>
           ))}
-        </div>
+        </MobileCarousel>
       )}
 
       {selectedEvidence && (
@@ -208,16 +214,22 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: '20px'
+    padding: '16px',
+    boxSizing: 'border-box' as const,
+    overflowY: 'auto' as const
   },
   modalContent: {
     width: '100%',
     maxWidth: '750px',
-    padding: '35px',
+    maxHeight: '90vh',
+    overflowY: 'auto' as const,
+    margin: 'auto',
+    padding: 'clamp(20px, 4vw, 35px)',
     backgroundColor: '#c9d6b8',
     boxShadow: '2px 4px 20px rgba(0, 0, 0, 0.5)',
     position: 'relative' as const,
-    borderRadius: '4px'
+    borderRadius: '4px',
+    boxSizing: 'border-box' as const
   },
   closeButton: {
     position: 'absolute' as const,
@@ -231,7 +243,7 @@ const styles = {
     fontWeight: 'bold'
   },
   modalTitle: {
-    fontSize: '2.8rem',
+    fontSize: 'clamp(1.8rem, 5vw, 2.8rem)',
     margin: 0,
     color: '#2c3e50'
   },

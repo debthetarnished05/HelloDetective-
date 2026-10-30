@@ -118,8 +118,8 @@ export default function CaseHub() {
 const styles = {
   dashboardGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))',
-    gap: '35px',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))',
+    gap: '25px',
     width: '100%',
     maxWidth: '1400px',
     marginTop: '10px',
@@ -127,14 +127,14 @@ const styles = {
   },
   card: {
     backgroundColor: '#c9d6b8',
-    padding: '28px',
+    padding: 'clamp(18px, 3vw, 28px)',
     boxShadow: '2px 4px 15px rgba(0, 0, 0, 0.4)',
     transform: 'none',
     maxWidth: '100%',
     boxSizing: 'border-box' as const
   },
   cardHeader: {
-    fontSize: '2.2rem',
+    fontSize: 'clamp(1.7rem, 4vw, 2.2rem)',
     color: '#2c3e50',
     borderBottom: '2px solid rgba(0,0,0,0.1)',
     paddingBottom: '8px',

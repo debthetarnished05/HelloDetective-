@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import type { IStory } from '../types/index';
 import { ARCHETYPE_OPTIONS, getCleanArchetypeTitle } from '../pages/StoryCreator';
 
@@ -15,6 +15,15 @@ export default function OpenCaseFolderModal({
   onLaunch,
   isLoading = false
 }: OpenCaseFolderModalProps) {
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 850);
+  const [mobileTab, setMobileTab] = useState<'autopsy' | 'index'>('autopsy');
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 850);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -35,169 +44,216 @@ export default function OpenCaseFolderModal({
     <div style={styles.overlay} onClick={onClose}>
       {/* Outer wrapper containing CLOSE button and the open folder */}
       <div style={styles.modalWrapper} onClick={(e) => e.stopPropagation()}>
-        {/* Sleek Dark CLOSE Button on Top Right (matching reference image) */}
+        {/* Sleek Dark CLOSE Button on Top Right + Mobile Sheet Toggle */}
         <div style={styles.topBar}>
+          {isMobile ? (
+            <div style={styles.mobileSheetSwitch}>
+              <button
+                type="button"
+                onClick={() => setMobileTab('autopsy')}
+                style={{
+                  ...styles.mobileSheetBtn,
+                  backgroundColor: mobileTab === 'autopsy' ? '#8b3a3a' : '#261b17',
+                  color: mobileTab === 'autopsy' ? '#ffd54f' : '#d7ccc8'
+                }}
+              >
+                📋 Autopsy
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileTab('index')}
+                style={{
+                  ...styles.mobileSheetBtn,
+                  backgroundColor: mobileTab === 'index' ? '#8b3a3a' : '#261b17',
+                  color: mobileTab === 'index' ? '#ffd54f' : '#d7ccc8'
+                }}
+              >
+                📑 File Index
+              </button>
+            </div>
+          ) : <div />}
+
           <button style={styles.closeBtn} onClick={onClose} title="Close case folder (Esc)">
             CLOSE
           </button>
         </div>
 
         {/* The Open Manila / Kraft Folder */}
-        <div style={styles.folderContainer}>
-          {/* Central Spine fold shadow */}
-          <div style={styles.folderSpine}></div>
+        <div style={{
+          ...styles.folderContainer,
+          height: isMobile ? 'auto' : '760px',
+          padding: isMobile ? '16px 12px' : '24px 28px',
+          gap: isMobile ? 0 : '24px',
+          overflowY: isMobile ? ('auto' as const) : ('hidden' as const)
+        }}>
+          {/* Central Spine fold shadow (desktop only) */}
+          {!isMobile && <div style={styles.folderSpine}></div>}
 
           {/* ================= LEFT PAGE (AUTOPSY & VICTIM PROFILE DOSSIER) ================= */}
-          <div style={styles.folderPageLeft}>
-            <div style={styles.paperSheet}>
-              {/* Header: Red Stamped Box on left, Autopsy Tab on right */}
-              <div style={styles.leftPageHeader}>
-                <div style={styles.caseStampBox}>
-                  CASE #{story.caseNumber || '0000'}
-                </div>
-
-                <div style={styles.sheetTabGroup}>
-                  <button
-                    type="button"
-                    style={{
-                      ...styles.sheetTabBtn,
-                      borderBottom: '2px solid #8b3a3a',
-                      fontWeight: 'bold',
-                      color: '#8b3a3a',
-                      fontSize: '0.86rem'
-                    }}
-                  >
-                    Autopsy
-                  </button>
-                </div>
-              </div>
-
-              {/* Title of active sheet */}
-              <h2 style={styles.pageTitle}>Autopsy</h2>
-
-              {/* Autopsy & Victim Profile Dossier Content */}
-              <div style={styles.cardListScroll}>
-                {story.victimProfile && (
-                  <div style={styles.autopsyReportBox}>
-                    <div style={styles.autopsyHeader}>
-                      📋 OFFICIAL AUTOPSY & VICTIM PROFILE
-                    </div>
-
-                    <div style={styles.autopsyGrid}>
-                      <div style={styles.autopsyField}>
-                        <span style={styles.autopsyLabel}>DECEASED:</span>
-                        <span style={styles.autopsyVal}>{story.victimProfile.name}</span>
-                      </div>
-                      <div style={styles.autopsyField}>
-                        <span style={styles.autopsyLabel}>AGE / SEX:</span>
-                        <span style={styles.autopsyVal}>{story.victimProfile.age} y/o</span>
-                      </div>
-                      <div style={styles.autopsyField}>
-                        <span style={styles.autopsyLabel}>OCCUPATION:</span>
-                        <span style={styles.autopsyVal}>{story.victimProfile.occupation}</span>
-                      </div>
-                      <div style={styles.autopsyField}>
-                        <span style={styles.autopsyLabel}>DISCOVERED:</span>
-                        <span style={styles.autopsyVal}>{story.victimProfile.discovered}</span>
-                      </div>
-                      <div style={{ ...styles.autopsyField, gridColumn: 'span 2' }}>
-                        <span style={styles.autopsyLabel}>CAUSE OF DEATH:</span>
-                        <span style={{ ...styles.autopsyVal, color: '#8b3a3a', fontWeight: 'bold' }}>
-                          {story.victimProfile.causeOfDeath}
-                        </span>
-                      </div>
-                      <div style={{ ...styles.autopsyField, gridColumn: 'span 2' }}>
-                        <span style={styles.autopsyLabel}>EST. TIME OF DEATH:</span>
-                        <span style={styles.autopsyVal}>{story.victimProfile.timeOfDeath}</span>
-                      </div>
-                    </div>
+          {(!isMobile || mobileTab === 'autopsy') && (
+            <div style={styles.folderPageLeft}>
+              <div style={styles.paperSheet}>
+                {/* Header: Red Stamped Box on left, Autopsy Tab on right */}
+                <div style={styles.leftPageHeader}>
+                  <div style={styles.caseStampBox}>
+                    CASE #{story.caseNumber || '0000'}
                   </div>
-                )}
+
+                  <div style={styles.sheetTabGroup}>
+                    <button
+                      type="button"
+                      style={{
+                        ...styles.sheetTabBtn,
+                        borderBottom: '2px solid #8b3a3a',
+                        fontWeight: 'bold',
+                        color: '#8b3a3a',
+                        fontSize: '0.86rem'
+                      }}
+                    >
+                      Autopsy
+                    </button>
+                  </div>
+                </div>
+
+                {/* Title of active sheet */}
+                <h2 style={styles.pageTitle}>Autopsy</h2>
+
+                {/* Autopsy & Victim Profile Dossier Content */}
+                <div style={styles.cardListScroll}>
+                  {story.victimProfile && (
+                    <div style={styles.autopsyReportBox}>
+                      <div style={styles.autopsyHeader}>
+                        📋 OFFICIAL AUTOPSY & VICTIM PROFILE
+                      </div>
+
+                      <div style={styles.autopsyGrid}>
+                        <div style={styles.autopsyField}>
+                          <span style={styles.autopsyLabel}>DECEASED:</span>
+                          <span style={styles.autopsyVal}>{story.victimProfile.name}</span>
+                        </div>
+                        <div style={styles.autopsyField}>
+                          <span style={styles.autopsyLabel}>AGE / SEX:</span>
+                          <span style={styles.autopsyVal}>{story.victimProfile.age} y/o</span>
+                        </div>
+                        <div style={styles.autopsyField}>
+                          <span style={styles.autopsyLabel}>OCCUPATION:</span>
+                          <span style={styles.autopsyVal}>{story.victimProfile.occupation}</span>
+                        </div>
+                        <div style={styles.autopsyField}>
+                          <span style={styles.autopsyLabel}>DISCOVERED:</span>
+                          <span style={styles.autopsyVal}>{story.victimProfile.discovered}</span>
+                        </div>
+                        <div style={{ ...styles.autopsyField, gridColumn: 'span 2' }}>
+                          <span style={styles.autopsyLabel}>CAUSE OF DEATH:</span>
+                          <span style={{ ...styles.autopsyVal, color: '#8b3a3a', fontWeight: 'bold' }}>
+                            {story.victimProfile.causeOfDeath}
+                          </span>
+                        </div>
+                        <div style={{ ...styles.autopsyField, gridColumn: 'span 2' }}>
+                          <span style={styles.autopsyLabel}>EST. TIME OF DEATH:</span>
+                          <span style={styles.autopsyVal}>{story.victimProfile.timeOfDeath}</span>
+                        </div>
+                      </div>
+
+                      {isMobile && (
+                        <button
+                          type="button"
+                          onClick={() => setMobileTab('index')}
+                          style={styles.mobileFlipBtn}
+                        >
+                          Turn to File Index ➔
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* ================= RIGHT PAGE (FILE INDEX & ARCHIVE REMARK) ================= */}
-          <div style={styles.folderPageRight}>
-            <div style={styles.paperSheetRight}>
-              {/* Top Heading */}
-              <h2 style={styles.pageTitle}>File Index</h2>
+          {(!isMobile || mobileTab === 'index') && (
+            <div style={styles.folderPageRight}>
+              <div style={styles.paperSheetRight}>
+                {/* Top Heading */}
+                <h2 style={styles.pageTitle}>File Index</h2>
 
-              {/* Dotted Leader Line Index Table (without counts) */}
-              <div style={styles.indexTable}>
-                <div style={styles.indexRow}>
-                  <span style={styles.indexLabel}>TITLE</span>
-                  <span style={styles.indexDots}></span>
-                  <span style={styles.indexValue}>{story.title}</span>
-                </div>
-
-                <div style={styles.indexRow}>
-                  <span style={styles.indexLabel}>CRIME</span>
-                  <span style={styles.indexDots}></span>
-                  <span style={styles.indexValue}>murder / homicide</span>
-                </div>
-
-                <div style={styles.indexRow}>
-                  <span style={styles.indexLabel}>VICTIM</span>
-                  <span style={styles.indexDots}></span>
-                  <span style={styles.indexValue}>{story.victimProfile?.name || 'Unknown'}</span>
-                </div>
-
-                <div style={styles.indexRow}>
-                  <span style={styles.indexLabel}>LEAD DETECTIVE</span>
-                  <span style={styles.indexDots}></span>
-                  <span style={{ ...styles.indexValue, color: '#8b3a3a', fontWeight: 'bold' }}>
-                    {story.leadDetective}
-                  </span>
-                </div>
-
-                <div style={styles.indexRow}>
-                  <span style={styles.indexLabel}>STATUS</span>
-                  <span style={styles.indexDots}></span>
-                  <span style={styles.indexValue}>{story.status}</span>
-                </div>
-
-                {archetypeInfo && (
+                {/* Dotted Leader Line Index Table (without counts) */}
+                <div style={styles.indexTable}>
                   <div style={styles.indexRow}>
-                    <span style={styles.indexLabel}>ARCHETYPE</span>
+                    <span style={styles.indexLabel}>TITLE</span>
                     <span style={styles.indexDots}></span>
-                    <span style={styles.indexValue}>{getCleanArchetypeTitle(story.groundTruth?.archetype)}</span>
+                    <span style={styles.indexValue}>{story.title}</span>
                   </div>
-                )}
-              </div>
 
-              {/* Archive Remark Sticky Note (matches reference image 2) */}
-              <div style={styles.archiveRemarkNote}>
-                {/* Paper Tape Strip on Note */}
-                <div style={styles.stickyTape}></div>
+                  <div style={styles.indexRow}>
+                    <span style={styles.indexLabel}>CRIME</span>
+                    <span style={styles.indexDots}></span>
+                    <span style={styles.indexValue}>murder / homicide</span>
+                  </div>
 
-                <div style={styles.archiveRemarkTitle}>Archive Remark</div>
-                <div style={styles.archiveRemarkText}>
-                  {story.briefing?.initialBriefing
-                    ? `"${story.briefing.initialBriefing}"`
-                    : 'Most reports survive longer than the people inside them.'}
+                  <div style={styles.indexRow}>
+                    <span style={styles.indexLabel}>VICTIM</span>
+                    <span style={styles.indexDots}></span>
+                    <span style={styles.indexValue}>{story.victimProfile?.name || 'Unknown'}</span>
+                  </div>
+
+                  <div style={styles.indexRow}>
+                    <span style={styles.indexLabel}>LEAD DETECTIVE</span>
+                    <span style={styles.indexDots}></span>
+                    <span style={{ ...styles.indexValue, color: '#8b3a3a', fontWeight: 'bold' }}>
+                      {story.leadDetective}
+                    </span>
+                  </div>
+
+                  <div style={styles.indexRow}>
+                    <span style={styles.indexLabel}>STATUS</span>
+                    <span style={styles.indexDots}></span>
+                    <span style={styles.indexValue}>{story.status}</span>
+                  </div>
+
+                  {archetypeInfo && (
+                    <div style={styles.indexRow}>
+                      <span style={styles.indexLabel}>ARCHETYPE</span>
+                      <span style={styles.indexDots}></span>
+                      <span style={styles.indexValue}>{getCleanArchetypeTitle(story.groundTruth?.archetype)}</span>
+                    </div>
+                  )}
                 </div>
-              </div>
 
-              {/* Bottom Actions & Page Indicator */}
-              <div style={styles.rightPageFooter}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (story._id) onLaunch(story._id);
-                  }}
-                  disabled={isLoading}
-                  style={styles.launchBtn}
-                >
-                  {isLoading ? '🚨 Dispatching Units...' : '🚨 OPEN CASE & BEGIN INVESTIGATION →'}
-                </button>
+                {/* Archive Remark Sticky Note (matches reference image 2) */}
+                <div style={styles.archiveRemarkNote}>
+                  {/* Paper Tape Strip on Note */}
+                  <div style={styles.stickyTape}></div>
 
-                <div style={styles.pageNumber}>
-                  PAGE 1 / 1
+                  <div style={styles.archiveRemarkTitle}>Archive Remark</div>
+                  <div style={styles.archiveRemarkText}>
+                    {story.briefing?.initialBriefing
+                      ? `"${story.briefing.initialBriefing}"`
+                      : 'Most reports survive longer than the people inside them.'}
+                  </div>
+                </div>
+
+                {/* Bottom Actions & Page Indicator */}
+                <div style={styles.rightPageFooter}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (story._id) onLaunch(story._id);
+                    }}
+                    disabled={isLoading}
+                    style={styles.launchBtn}
+                  >
+                    {isLoading ? '🚨 Dispatching Units...' : '🚨 OPEN CASE & BEGIN INVESTIGATION →'}
+                  </button>
+
+                  <div style={styles.pageNumber}>
+                    PAGE 1 / 1
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
@@ -231,8 +287,38 @@ const styles = {
   },
   topBar: {
     display: 'flex',
-    justifyContent: 'flex-end',
-    width: '100%'
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    gap: '10px'
+  },
+  mobileSheetSwitch: {
+    display: 'flex',
+    gap: '6px'
+  },
+  mobileSheetBtn: {
+    padding: '6px 12px',
+    border: '1px solid #5d4037',
+    borderRadius: '4px',
+    fontFamily: 'monospace',
+    fontSize: '0.8rem',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease'
+  },
+  mobileFlipBtn: {
+    marginTop: '15px',
+    backgroundColor: '#8b3a3a',
+    color: '#ffd54f',
+    border: '1px solid #5c1818',
+    borderRadius: '4px',
+    padding: '8px 14px',
+    fontFamily: "'Special Elite', monospace",
+    fontSize: '0.88rem',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    width: '100%',
+    textAlign: 'center' as const
   },
   closeBtn: {
     backgroundColor: '#1b1b1b',
