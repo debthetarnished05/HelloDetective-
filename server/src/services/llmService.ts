@@ -47,7 +47,7 @@ function getGroqClient(): Groq {
   return new Groq({ apiKey });
 }
 
-export class GroqService {
+export class LLMService {
 
   // 1. Suspect Interrogation (Dual-Memory, Trust, Stress & Personality)
   static async chatWithSuspect(
@@ -661,3 +661,6 @@ Return ONLY valid JSON.`;
     return parsed as IStory;
   }
 }
+
+// Backwards-compatible alias
+export const GroqService = LLMService;

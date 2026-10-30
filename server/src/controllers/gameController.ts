@@ -11,7 +11,7 @@ import {
   HARBOR_STORY,
   MANOR_STORY
 } from '../data/seedStories';
-import { GroqService } from '../services/GroqService';
+import { LLMService } from '../services/llmService';
 import { IStory, ISuspectRuntimeState } from '../types/index';
 
 export async function seedDefaultStories() {
@@ -326,7 +326,7 @@ export const chatSuspect = async (req: Request, res: Response) => {
     });
 
     // Invoke AI Interrogation
-    const aiResponse = await GroqService.chatWithSuspect(
+    const aiResponse = await LLMService.chatWithSuspect(
       suspectProfile,
       suspectState,
       message,
@@ -487,7 +487,7 @@ export const chatOfficer = async (req: Request, res: Response) => {
       timestamp: new Date()
     });
 
-    const officerDialogue = await GroqService.chatWithOfficerAdvisor(
+    const officerDialogue = await LLMService.chatWithOfficerAdvisor(
       message,
       caseContext,
       session.officerChatHistory
@@ -528,7 +528,7 @@ export const submitWarrant = async (req: AuthRequest, res: Response) => {
 
     session.warrantAttemptsCount = (session.warrantAttemptsCount || 0) + 1;
 
-    const verdict = await GroqService.evaluateWarrant(
+    const verdict = await LLMService.evaluateWarrant(
       { suspect, motive, weapon, keyContradiction },
       story.groundTruth,
       story.title
@@ -739,7 +739,7 @@ export const createStory = async (req: Request, res: Response) => {
 export const generateAiStory = async (req: Request, res: Response) => {
   try {
     const { promptTheme, archetype } = req.body;
-    const generated = await GroqService.generateCompleteStory(promptTheme, archetype);
+    const generated = await LLMService.generateCompleteStory(promptTheme, archetype);
     const story = new Story(generated);
     await story.save();
     res.status(201).json({ story });
