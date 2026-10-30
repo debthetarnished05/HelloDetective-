@@ -1,8 +1,18 @@
 import jwt from 'jsonwebtoken';
 import { IUser } from '../models/User';
 
-const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || 'hellodetective_access_secret_super_secure_noir_key_2026';
-const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'hellodetective_refresh_secret_super_secure_noir_key_2026';
+function getSecret(key: string): string {
+  const value = process.env[key];
+
+  if (!value) {
+    throw new Error(`${key} is not defined in environment variables`);
+  }
+
+  return value;
+}
+
+const ACCESS_SECRET: string = getSecret('JWT_ACCESS_SECRET');
+const REFRESH_SECRET: string = getSecret('JWT_REFRESH_SECRET');
 
 export interface TokenPayload {
   id: string;
