@@ -879,13 +879,6 @@ export default function StoryCreator() {
             itemCount={stories.length}
             itemLabel="Case File"
             className="case-files-carousel-track"
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 360px))',
-              gap: '35px 25px',
-              justifyContent: 'center',
-              padding: '10px 0 30px'
-            }}
           >
             {stories.map((s) => {
               const isCurrent = currentStory?._id === s._id;

@@ -42,6 +42,7 @@ export default function ChatModal({ suspectId, sessionId, onClose }: ChatModalPr
   const [isDragOver, setIsDragOver] = useState(false);
   const [copiedClueId, setCopiedClueId] = useState<number | null>(null);
   const [unlockAlerts, setUnlockAlerts] = useState<{ type: string; name: string }[]>([]);
+  const [dramaAlert, setDramaAlert] = useState<{ type: 'slip' | 'blame'; text: string } | null>(null);
 
   // Unlocked evidence objects
   const availableEvidence: IEvidenceItem[] = (story?.evidence || []).filter(e =>
@@ -86,6 +87,21 @@ export default function ChatModal({ suspectId, sessionId, onClose }: ChatModalPr
         content: response.dialogue,
         timestamp: new Date()
       });
+
+      // Handle psychological slip of the tongue or blame shifting
+      if (response.slippedUp) {
+        setDramaAlert({
+          type: 'slip',
+          text: `⚡ FREUDIAN SLIP! ${suspectProfile?.name || 'Suspect'} fumbled their words and blurted out secret knowledge!`
+        });
+      } else if (response.threwUnderTheBus) {
+        setDramaAlert({
+          type: 'blame',
+          text: `👉 BLAME SHIFT! Suspect attempted to divert guilt by pointing fingers at ${response.threwUnderTheBus}!`
+        });
+      } else {
+        setDramaAlert(null);
+      }
 
       // Handle newly discovered leads
       if (response.newlyUnlocked && response.newlyUnlocked.length > 0) {
@@ -176,15 +192,15 @@ export default function ChatModal({ suspectId, sessionId, onClose }: ChatModalPr
   return (
     <div style={styles.overlay} onClick={onClose}>
       <div
-        className="paper-note center-tape-note"
+        className="paper-note center-tape-note interrogation-modal"
         style={styles.modal}
         onClick={(e) => e.stopPropagation()}
       >
-        <button style={styles.closeBtn} onClick={onClose}>✕</button>
+        <button className="interrogation-close-btn" style={styles.closeBtn} onClick={onClose}>✕</button>
 
         {/* CLOSING SQUEEZE / LOCKOUT ALERT */}
         {interrogationLocked ? (
-          <div style={{
+          <div className="interrogation-alert-banner" style={{
             backgroundColor: '#7f1d1d',
             border: '2px solid #ef4444',
             borderRadius: '6px',
@@ -200,7 +216,7 @@ export default function ChatModal({ suspectId, sessionId, onClose }: ChatModalPr
             </div>
           </div>
         ) : caseClosingTriggered ? (
-          <div style={{
+          <div className="interrogation-alert-banner" style={{
             backgroundColor: '#92400e',
             border: '2px solid #f59e0b',
             borderRadius: '6px',
@@ -231,7 +247,7 @@ export default function ChatModal({ suspectId, sessionId, onClose }: ChatModalPr
 
         {/* NEWLY UNLOCKED LEADS BANNER */}
         {unlockAlerts.length > 0 && (
-          <div style={{
+          <div className="interrogation-alert-banner" style={{
             backgroundColor: '#064e3b',
             border: '2px solid #10b981',
             borderRadius: '6px',
@@ -279,14 +295,49 @@ export default function ChatModal({ suspectId, sessionId, onClose }: ChatModalPr
           </div>
         )}
 
+        {/* PSYCHOLOGICAL DRAMA ALERT (Freudian Slip / Blame Shift) */}
+        {dramaAlert && (
+          <div className="interrogation-alert-banner" style={{
+            backgroundColor: dramaAlert.type === 'slip' ? '#78350f' : '#451a03',
+            border: dramaAlert.type === 'slip' ? '2px solid #f59e0b' : '2px solid #ea580c',
+            borderRadius: '6px',
+            padding: '10px 14px',
+            marginBottom: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            animation: 'fadeIn 0.3s'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#fef3c7', fontFamily: 'monospace', fontSize: '0.86rem' }}>
+              <span style={{ fontSize: '1.25rem' }}>{dramaAlert.type === 'slip' ? '⚡' : '👉'}</span>
+              <span><strong>{dramaAlert.text}</strong></span>
+            </div>
+            <button
+              onClick={() => setDramaAlert(null)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#fde68a',
+                cursor: 'pointer',
+                fontFamily: 'monospace',
+                fontSize: '0.8rem',
+                textDecoration: 'underline'
+              }}
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
         {/* Suspect Header & Meters */}
-        <div style={styles.header}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-              <h2 className="handwritten" style={{ fontSize: '2.4rem', margin: 0, color: '#2c3e50' }}>
+        <div className="interrogation-header" style={styles.header}>
+          <div className="interrogation-suspect-info">
+            <div className="interrogation-title-row" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <h2 className="handwritten interrogation-title" style={{ fontSize: '2.4rem', margin: 0, color: '#2c3e50' }}>
                 Interrogation: {suspectProfile?.name || suspectId}
               </h2>
               <span
+                className="interrogation-badge"
                 style={{
                   backgroundColor: personalityInfo.bg,
                   color: 'white',
@@ -301,6 +352,7 @@ export default function ChatModal({ suspectId, sessionId, onClose }: ChatModalPr
                 {personalityInfo.text}
               </span>
               <span
+                className="interrogation-badge"
                 style={{
                   backgroundColor: getMoodColor(suspectRuntime.mood),
                   color: 'white',
@@ -316,16 +368,16 @@ export default function ChatModal({ suspectId, sessionId, onClose }: ChatModalPr
                 {suspectRuntime.mood.replace('_', ' ')}
               </span>
             </div>
-            <p style={{ margin: '4px 0 0 0', fontFamily: 'monospace', fontSize: '0.92rem', color: '#555' }}>
+            <p className="interrogation-alibi" style={{ margin: '4px 0 0 0', fontFamily: 'monospace', fontSize: '0.92rem', color: '#555' }}>
               {suspectProfile?.role} · <em>"{suspectProfile?.alibi}"</em>
             </p>
           </div>
 
           {/* Dual Live Meters */}
-          <div style={styles.metersContainer}>
+          <div className="interrogation-meters" style={styles.metersContainer}>
             {/* Trust Meter */}
-            <div style={styles.meterBlock}>
-              <div style={styles.meterLabel}>
+            <div className="interrogation-meter-block" style={styles.meterBlock}>
+              <div className="interrogation-meter-label" style={styles.meterLabel}>
                 <span>TRUST</span>
                 <span style={{ fontWeight: 'bold' }}>{suspectRuntime.trustScore}%</span>
               </div>
@@ -346,8 +398,8 @@ export default function ChatModal({ suspectId, sessionId, onClose }: ChatModalPr
             </div>
 
             {/* Stress / Pressure Meter */}
-            <div style={styles.meterBlock}>
-              <div style={styles.meterLabel}>
+            <div className="interrogation-meter-block" style={styles.meterBlock}>
+              <div className="interrogation-meter-label" style={styles.meterLabel}>
                 <span>PRESSURE / STRESS</span>
                 <span style={{ fontWeight: 'bold', color: suspectRuntime.stressLevel >= 80 ? '#b71c1c' : '#333' }}>
                   {suspectRuntime.stressLevel}%
@@ -373,7 +425,7 @@ export default function ChatModal({ suspectId, sessionId, onClose }: ChatModalPr
 
         {/* Revealed Facts Ledger (Dual-Memory System in action) */}
         {suspectRuntime.revealedFacts && suspectRuntime.revealedFacts.length > 0 && (
-          <div style={styles.ledgerBar}>
+          <div className="interrogation-ledger" style={styles.ledgerBar}>
             <span style={{ fontWeight: 'bold', marginRight: '8px', color: '#8b3a3a', fontFamily: 'monospace', fontSize: '0.85rem' }}>
               REVEALED ADMISSIONS:
             </span>
@@ -388,13 +440,13 @@ export default function ChatModal({ suspectId, sessionId, onClose }: ChatModalPr
         )}
 
         {/* Chat History */}
-        <div style={styles.chatHistory}>
+        <div className="interrogation-chat-history" style={styles.chatHistory}>
           {suspectRuntime.chatHistory.length === 0 ? (
-            <div style={{ textAlign: 'center', color: '#777', padding: '40px 20px' }}>
-              <p className="handwritten" style={{ fontSize: '1.8rem', color: '#8b3a3a' }}>
+            <div className="interrogation-empty-state" style={{ textAlign: 'center', color: '#777', padding: '40px 20px' }}>
+              <p className="handwritten interrogation-empty-title" style={{ fontSize: '1.8rem', color: '#8b3a3a' }}>
                 Begin questioning {suspectProfile?.name}...
               </p>
-              <p style={{ fontFamily: 'monospace', fontSize: '0.95rem' }}>
+              <p className="interrogation-empty-tip" style={{ fontFamily: 'monospace', fontSize: '0.95rem' }}>
                 Tip: Attach evidence from below or drag clues from your Evidence Locker to break their composure.
               </p>
             </div>
@@ -410,6 +462,7 @@ export default function ChatModal({ suspectId, sessionId, onClose }: ChatModalPr
                 }}
               >
                 <div
+                  className="interrogation-bubble"
                   style={{
                     maxWidth: '82%',
                     backgroundColor: msg.role === 'user' ? '#f0f4f8' : '#ffffff',
@@ -436,6 +489,7 @@ export default function ChatModal({ suspectId, sessionId, onClose }: ChatModalPr
                   </div>
 
                   <p
+                    className="interrogation-msg-content"
                     style={{
                       margin: 0,
                       fontFamily: msg.role === 'user' ? 'Caveat, cursive' : 'monospace',
@@ -481,6 +535,7 @@ export default function ChatModal({ suspectId, sessionId, onClose }: ChatModalPr
 
         {/* Evidence Attachment Tray & Drag-and-Drop Dropzone */}
         <div
+          className="interrogation-dropzone"
           onDragOver={(e) => {
             e.preventDefault();
             setIsDragOver(true);
@@ -494,14 +549,14 @@ export default function ChatModal({ suspectId, sessionId, onClose }: ChatModalPr
           }}
         >
           {selectedEvidenceObj ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+            <div className="interrogation-selected-ev" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <span style={{ fontSize: '1.3rem' }}>🔍</span>
                 <div>
                   <strong style={{ fontFamily: 'monospace', color: '#8b3a3a', fontSize: '0.95rem' }}>
                     CONFRONTING WITH: {selectedEvidenceObj.title}
                   </strong>
-                  <div style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#666' }}>
+                  <div className="interrogation-ev-snippet" style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#666' }}>
                     {selectedEvidenceObj.details.slice(0, 80)}...
                   </div>
                 </div>
@@ -524,11 +579,11 @@ export default function ChatModal({ suspectId, sessionId, onClose }: ChatModalPr
               </button>
             </div>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: '8px' }}>
-              <span style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: '#666' }}>
+            <div className="interrogation-dropzone-inner" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: '8px' }}>
+              <span className="interrogation-dropzone-prompt" style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: '#666' }}>
                 📎 Attach physical evidence or drop clue here:
               </span>
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              <div className="interrogation-evidence-tray" style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                 {availableEvidence.map(ev => (
                   <button
                     key={ev.id}
@@ -545,9 +600,10 @@ export default function ChatModal({ suspectId, sessionId, onClose }: ChatModalPr
         </div>
 
         {/* Input Form */}
-        <form onSubmit={handleSend} style={styles.inputArea}>
+        <form onSubmit={handleSend} className="interrogation-input-area" style={styles.inputArea}>
           <input
             type="text"
+            className="interrogation-input"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             style={{
@@ -567,7 +623,7 @@ export default function ChatModal({ suspectId, sessionId, onClose }: ChatModalPr
           />
           <button
             type="submit"
-            className="action-button"
+            className="action-button interrogation-send-btn"
             style={{
               ...styles.sendBtn,
               backgroundColor: interrogationLocked ? '#7f1d1d' : undefined,

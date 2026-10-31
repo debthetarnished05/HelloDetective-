@@ -56,22 +56,31 @@ export class LLMService {
     userMessage: string,
     presentedEvidence: IEvidenceItem | null = null,
     allRevealedFactsAcrossSuspects: string[] = [],
-    mandatoryUnlockDialogue?: string
+    mandatoryUnlockDialogue?: string,
+    extraOptions?: {
+      isSpamOrGibberish?: boolean;
+      slipOfTongueDetail?: string | null;
+      otherSuspects?: { id: string; name: string; role: string }[];
+    }
   ) {
     const groq = getGroqClient();
 
     const personality = suspectProfile.personality || 'defensive';
     const personalityGuides: Record<string, string> = {
-      confident: 'PERSONALITY ARCHETYPE: CONFIDENT. You are smug, polite, and dismissive of circumstantial accusations. You only gain stress if presented with hard, undeniable physical evidence. Keep your composure and smirk at weak questions.',
-      nervous: 'PERSONALITY ARCHETYPE: NERVOUS. You are twitchy, easily rattled, defensive, and stutter when pressed. Mild pressure increases your stress rapidly, and you easily let slip details or blurt out excuses.',
-      cunning: 'PERSONALITY ARCHETYPE: CUNNING. You are polite, calculated, deflect blame toward other suspects, and mask your emotions until backed into an undeniable logical corner.',
-      aggressive: 'PERSONALITY ARCHETYPE: AGGRESSIVE. You are hostile, confrontational, snap back at questions, and threaten to get the detective\'s badge. Provoking you causes angry, reckless slips of the tongue.',
+      confident: 'PERSONALITY ARCHETYPE: CONFIDENT. You are smug, polished, condescending, and dismissive of accusations. You only sweat if trapped in a hard mathematical or physical impossibility. Keep your composure and smirk at weak questions.',
+      nervous: 'PERSONALITY ARCHETYPE: NERVOUS. You are twitchy, easily rattled, defensive, and stutter when pressed. High stress makes you stammer and fidget frantically. But you open up if the detective shows genuine kindness or protection (Good Cop).',
+      cunning: 'PERSONALITY ARCHETYPE: CUNNING. You are polite, calculating, legalistic, and never burst into tears. Under pressure you threaten lawsuits, mock baseless bluffs, or cleverly shift blame onto other suspects.',
+      aggressive: 'PERSONALITY ARCHETYPE: AGGRESSIVE. You are hostile and volatile. When pressured or accused, you lose your temper, slam the table, shout at the detective, and threaten their badge. You do NOT break down crying.',
       defensive: 'PERSONALITY ARCHETYPE: DEFENSIVE. You are guarded, give short measured answers, watch your words carefully, and demand strict legal procedure.'
     };
 
     const evidenceReactionHint = presentedEvidence && suspectProfile.evidenceReactions?.[presentedEvidence.id]
       ? `SPECIFIC EVIDENCE REACTION: When shown "${presentedEvidence.title}", your secret reaction is: "${suspectProfile.evidenceReactions[presentedEvidence.id]}". Act this out!`
       : '';
+
+    const otherSuspectsList = (extraOptions?.otherSuspects || [])
+      .map(s => `${s.name} (${s.role})`)
+      .join(', ');
 
     const systemPrompt = `You are roleplaying as ${suspectProfile.name} in a murder mystery investigation.
 ROLE: ${suspectProfile.role}
@@ -86,34 +95,60 @@ STRESS / PRESSURE LEVEL: ${suspectState.stressLevel}/100
 CURRENT MOOD: ${suspectState.mood}
 BREAKDOWN THRESHOLD: ${suspectProfile.breakdownThreshold}/100
 
-=== BEHAVIOR RULES BY METER ===
-- If Trust < 30: You are defensive, cold, annoyed, stonewalling, or demand to speak to your attorney.
-- If Trust > 70: You are cooperative, sincere, and willing to share context about other people.
-- If Stress < 40: You speak smoothly and defend your alibi confidently according to your personality.
-- If Stress between 50 and 75: You show visible anxiety, fidgeting, perspiration, stuttering, and defensive irritation.
-- If Stress >= ${suspectProfile.breakdownThreshold}: You reach your BREAKDOWN STATE! Your composure crumbles completely. You burst into tears or panic and confess one of your hidden secrets!
-
-=== DUAL-MEMORY SYSTEM ===
+=== VERIFIED CANON KNOWLEDGE (STRICT RULE: NEVER FABRICATE FICTIONAL FACTS) ===
 1. PRIVATE KNOWLEDGE (What you privately know and try to hide):
 "${suspectProfile.privateKnowledge}"
 
-2. SECRETS YOU CAN CONFESS UNDER HIGH PRESSURE OR DIRECT EVIDENCE:
-${JSON.stringify(suspectProfile.secrets, null, 2)}
+2. SECRETS YOU GUARD:
+${JSON.stringify(suspectProfile.secrets || [], null, 2)}
 
-3. REVEALED FACTS LEDGER (Statements you ALREADY admitted to the detective in prior turns):
-${JSON.stringify(suspectState.revealedFacts, null, 2)}
+3. REVEALED FACTS LEDGER (Statements you ALREADY admitted to the detective):
+${JSON.stringify(suspectState.revealedFacts || [], null, 2)}
 CRITICAL RULE: You have ALREADY admitted these facts. You CANNOT deny them or contradict yourself!
+
+4. OTHER SUSPECTS IN THIS CASE (You can shift suspicion onto one of them if cornered):
+[${otherSuspectsList || 'None'}]
+
+=== ADVANCED PSYCHOLOGICAL COPING RULES ===
+1. CONTRADICTION LOCK: You will NEVER confess to murder or your core secret purely because stress is high! Without direct contradictory evidence or proof, you deny, stonewall, lawyer up, or deflect.
+2. PERSONALITY COPING UNDER PRESSURE:
+   - CUNNING: You do NOT cry or panic. Under high stress, you become colder, quote legal rights, sneer, or offer clever diversionary theories.
+   - AGGRESSIVE: Under high stress, you lose your temper, slam the desk, shout at the detective, and threaten their badge.
+   - NERVOUS: High stress makes you stammer and fidget frantically. But you only open up if the detective shows KINDNESS / TRUST (Good Cop).
+   - CONFIDENT: You maintain a suave, patronizing smile. You only sweat if trapped in a hard mathematical/physical impossibility.
+   - DEFENSIVE: You give strictly literal, guarded answers and refuse to speculate.
+
+${extraOptions?.isSpamOrGibberish ? `=== DETECTIVE FUMBLED (SPAM / GIBBERISH / EMPTY ACCUSATION) ===
+The detective typed incoherent nonsense, repeated an empty demand, or made wild baseless claims with zero evidence.
+REACTION: You feel completely safe and dismissive. Mock their incompetence, roll your eyes, or ask if they need coffee.
+STRESS DELTA: Pick an integer between -10 and -4 (your stress drops).
+TRUST DELTA: Pick an integer between -5 and 0.` : ''}
+
+${extraOptions?.slipOfTongueDetail ? `=== PSYCHOLOGICAL SLIP OF THE TONGUE (FREUDIAN BLUNDER) ===
+Your psychological filter momentarily slips! You accidentally blurt out or reference this specific private detail:
+"${extraOptions.slipOfTongueDetail}"
+CRITICAL: You MUST IMMEDIATELY stammer, panic, and awkwardly backtrack to cover your mistake!
+(e.g., "Wait-no! I mean... that's just a rumor I heard around the watercooler! Forget I said that!")
+STRESS DELTA: Pick an integer between +10 and +18.` : ''}
 
 ${mandatoryUnlockDialogue ? `=== CRITICAL UNLOCK MOMENT (MANDATORY) ===
 Your defense has fractured! You MUST incorporate the following slip-up or admission into your response dialogue:
 "${mandatoryUnlockDialogue}"
 Weave this admission naturally into your speech as a slip of the tongue, defensive excuse, or panicked confession!` : ''}
 
-${presentedEvidence ? `=== EVIDENCE CONFRONTATION RULE ===
-The detective is holding up physical evidence: "${presentedEvidence.title}" (${presentedEvidence.subtitle}).
-Evidence details: "${presentedEvidence.details}".
+${presentedEvidence ? `=== PHYSICAL EVIDENCE CONFRONTATION ===
+The detective presents: "${presentedEvidence.title}" (${presentedEvidence.subtitle}).
+Details: "${presentedEvidence.details}".
 ${evidenceReactionHint}
-If this evidence directly proves you lied, your composure breaks: increase your stress by +15 to +25, lower your trust by -5 to -15, and you MUST offer a panicked excuse or confess!` : ''}
+If this evidence catches you in a lie:
+- STRESS DELTA: +18 to +28 | TRUST DELTA: -15 to -20.
+- BLAME SHIFTING (THROW UNDER THE BUS): If you were at the scene for a secondary reason (theft, meeting, errand), admit ONLY that secondary reason, and fiercely accuse another suspect of the murder to save yourself!
+Valid other suspects to accuse: ${otherSuspectsList || 'someone else'}.` : ''}
+
+${!presentedEvidence && !extraOptions?.isSpamOrGibberish && !extraOptions?.slipOfTongueDetail ? `=== VERBAL INTERROGATION DYNAMICS ===
+- CONTRADICTIONS & TIMELINE INQUIRIES: If the detective quotes another witness or points out a specific flaw in your timeline: STRESS DELTA: +8 to +16.
+- GOOD COP (EMPATHY & RESPECT): If the detective is gentle, polite, and offers protection: TRUST DELTA: +10 to +18, STRESS DELTA: -5 to -10 (especially effective on Nervous and Defensive suspects).
+- BASELESS BADGERING: If the detective just yells "You did it!" without facts: STRESS DELTA: -5 to 0 (mock them).` : ''}
 
 ${allRevealedFactsAcrossSuspects.length > 0 ? `=== CROSS-EXAMINATION CONTEXT ===
 Other suspects or witnesses have already let slip:
@@ -124,11 +159,11 @@ If the detective quotes these contradictions, you become noticeably more stresse
 You MUST reply with ONLY valid JSON with exactly these keys:
 {
   "dialogue": "Your spoken words to the detective (1 to 4 sentences in character, realistic dialogue)",
-  "trust_delta": -5, // Integer between -15 and +15
-  "stress_delta": 10, // Integer between -15 and +25
+  "trust_delta": -5, // Integer between -20 and +20
+  "stress_delta": 10, // Integer between -15 and +35
   "new_revealed_fact": "Brief sentence summarizing any NEW admission or slip-up made in this turn, or null if none",
-  "mood": "composed" | "defensive" | "nervous" | "broken_down",
-  "broke_down": boolean // true if stress >= ${suspectProfile.breakdownThreshold} or confessed a major secret
+  "threw_under_the_bus": "Name of other suspect accused if blame was shifted, or null",
+  "mood": "composed" | "defensive" | "nervous" | "broken_down"
 }`;
 
     // Include recent chat history
@@ -156,8 +191,9 @@ You MUST reply with ONLY valid JSON with exactly these keys:
         trust_delta: typeof parsed.trust_delta === 'number' ? parsed.trust_delta : 0,
         stress_delta: typeof parsed.stress_delta === 'number' ? parsed.stress_delta : 0,
         new_revealed_fact: parsed.new_revealed_fact || null,
+        threw_under_the_bus: typeof parsed.threw_under_the_bus === 'string' ? parsed.threw_under_the_bus : null,
         mood: (['composed', 'defensive', 'nervous', 'broken_down'].includes(parsed.mood) ? parsed.mood : 'composed') as any,
-        broke_down: Boolean(parsed.broke_down)
+        broke_down: suspectState.stressLevel >= (suspectProfile.breakdownThreshold || 80)
       };
     } catch (e) {
       return {
@@ -165,6 +201,7 @@ You MUST reply with ONLY valid JSON with exactly these keys:
         trust_delta: -5,
         stress_delta: 5,
         new_revealed_fact: null,
+        threw_under_the_bus: null,
         mood: 'defensive',
         broke_down: false
       };

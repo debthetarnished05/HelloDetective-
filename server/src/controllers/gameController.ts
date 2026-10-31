@@ -326,6 +326,56 @@ export const chatSuspect = async (req: Request, res: Response) => {
       }
     }
 
+    // Detect incoherent spam, gibberish or repeated questioning
+    const cleanMsg = (message || '').trim();
+    const isShort = cleanMsg.length < 4 && !presentedEvidenceId;
+    const isRepeatedChar = /(.)\1{4,}/.test(cleanMsg);
+    const isGibberish = isShort || isRepeatedChar || (/^[bcdfghjklmnpqrstvwxyz]{6,}$/i.test(cleanMsg));
+
+    const lastUserMsg = (suspectState.chatHistory || [])
+      .filter(m => m.role === 'user')
+      .slice(-1)[0]?.content;
+    const isRepeatQuestion = Boolean(
+      lastUserMsg &&
+      lastUserMsg.toLowerCase().replace(/\[presents evidence:.*?\]\s*/i, '').trim() === cleanMsg.toLowerCase() &&
+      !presentedEvidenceId
+    );
+    const isSpamOrGibberish = Boolean(isGibberish || isRepeatQuestion);
+
+    // Calculate dynamic slip-of-the-tongue probability based on personality and stress
+    const getSlipProbability = (personality: string, stress: number): number => {
+      const isHighStress = stress >= 65;
+      switch (personality) {
+        case 'cunning': return isHighStress ? 0.02 : 0.005;
+        case 'aggressive': return isHighStress ? 0.09 : 0.04;
+        case 'nervous': return isHighStress ? 0.14 : 0.075;
+        case 'confident': return isHighStress ? 0.04 : 0.015;
+        case 'defensive':
+        default: return isHighStress ? 0.07 : 0.03;
+      }
+    };
+
+    let slipOfTongueDetail: string | null = null;
+    if (!isSpamOrGibberish && !mandatoryUnlockDialogue) {
+      const personality = suspectProfile.personality || 'defensive';
+      const slipChance = getSlipProbability(personality, suspectState.stressLevel);
+      if (Math.random() < slipChance) {
+        const unrevealedSecrets = (suspectProfile.secrets || []).filter(
+          (s: string) => !suspectState.revealedFacts.includes(s)
+        );
+        if (unrevealedSecrets.length > 0) {
+          slipOfTongueDetail = unrevealedSecrets[0];
+        } else if (suspectProfile.privateKnowledge && !suspectState.revealedFacts.includes(suspectProfile.privateKnowledge)) {
+          slipOfTongueDetail = suspectProfile.privateKnowledge;
+        }
+      }
+    }
+
+    // List of other suspects in case for blame shifting
+    const otherSuspects = (story.suspects || [])
+      .filter((s: any) => s.id !== suspectProfile.id)
+      .map((s: any) => ({ id: s.id, name: s.name, role: s.role }));
+
     // Collect revealed facts across ALL suspects for cross-referencing contradictions
     const allRevealedFacts: string[] = [];
     session.suspects.forEach((state) => {
@@ -346,14 +396,19 @@ export const chatSuspect = async (req: Request, res: Response) => {
       attachedEvidence: presentedEvidenceId || null
     });
 
-    // Invoke AI Interrogation
+    // Invoke AI Interrogation with personality-driven psychology
     const aiResponse = await LLMService.chatWithSuspect(
       suspectProfile,
       suspectState,
       message,
       presentedEvidence,
       allRevealedFacts,
-      mandatoryUnlockDialogue
+      mandatoryUnlockDialogue,
+      {
+        isSpamOrGibberish,
+        slipOfTongueDetail,
+        otherSuspects
+      }
     );
 
     // Apply updates
@@ -363,6 +418,9 @@ export const chatSuspect = async (req: Request, res: Response) => {
 
     if (aiResponse.new_revealed_fact && !suspectState.revealedFacts.includes(aiResponse.new_revealed_fact)) {
       suspectState.revealedFacts.push(aiResponse.new_revealed_fact);
+    }
+    if (slipOfTongueDetail && !suspectState.revealedFacts.includes(slipOfTongueDetail)) {
+      suspectState.revealedFacts.push(slipOfTongueDetail);
     }
 
     // Second-pass check: if new stress level just triggered any unlock rule
@@ -405,8 +463,10 @@ export const chatSuspect = async (req: Request, res: Response) => {
       stressLevel: suspectState.stressLevel,
       mood: suspectState.mood,
       revealedFacts: suspectState.revealedFacts,
-      newRevealedFact: aiResponse.new_revealed_fact,
-      brokeDown: aiResponse.broke_down || suspectState.stressLevel >= 80,
+      newRevealedFact: aiResponse.new_revealed_fact || slipOfTongueDetail,
+      brokeDown: suspectState.stressLevel >= 80,
+      slippedUp: Boolean(slipOfTongueDetail),
+      threwUnderTheBus: aiResponse.threw_under_the_bus || null,
       newlyUnlocked,
       unlockedLocations: session.unlockedLocations,
       unlockedEvidence: session.unlockedEvidence,
@@ -719,7 +779,7 @@ export const recordClue = async (req: Request, res: Response) => {
 export const listStories = async (req: AuthRequest, res: Response) => {
   try {
     await seedDefaultStories();
-    const storiesDocs = await Story.find().select('title caseNumber leadDetective status isDefault createdAt victimProfile briefing suspects locations evidence groundTruth');
+    const storiesDocs = await Story.find();
     const leadDetectiveName = req.user ? `Detective ${req.user.username}` : 'Guest Detective';
     const stories = storiesDocs.map(doc => {
       const obj = doc.toObject();

@@ -79,7 +79,7 @@ export default function MobileCarousel({
       <div
         ref={trackRef}
         onScroll={handleScroll}
-        className={`mobile-carousel-track ${className}`}
+        className={`mobile-carousel-track ${itemCount <= 1 ? 'single-item' : ''} ${className}`}
         style={style}
       >
         {children}
