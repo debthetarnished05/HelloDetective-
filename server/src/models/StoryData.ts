@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { IStory } from '../types/index';
 
-export interface IStoryDocument extends IStory, Document {}
+export interface IStoryDocument extends Omit<IStory, '_id'>, Document {}
 
 const VictimProfileSchema = new Schema({
   name: { type: String, required: true },
@@ -39,7 +39,6 @@ const LocationItemSchema = new Schema({
   lastVisited: { type: String, default: 'Pending' },
   witnesses: { type: String, default: 'None identified' },
   notes: { type: String, default: '' },
-  unlockStage: { type: Number, default: 1 },
   isInitiallyUnlocked: { type: Boolean, default: false },
   hiddenEvidenceIds: [{ type: String }],
   canvassReport: { type: String },
@@ -54,7 +53,6 @@ const EvidenceItemSchema = new Schema({
   date: { type: String, default: 'Recent' },
   location: { type: String, default: 'Crime Scene' },
   priority: { type: String, enum: ['Low', 'Medium', 'High', 'Critical'], default: 'Medium' },
-  unlockStage: { type: Number, default: 1 },
   isInitiallyUnlocked: { type: Boolean, default: false },
   locationId: { type: String },
   imageUrl: { type: String }
@@ -79,15 +77,6 @@ const SuspectItemSchema = new Schema({
   avatarUrl: { type: String },
   isPrimeSuspect: { type: Boolean, default: false },
   category: { type: String, enum: ['prime_suspect', 'person_of_interest', 'witness', 'secondary_suspect'], default: 'person_of_interest' }
-}, { _id: false });
-
-const StageDefinitionSchema = new Schema({
-  stage: { type: Number, required: true },
-  title: { type: String, required: true },
-  description: { type: String, required: true },
-  gateRules: { type: String, required: true },
-  unlockEvidenceIds: [{ type: String }],
-  unlockLocationIds: [{ type: String }]
 }, { _id: false });
 
 const GroundTruthSchema = new Schema({
@@ -118,17 +107,40 @@ const StorySchema = new Schema<IStoryDocument>({
   caseNumber: { type: String, required: true },
   leadDetective: { type: String, default: 'Detective' },
   status: { type: String, default: 'Active Investigation' },
+  archetype: {
+    type: String,
+    enum: [
+      'classic_procedural',
+      'multi_crime_convergence',
+      'deliberate_frame_job',
+      'cause_of_death_twist',
+      'false_confession',
+      'non_linear_web'
+    ],
+    default: 'classic_procedural'
+  },
+  trope: { type: String, default: '' },
   victimProfile: { type: VictimProfileSchema, required: true },
   briefing: { type: BriefingSchema, required: true },
   objectives: { type: ObjectivesSchema, required: true },
   locations: [LocationItemSchema],
   evidence: [EvidenceItemSchema],
   suspects: [SuspectItemSchema],
-  stages: { type: [StageDefinitionSchema], default: [] },
   groundTruth: { type: GroundTruthSchema, required: true },
   isDefault: { type: Boolean, default: false }
 }, {
   timestamps: true
+});
+
+// Auto-sync archetype and trope before saving
+StorySchema.pre('save', function () {
+  if (this.groundTruth?.archetype && !this.archetype) {
+    this.archetype = this.groundTruth.archetype as any;
+  }
+  if (this.archetype && !this.groundTruth?.archetype) {
+    if (!this.groundTruth) this.groundTruth = {} as any;
+    this.groundTruth.archetype = this.archetype as any;
+  }
 });
 
 export default mongoose.model<IStoryDocument>('Story', StorySchema);

@@ -9,6 +9,8 @@ export const OPERA_STORY: IStory = {
   caseNumber: '1934-1024-VV',
   leadDetective: 'Inspector Silas Thorne',
   status: 'Active Homicide Investigation',
+  archetype: 'deliberate_frame_job',
+  trope: 'The Planted Patsy & "Too Convenient" Clue',
   victimProfile: {
     name: 'Madame Vivienne Vance',
     age: 38,
@@ -302,6 +304,8 @@ export const ARCTIC_STORY: IStory = {
   caseNumber: '2026-0114-BOREAS',
   leadDetective: 'Special Agent Nina Kouris',
   status: 'Active Polar Homicide Investigation',
+  archetype: 'cause_of_death_twist',
+  trope: 'The Assault Confession Trap',
   victimProfile: {
     name: 'Dr. Erik Lindqvist',
     age: 51,
@@ -526,6 +530,8 @@ export const JAZZ_STORY: IStory = {
   caseNumber: '1952-0814-BN',
   leadDetective: 'Lieutenant Jack Callahan',
   status: 'Active Homicide Investigation',
+  archetype: 'classic_procedural',
+  trope: 'Direct Procedural Fair-Play Noir',
   victimProfile: {
     name: "Vincent 'Lucky' Moretti",
     age: 47,
@@ -761,6 +767,8 @@ export const HARBOR_STORY: IStory = {
   caseNumber: '1978-1103-P42',
   leadDetective: 'Detective Ray Kowalski',
   status: 'Active Waterfront Homicide Investigation',
+  archetype: 'false_confession',
+  trope: 'Coerced Scapegoat Under Maximum Stress',
   victimProfile: {
     name: "Donald 'Big Don' Higgins",
     age: 56,
@@ -985,6 +993,8 @@ export const MANOR_STORY: IStory = {
   caseNumber: '1928-1115-RM',
   leadDetective: 'Inspector Alistair Finch',
   status: 'Active Country Estate Homicide',
+  archetype: 'non_linear_web',
+  trope: '3 Guilty Suspects, 1 Lethal Window',
   victimProfile: {
     name: 'Lord Alistair Ravenscroft',
     age: 84,
@@ -1255,4 +1265,313 @@ export const MANOR_STORY: IStory = {
     archetype: 'non_linear_web'
   },
   isDefault: false
+};
+
+// ============================================================================
+// CASE 4: The Velvet Alibi (Midnight Lounge Draft)
+// Trope: Pure deduction noir
+// ============================================================================
+export const MIDNIGHT_LOUNGE_STORY: IStory = {
+  "title": "The Velvet Alibi: Poison at the Midnight Lounge",
+  "caseNumber": "1952-0814-VL",
+  "leadDetective": "Lieutenant Jack Callahan",
+  "status": "Active Homicide Investigation",
+  "victimProfile": {
+    "name": "Vincent 'Lucky' Moretti",
+    "age": 47,
+    "occupation": "Nightclub Proprietor & Syndicate Boss",
+    "discovered": "August 14, 1952, 2:15 AM in the VIP Backroom",
+    "causeOfDeath": "Acute potassium cyanide poisoning via rye highball",
+    "timeOfDeath": "Between 1:30 AM and 2:00 AM"
+  },
+  "briefing": {
+    "initialBriefing": "Vincent Moretti was found slumped across his mahogany desk with an empty whiskey tumbler smelling of bitter almonds.",
+    "detectiveInsights": "Moretti was preparing to sell the club and divorce his wife."
+  },
+  "objectives": {
+    "progress": [
+      "Secured VIP Backroom crime scene"
+    ],
+    "currentObjectives": [
+      "Interrogate Delilah Moretti"
+    ]
+  },
+  "locations": [
+    {
+      "id": "vip_backroom",
+      "title": "The VIP Backroom",
+      "subtitle": "Midnight Lounge - Rear Corridor",
+      "status": "Active Crime Scene",
+      "lastVisited": "August 14, 2:20 AM",
+      "witnesses": "Club Doorman",
+      "notes": "Mahogany desk, half-full rye bottle",
+      "unlockStage": 1
+    }
+  ],
+  "evidence": [
+    {
+      "id": "cyanide_whiskey_glass",
+      "title": "Crystal Whiskey Tumbler",
+      "subtitle": "Traces of lethal potassium cyanide",
+      "details": "Lab tests confirm crystalline cyanide dissolved in 18-year rye whiskey.",
+      "date": "Aug 14, 2:25 AM",
+      "location": "VIP Backroom Desk",
+      "priority": "Critical",
+      "unlockStage": 1
+    }
+  ],
+  "suspects": [
+    {
+      "id": "delilah_moretti",
+      "name": "Delilah Moretti",
+      "role": "Lead Torch Singer & Victim's Wife",
+      "trait": "Glamorous, composed",
+      "initialTrust": 45,
+      "initialStress": 30,
+      "alibi": "Performing on stage.",
+      "motive": "Vincent planned to divorce her.",
+      "privateKnowledge": "She stepped into the VIP backroom during the solo.",
+      "secrets": [
+        "Admitted arguing violently with Vincent"
+      ],
+      "breakdownThreshold": 75,
+      "evidenceReactions": {},
+      "isPrimeSuspect": true,
+      "category": "prime_suspect"
+    }
+  ],
+  "groundTruth": {
+    "killer": "delilah_moretti",
+    "motive": "divorce_and_insurance",
+    "weapon": "cyanide_whiskey_glass",
+    "keyContradiction": "stage_break_window",
+    "timelineSummary": "Delilah poisoned the rye during the brass solo."
+  },
+  "isDefault": false,
+  "archetype": "classic_procedural",
+  "trope": "Pure deduction noir"
+};
+
+// ============================================================================
+// CASE 5: Neon Vein: The Last Byte (Cyberpunk Mystery)
+// Trope: The Stunner vs. The Killer
+// ============================================================================
+export const NEON_STORY: IStory = {
+  "title": "Neon Vein: The Last Byte",
+  "caseNumber": "2025-0442-CN",
+  "leadDetective": "Detective Kaito Ren",
+  "status": "Active Homicide Investigation",
+  "victimProfile": {
+    "name": "Jin 'Byte' Sato",
+    "age": 42,
+    "occupation": "Cyber-Data Broker and Heist Architect",
+    "discovered": "Oct 14, 2085, 02:45 AM, Neon Alley Sector 7, by Night Watch Unit 12",
+    "causeOfDeath": "Cyanide chloride gas inhalation (micro-capsule rupture from neck implant)",
+    "timeOfDeath": "Oct 14, 2085, 01:30 AM - 02:00 AM"
+  },
+  "briefing": {
+    "initialBriefing": "Jin Sato was found slumped in the rain-slicked neon alley behind the 'Kurogane' data-brokerage. A heavy bronze cybernetic arm was discovered nearby, sparking immediate suspicion of a violent struggle. Initial scenes suggest a botched heist or a turf war gone wrong, with blood spatter indicating recent trauma to the skull.",
+    "detectiveInsights": "The blood pattern is inconsistent with the reported fight; the wounds are superficial compared to the blunt force object nearby. Furthermore, the victim's cybernetic neural implant shows a distinct, sudden spike in toxic chemical readings rather than impact trauma, suggesting the 'blow' was a cover-up or a misunderstanding of the actual cause of death."
+  },
+  "objectives": {
+    "progress": [
+      "Secure the crime scene and lift initial physical evidence.",
+      "Identify the three primary suspects present in the vicinity during the estimated time of death.",
+      "Review preliminary security footage from the Kurogane building."
+    ],
+    "currentObjectives": [
+      "Interrogate suspects to expose the first major alibi flaw.",
+      "Uncover the financial motive behind the assassination.",
+      "Determine how the security breach occurred and locate the true murder weapon.",
+      "Submit the final Arrest Warrant to the Judge for execution."
+    ]
+  },
+  "locations": [
+    {
+      "id": "neon_alley_sector_7",
+      "title": "Neon Alley Sector 7",
+      "subtitle": "Backlot of Kurogane Brokerage",
+      "status": "Active Crime Scene",
+      "lastVisited": "Oct 14, 2085, 03:00 AM",
+      "witnesses": "Night Watch Unit 12, Barista at 'Ramen Ghost' (hearsy)",
+      "notes": "Rain-washed concrete. A heavy bronze cybernetic arm lies in a puddle. Smell of ozone and metallic tang. No signs of entry/exit other than the main hatch.",
+      "unlockStage": 1
+    },
+    {
+      "id": "kurogane_server_room",
+      "title": "Kurogane Server Vault",
+      "subtitle": "Sub-basement Level 3",
+      "status": "Location of Interest",
+      "lastVisited": "Pending",
+      "witnesses": "None (Biometric locks only)",
+      "notes": "High-security cold storage. Access logs required. This is where the 'Shadow Drive' was supposed to be stored before the heist.",
+      "unlockStage": 2
+    },
+    {
+      "id": "underground_apothecary",
+      "title": "The Gray Lotus",
+      "subtitle": "Black Market Clinic, Sector 4",
+      "status": "Location of Interest",
+      "lastVisited": "Pending",
+      "witnesses": "Dr. Aris Thorne (Owner), Unidentified Courier",
+      "notes": "Sells illegal bio-enhancements and antidotes. The victim had an appointment here. Check for purchase records of toxic compounds.",
+      "unlockStage": 3
+    },
+    {
+      "id": "judge_antechamber",
+      "title": "Neo-Tokyo Judicial Antechamber",
+      "subtitle": "Central District, Level 50",
+      "status": "Arrest Warrant Processing",
+      "lastVisited": "Pending",
+      "witnesses": "Judge Elara Vance, Court Bailiff",
+      "notes": "The final step. Present the compiled evidence and correct identification of the killer to secure the warrant.",
+      "unlockStage": 4
+    }
+  ],
+  "evidence": [
+    {
+      "id": "bronze_cyber_arm",
+      "title": "Detached Bronze Cybernetic Arm",
+      "subtitle": "Blunt Force Instrument",
+      "details": "A heavy, bronze-plated prosthetic limb. Analysis shows it was used to strike the victim's temple. The force was sufficient to cause a severe concussion and unconsciousness, but not fatal trauma. The arm has no fingerprints, only smudges consistent with the victim's own hand slipping during impact.",
+      "date": "Oct 14, 2085, 03:15 AM",
+      "location": "neon_alley_sector_7",
+      "priority": "High",
+      "unlockStage": 1
+    },
+    {
+      "id": "alibi_log_discrepancy",
+      "title": "Discrepancy in Suspect A's Log",
+      "subtitle": "Digital Footprint Analysis",
+      "details": "Suspect A (Kael) claims he was at a club until 01:00 AM. However, geolocation data from his neural link shows he was in the alleyway sector at 00:45 AM, 15 minutes earlier than he stated. This proves he was present at the scene before the 'fight' supposedly occurred.",
+      "date": "Oct 15, 2085, 09:00 AM",
+      "location": "Precinct Database",
+      "priority": "Critical",
+      "unlockStage": 1
+    },
+    {
+      "id": "financial_ledger_leak",
+      "title": "Encrypted Financial Ledger",
+      "subtitle": "Data Extraction from Victim's Drive",
+      "details": "Recovered from Jin Sato's personal implant. It reveals a massive debt owed to Suspect C (Vex). Vex is not just a rival; he is Jin's silent partner who was to be cut out of a $50M credit chit. The motive is purely financial survival for Vex, while Jin planned to default on the debt.",
+      "date": "Oct 15, 2085, 11:30 AM",
+      "location": "Precinct Forensics Lab",
+      "priority": "High",
+      "unlockStage": 2
+    },
+    {
+      "id": "toxicology_report",
+      "title": "Toxicology & Neural Spike Analysis",
+      "subtitle": "Autopsy Addendum",
+      "details": "The official autopsy confirms no fatal skull fracture. However, toxicology reveals a lethal dose of Cyanide Chloride was released directly into the bloodstream via the victim's cervical neural port. The timestamp of the chemical release is 01:45 AM. This is the true cause of death. The blunt trauma occurred at 02:15 AM, *after* the victim was already dead or dying, likely as a panicked reaction to the victim's collapse.",
+      "date": "Oct 16, 2085, 08:00 AM",
+      "location": "Neo-Tokyo Medical Examiner's Office",
+      "priority": "Critical",
+      "unlockStage": 3
+    },
+    {
+      "id": "micro_capsule_residue",
+      "title": "Micro-Capsule Residue",
+      "subtitle": "Physical Trace",
+      "details": "Fragments of a bio-degradable micro-capsule were found embedded in the victim's neck port. Spectroscopy matches the residue to a specific, rare batch of cyanide precursor sold only at The Gray Lotus. The capsule was designed to rupture upon a specific signal from a remote device.",
+      "date": "Oct 16, 2085, 10:00 AM",
+      "location": "Precinct Forensics Lab",
+      "priority": "High",
+      "unlockStage": 3
+    },
+    {
+      "id": "remote_trigger_device",
+      "title": "Modified Remote Trigger",
+      "subtitle": "Weapon Component",
+      "details": "Found hidden in the ventilation duct of the Kurogane Server Vault. It is a modified data-jack transmitter capable of sending the specific burst needed to rupture the micro-capsule. The device has a biometric signature link to Suspect C's neural ID.",
+      "date": "Oct 16, 2085, 14:00 PM",
+      "location": "kurogane_server_room",
+      "priority": "Critical",
+      "unlockStage": 3
+    }
+  ],
+  "suspects": [
+    {
+      "id": "kael_vance",
+      "name": "Kael Vance",
+      "role": "Rival Data Broker / Ex-Partner",
+      "trait": "Aggressive, defensive, physically imposing. Uses intimidation to deflect questions.",
+      "initialTrust": 30,
+      "initialStress": 60,
+      "alibi": "I was at the 'Neon Pulse' club until 01:00 AM. I didn't even know Jin was coming to the alley until I saw the body and the arm nearby. I tried to help him, but he was already gone. I hit him once when he lunged at me; I thought I killed him, but I was just scared.",
+      "motive": "Jin was stealing his client base. Kael views Jin as a threat to his livelihood and had a history of violent altercations.",
+      "privateKnowledge": "Kael was actually in the alley at 00:45 AM to confront Jin about a missed payment. He got into a fight, hit Jin with the bronze arm, and fled in panic when Jin collapsed. He genuinely believes he committed murder, which is why he is so stressed and defensive. He did not poison Jin.",
+      "secrets": [
+        "He was at the scene 15 minutes before his stated alibi.",
+        "He struck the victim with the bronze arm, causing non-fatal trauma.",
+        "He fled the scene in terror, believing he had killed Jin."
+      ],
+      "breakdownThreshold": 85,
+      "evidenceReactions": {
+        "bronze_cyber_arm": "Trembles. Admits to hitting Jin with it but swears it wasn't meant to kill, only to stop him. Claims Jin fell on his own afterwards.",
+        "alibi_log_discrepancy": "Angered. Admits to being there early to 'settle things' but insists he left before any death occurred. Claims he returned later to check and found him dead.",
+        "toxicology_report": "Shocked. Denies knowledge of cyanide. Points to the others, claiming Jin was involved in dirty deals with 'enhanced' chemicals."
+      },
+      "isPrimeSuspect": true,
+      "category": "prime_suspect"
+    },
+    {
+      "id": "mira_chen",
+      "name": "Mira Chen",
+      "role": "Jin's Secretary / Scapegoat",
+      "trait": "Nervous, meticulous, overly compliant. Hides her own agency.",
+      "initialTrust": 50,
+      "initialStress": 40,
+      "alibi": "I was in my office on the 4th floor. I heard a crash around 02:00 AM but thought it was construction. I didn't go down to the alley because I was locked in on a report.",
+      "motive": "Jin was planning to fire her for embezzling small sums. She feared exposure.",
+      "privateKnowledge": "Mira was not involved in the murder. She was in the office, but she ignored the distress signals from Jin's comm link because she was afraid of being implicated in his illegal activities. She is a witness, not a participant.",
+      "secrets": [
+        "She embezzled $2,000 credit from Jin's petty cash.",
+        "She ignored Jin's final distress call.",
+        "She is afraid of Kael Vance's reputation."
+      ],
+      "breakdownThreshold": 70,
+      "evidenceReactions": {
+        "financial_ledger_leak": "Cries. Admits to the small embezzlement but denies knowing about the $50M debt or the poisoning.",
+        "toxicology_report": "Confused. States she didn't see anything strange. Suggests checking the black market clinics."
+      },
+      "isPrimeSuspect": false,
+      "category": "person_of_interest"
+    },
+    {
+      "id": "vex_riordan",
+      "name": "Vex Riordan",
+      "role": "Silent Partner / Credit Shark",
+      "trait": "Cold, calculated, calm under pressure. Speaks in short, precise sentences.",
+      "initialTrust": 60,
+      "initialStress": 10,
+      "alibi": "I was in my private suite in the Spire. I was reviewing market data. I had no reason to be in Sector 7. Jin and I were discussing a merger, not a murder.",
+      "motive": "Jin was going to default on a $50M debt. Vex's entire criminal empire would collapse if Jin disappeared without paying. Vex needed to ensure the money was transferred and then silence Jin to prevent exposure of the debt structure.",
+      "privateKnowledge": "Vex infiltrated the Kurogane building using a backdoor access code. He installed the micro-capsule trigger in Jin's neck port during a scheduled maintenance session (which Jin trusted him to perform). He triggered the capsule at 01:45 AM. When he returned at 02:15 AM to collect the drive, he found Jin unconscious (from Kael's earlier blow) and the scene disturbed. He knew Kael had been there, so he staged the scene to look like Kael's violent attack was the cause, ensuring Kael would be blamed for the murder.",
+      "secrets": [
+        "He installed the toxic micro-capsule in Jin's neck.",
+        "He triggered the poison remotely at 01:45 AM.",
+        "He used Kael's earlier presence to frame him for the death."
+      ],
+      "breakdownThreshold": 90,
+      "evidenceReactions": {
+        "financial_ledger_leak": "Unfazed. Acknowledges the debt was a 'business matter' that was being resolved. Denies illegal methods.",
+        "toxicology_report": "Suggests the toxicology is flawed. Claims Jin might have had a pre-existing condition or taken illegal drugs himself.",
+        "remote_trigger_device": "Pauses for 3 seconds. Claims the device was a known prototype he was testing for security purposes, not for assassination. Denies using it on Jin."
+      },
+      "isPrimeSuspect": false,
+      "category": "person_of_interest"
+    }
+  ],
+  "groundTruth": {
+    "killer": "kael_vance",
+    "motive": "cover_up",
+    "weapon": "bronze_cyber_arm",
+    "keyContradiction": "timeline_gap",
+    "timelineSummary": "The suspect exploited an unmonitored window to execute the crime.",
+    "archetype": "cause_of_death_twist"
+  },
+  "isDefault": false,
+  "archetype": "cause_of_death_twist",
+  "trope": "The Stunner vs. The Killer"
 };

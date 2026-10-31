@@ -5,6 +5,8 @@ export const DEFAULT_STORY: IStory = {
   caseNumber: '2025-0421-MR',
   leadDetective: 'Detective Alex Morgan',
   status: 'Active Homicide Investigation',
+  archetype: 'multi_crime_convergence',
+  trope: 'The Burglar / Embezzler Trap',
   victimProfile: {
     name: 'Michael Reynolds',
     age: 42,
@@ -383,40 +385,6 @@ export const DEFAULT_STORY: IStory = {
         parkade_security_log: 'She nods vigorously: "Yes! That black car with the shiny rims, it tore out of Gate B so fast it almost hit the dumpster!"',
         crime_scene_photos: 'She clutches her rosary: "The broken coffee mug... I heard that crash while I was emptying trash on 41!"'
       }
-    }
-  ],
-  stages: [
-    {
-      stage: 1,
-      title: 'Stage 1: The Initial Scene (The Alibi Lie)',
-      description: 'Find the first major crack in someone\'s story. Marcus claims he spent the entire evening peacefully working at Riverside Brews.',
-      gateRules: 'The detective must point out that Marcus Chen\'s alibi is fraudulent or contradict his coffee shop story using the corporate parkade log or security timeline showing his car entered the building at 10:48 PM.',
-      unlockEvidenceIds: ['threatening_email', 'barista_statement'],
-      unlockLocationIds: ['riverside_brews']
-    },
-    {
-      stage: 2,
-      title: 'Stage 2: The Hidden Web (The Motive)',
-      description: 'Uncover the real reason Michael was targeted. Interrogate the suspects about business disputes, patents, or blackmail.',
-      gateRules: 'The detective must identify the true financial motive: Marcus Chen was secretly selling proprietary patents/source code to rival Aegis Global, and Michael was going to expose/fire/sue him.',
-      unlockEvidenceIds: ['secret_partnership_agreement', 'camera_override_log'],
-      unlockLocationIds: ['marcus_offsite_lab']
-    },
-    {
-      stage: 3,
-      title: 'Stage 3: The Cornered Suspects (The Opportunity & Weapon)',
-      description: 'Pin down how the murder occurred and how the killer bypassed security. Find who disabled the cameras and where the weapon was hidden.',
-      gateRules: 'The detective must deduce that Diana Wilkins disabled the 42nd-floor cameras under coercion from Marcus, and that the murder weapon (the letter opener) was thrown into the service alley storm drain.',
-      unlockEvidenceIds: ['damascus_letter_opener'],
-      unlockLocationIds: ['storm_drain_parkade']
-    },
-    {
-      stage: 4,
-      title: 'Stage 4: The Final Squeeze',
-      description: 'Confront the killer with the recovered Damascus letter opener, forensic fingerprints, and witness testimony to trigger a full breakdown, then submit the official arrest warrant.',
-      gateRules: 'Stage 4 is the final stage. The detective must compile their findings into the official Arrest Warrant.',
-      unlockEvidenceIds: [],
-      unlockLocationIds: []
     }
   ],
   groundTruth: {

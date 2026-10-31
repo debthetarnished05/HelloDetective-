@@ -9,7 +9,9 @@ import {
   ARCTIC_STORY,
   JAZZ_STORY,
   HARBOR_STORY,
-  MANOR_STORY
+  MANOR_STORY,
+  MIDNIGHT_LOUNGE_STORY,
+  NEON_STORY
 } from '../data/seedStories';
 import { LLMService } from '../services/llmService';
 import { IStory, ISuspectRuntimeState } from '../types/index';
@@ -25,6 +27,13 @@ export async function seedDefaultStories() {
     await defaultStory.save();
     console.log('Seeded default story: Silicon Alibi');
   } else {
+    defaultStory.title = DEFAULT_STORY.title;
+    defaultStory.caseNumber = DEFAULT_STORY.caseNumber;
+    defaultStory.leadDetective = DEFAULT_STORY.leadDetective;
+    defaultStory.status = DEFAULT_STORY.status;
+    defaultStory.archetype = (DEFAULT_STORY.archetype || DEFAULT_STORY.groundTruth?.archetype) as any;
+    defaultStory.trope = DEFAULT_STORY.trope || '';
+    defaultStory.isDefault = true;
     defaultStory.locations = DEFAULT_STORY.locations as any;
     defaultStory.evidence = DEFAULT_STORY.evidence as any;
     defaultStory.suspects = DEFAULT_STORY.suspects as any;
@@ -35,13 +44,15 @@ export async function seedDefaultStories() {
     await defaultStory.save();
   }
 
-  // 2. Ensure all other archetypal stories are seeded and updated
+  // 2. Ensure all other archetypal stories (including Neon Vein & Midnight Lounge) are seeded and updated
   const ALL_SEED_STORIES = [
     OPERA_STORY,
     ARCTIC_STORY,
     JAZZ_STORY,
     HARBOR_STORY,
-    MANOR_STORY
+    MANOR_STORY,
+    MIDNIGHT_LOUNGE_STORY,
+    NEON_STORY
   ];
 
   for (const seed of ALL_SEED_STORIES) {
@@ -51,6 +62,13 @@ export async function seedDefaultStories() {
       await doc.save();
       console.log(`Seeded story: ${seed.title}`);
     } else {
+      doc.title = seed.title;
+      doc.caseNumber = seed.caseNumber;
+      doc.leadDetective = seed.leadDetective;
+      doc.status = seed.status;
+      doc.archetype = (seed.archetype || seed.groundTruth?.archetype) as any;
+      doc.trope = seed.trope || '';
+      doc.isDefault = seed.isDefault || false;
       doc.locations = seed.locations as any;
       doc.evidence = seed.evidence as any;
       doc.suspects = seed.suspects as any;
@@ -61,6 +79,9 @@ export async function seedDefaultStories() {
       await doc.save();
     }
   }
+
+  // Remove legacy stages field from any existing documents in MongoDB
+  await Story.collection.updateMany({}, { $unset: { stages: "" } });
 
   return defaultStory;
 }
@@ -84,14 +105,14 @@ export const startNewGame = async (req: AuthRequest, res: Response) => {
 
     // Determine initial unlocks for dynamic lead-web
     const initialEvidence = (story.evidence || [])
-      .filter((e: any) => e.isInitiallyUnlocked !== false && (e.unlockStage === undefined || e.unlockStage <= 1))
+      .filter((e: any) => e.isInitiallyUnlocked !== false)
       .map((e: any) => e.id);
     if (initialEvidence.length === 0 && story.evidence?.[0]) {
       initialEvidence.push(story.evidence[0].id);
     }
 
     const initialLocations = (story.locations || [])
-      .filter((l: any) => l.isInitiallyUnlocked !== false && (l.unlockStage === undefined || l.unlockStage <= 1))
+      .filter((l: any) => l.isInitiallyUnlocked !== false)
       .map((l: any) => l.id);
     if (initialLocations.length === 0 && story.locations?.[0]) {
       initialLocations.push(story.locations[0].id);

@@ -113,6 +113,8 @@ export interface IStory {
   caseNumber: string;
   leadDetective: string;
   status: string;
+  archetype?: MysteryArchetype;
+  trope?: string;
   victimProfile: IVictimProfile;
   briefing: IBriefing;
   objectives: IObjectives;

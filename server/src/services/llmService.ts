@@ -656,7 +656,9 @@ Return ONLY valid JSON.`;
       }
     }
 
-    parsed.stages = [];
+    if (parsed.groundTruth?.archetype) {
+      parsed.archetype = parsed.groundTruth.archetype;
+    }
 
     return parsed as IStory;
   }

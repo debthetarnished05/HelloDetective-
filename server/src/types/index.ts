@@ -108,10 +108,13 @@ export interface IGroundTruth {
 }
 
 export interface IStory {
+  _id?: any;
   title: string;
   caseNumber: string;
   leadDetective: string;
   status: string;
+  archetype?: MysteryArchetype;
+  trope?: string;
   victimProfile: IVictimProfile;
   briefing: IBriefing;
   objectives: IObjectives;

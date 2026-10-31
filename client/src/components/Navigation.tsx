@@ -109,8 +109,10 @@ export default function Navigation() {
           >
             ⚙️ Case Manager
           </Link>
+        </div>
 
-          {/* Desktop Detective Profile / Auth Pill (At the right end!) */}
+        {/* Desktop Detective Profile / Auth Pill — always at the far right, hidden on mobile */}
+        <div className="desktop-nav-links" style={{ flexShrink: 0 }}>
           {!isGuest && user ? (
             <button
               type="button"

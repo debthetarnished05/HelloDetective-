@@ -756,7 +756,8 @@ export default function StoryCreator() {
           revealDialogue: u.revealDialogue?.trim() || undefined
         }))
       })),
-      stages: [],
+      archetype: formData.groundArchetype || 'classic_procedural',
+      trope: ARCHETYPE_OPTIONS.find(a => a.value === formData.groundArchetype)?.tagline || '',
       groundTruth: {
         killer: formData.killerId.trim() || formData.suspects[0]?.id || 'suspect_1',
         motive: formData.groundMotive.trim() || 'Undetermined motive',
@@ -1039,9 +1040,14 @@ export default function StoryCreator() {
                           <strong>VICTIM:</strong> {victim.name}
                         </div>
                       )}
-                      {s.groundTruth?.archetype && (
+                      {(s.archetype || s.groundTruth?.archetype) && (
                         <div style={{ marginTop: '4px', fontSize: '0.67rem', color: '#5a4638' }}>
-                          <strong>ARCHETYPE:</strong> {getCleanArchetypeTitle(s.groundTruth.archetype)}
+                          <strong>ARCHETYPE:</strong> {getCleanArchetypeTitle(s.archetype || s.groundTruth?.archetype)}
+                        </div>
+                      )}
+                      {s.trope && (
+                        <div style={{ marginTop: '2px', fontSize: '0.64rem', color: '#715847' }}>
+                          <strong>TROPE:</strong> {s.trope}
                         </div>
                       )}
                     </div>

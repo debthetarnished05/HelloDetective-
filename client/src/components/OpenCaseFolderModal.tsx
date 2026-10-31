@@ -216,7 +216,15 @@ export default function OpenCaseFolderModal({
                     <div style={styles.indexRow}>
                       <span style={styles.indexLabel}>ARCHETYPE</span>
                       <span style={styles.indexDots}></span>
-                      <span style={styles.indexValue}>{getCleanArchetypeTitle(story.groundTruth?.archetype)}</span>
+                      <span style={styles.indexValue}>{getCleanArchetypeTitle(story.archetype || story.groundTruth?.archetype)}</span>
+                    </div>
+                  )}
+
+                  {story.trope && (
+                    <div style={styles.indexRow}>
+                      <span style={styles.indexLabel}>TROPE</span>
+                      <span style={styles.indexDots}></span>
+                      <span style={styles.indexValue}>{story.trope}</span>
                     </div>
                   )}
                 </div>
