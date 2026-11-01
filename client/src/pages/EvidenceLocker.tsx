@@ -59,14 +59,12 @@ export default function EvidenceLocker() {
               style={{
                 transform: `rotate(${idx % 2 === 0 ? 2 : -2}deg)`,
                 cursor: 'grab',
-                transition: 'transform 0.2s',
                 width: 'min(270px, 84vw)',
                 boxSizing: 'border-box',
-                userSelect: 'none'
+                userSelect: 'none',
+                ['--base-rot' as any]: `${idx % 2 === 0 ? 2 : -2}deg`
               }}
               onClick={() => setSelectedEvidenceId(ev.id)}
-              onMouseEnter={(e) => e.currentTarget.style.transform = 'rotate(0deg) scale(1.05)'}
-              onMouseLeave={(e) => e.currentTarget.style.transform = `rotate(${idx % 2 === 0 ? 2 : -2}deg) scale(1)`}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <span

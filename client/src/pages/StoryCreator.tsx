@@ -792,15 +792,17 @@ export default function StoryCreator() {
         Case Manager & Mystery Creator
       </div>
 
-      <div style={styles.tabBar}>
+      <div className="case-manager-tabs" style={styles.tabBar}>
         <button
           onClick={() => handleTabClick('manage')}
+          className="case-manager-tab-btn"
           style={{ ...styles.tabBtn, backgroundColor: activeTab === 'manage' ? '#8b3a3a' : '#2c3e50' }}
         >
-          📂 All Saved Cases ({stories.length})
+          📂 <span className="desktop-tab-text">All Saved Cases ({stories.length})</span><span className="mobile-tab-text">Saved Cases ({stories.length})</span>
         </button>
         <button
           onClick={() => handleTabClick('ai')}
+          className="case-manager-tab-btn"
           style={{
             ...styles.tabBtn,
             backgroundColor: activeTab === 'ai' ? '#8b3a3a' : '#2c3e50',
@@ -808,10 +810,11 @@ export default function StoryCreator() {
           }}
           title={isGuest ? 'Restricted to Registered Detectives' : 'AI Mystery Generator'}
         >
-          {isGuest ? '🔒 ' : ''}✨ AI Mystery Generator
+          {isGuest ? '🔒 ' : ''}✨ <span className="desktop-tab-text">AI Mystery Generator</span><span className="mobile-tab-text">AI Generator</span>
         </button>
         <button
           onClick={() => handleTabClick('form')}
+          className="case-manager-tab-btn"
           style={{
             ...styles.tabBtn,
             backgroundColor: activeTab === 'form' ? '#8b3a3a' : '#2c3e50',
@@ -819,10 +822,11 @@ export default function StoryCreator() {
           }}
           title={isGuest ? 'Restricted to Registered Detectives' : 'Case Builder Form'}
         >
-          {isGuest ? '🔒 ' : ''}📝 Case Builder Form
+          {isGuest ? '🔒 ' : ''}📝 <span className="desktop-tab-text">Case Builder Form</span><span className="mobile-tab-text">Case Builder</span>
         </button>
         <button
           onClick={() => handleTabClick('solutions')}
+          className="case-manager-tab-btn"
           style={{
             ...styles.tabBtn,
             backgroundColor: activeTab === 'solutions' ? '#8b3a3a' : '#2c3e50',
@@ -830,7 +834,7 @@ export default function StoryCreator() {
           }}
           title={isGuest ? 'Restricted to Registered Detectives' : 'Confidential Case Solutions'}
         >
-          {isGuest ? '🔒 ' : ''}📖 Case Solutions & True Stories ({stories.length})
+          {isGuest ? '🔒 ' : ''}📖 <span className="desktop-tab-text">Case Solutions & True Stories ({stories.length})</span><span className="mobile-tab-text">True Stories ({stories.length})</span>
         </button>
       </div>
 

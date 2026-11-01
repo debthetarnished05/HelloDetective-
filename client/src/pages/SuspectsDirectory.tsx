@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import ChatModal from '../components/ChatModal';
 import MobileCarousel from '../components/MobileCarousel';
 import { useGameStore } from '../store/gameStore';
@@ -15,18 +14,8 @@ export default function SuspectsDirectory() {
     remainingClosingQuestions,
     interrogationLocked
   } = useGameStore();
-  const [filter, setFilter] = useState<'all' | 'prime' | 'witness'>('all');
 
-  const suspects = (story?.suspects || []).filter(s => unlockedSuspects.includes(s.id));
-
-  const primeSuspects = suspects.filter(s => s.isPrimeSuspect || s.category === 'prime_suspect');
-  const otherCharacters = suspects.filter(s => !s.isPrimeSuspect && s.category !== 'prime_suspect');
-
-  const displayedSuspects = filter === 'prime'
-    ? primeSuspects
-    : filter === 'witness'
-    ? otherCharacters
-    : suspects;
+  const displayedSuspects = (story?.suspects || []).filter(s => unlockedSuspects.includes(s.id));
 
   const getMoodColor = (mood: string) => {
     switch (mood) {
@@ -36,16 +25,6 @@ export default function SuspectsDirectory() {
       case 'composed':
       default: return '#2e7d32';
     }
-  };
-
-  const getCategoryBadge = (category?: string, isPrime?: boolean) => {
-    if (isPrime || category === 'prime_suspect') {
-      return { text: 'PRIME SUSPECT', bg: '#8b3a3a' };
-    }
-    if (category === 'witness') {
-      return { text: 'KEY WITNESS', bg: '#0277bd' };
-    }
-    return { text: 'PERSON OF INTEREST', bg: '#f57c00' };
   };
 
   const getPersonalityBadge = (personality?: string) => {
@@ -98,31 +77,9 @@ export default function SuspectsDirectory() {
         </div>
       ) : null}
 
-      <p style={{ color: 'white', fontFamily: 'monospace', fontSize: '0.95rem', marginBottom: '18px', textAlign: 'center', maxWidth: '750px' }}>
-        Cross-examine prime suspects, witnesses, and persons of interest. Interrogate them with targeted pressure or physical evidence to break alibis and uncover new leads.
+      <p style={{ color: 'white', fontFamily: 'monospace', fontSize: '0.95rem', marginBottom: '22px', textAlign: 'center', maxWidth: '750px' }}>
+        Cross-examine suspects and persons of interest. Interrogate them with targeted pressure or physical evidence to break alibis and uncover new leads.
       </p>
-
-      {/* Filter Tabs */}
-      <div style={styles.tabContainer}>
-        <button
-          onClick={() => setFilter('all')}
-          style={{ ...styles.tabBtn, backgroundColor: filter === 'all' ? '#8b3a3a' : '#1e293b' }}
-        >
-          All Identified Persons
-        </button>
-        <button
-          onClick={() => setFilter('prime')}
-          style={{ ...styles.tabBtn, backgroundColor: filter === 'prime' ? '#8b3a3a' : '#1e293b' }}
-        >
-          Prime Suspects
-        </button>
-        <button
-          onClick={() => setFilter('witness')}
-          style={{ ...styles.tabBtn, backgroundColor: filter === 'witness' ? '#8b3a3a' : '#1e293b' }}
-        >
-          Witnesses & Staff
-        </button>
-      </div>
 
       {/* Suspect Cards Grid / Mobile Sideways Carousel */}
       <MobileCarousel
@@ -138,7 +95,6 @@ export default function SuspectsDirectory() {
             mood: 'composed' as const
           };
 
-          const categoryInfo = getCategoryBadge(suspect.category, suspect.isPrimeSuspect);
           const personalityInfo = getPersonalityBadge(suspect.personality);
 
           return (
@@ -173,11 +129,7 @@ export default function SuspectsDirectory() {
                 style={{
                   width: '100%',
                   height: '140px',
-                  background: suspect.isPrimeSuspect
-                    ? 'linear-gradient(135deg, #374151, #1f2937)'
-                    : suspect.category === 'witness'
-                    ? 'linear-gradient(135deg, #0f766e, #115e59)'
-                    : 'linear-gradient(135deg, #854d0e, #713f12)',
+                  background: 'linear-gradient(135deg, #374151, #1f2937)',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
@@ -186,28 +138,7 @@ export default function SuspectsDirectory() {
                   borderRadius: '3px'
                 }}
               >
-                <span style={{ fontSize: '3.2rem' }}>
-                  {suspect.isPrimeSuspect ? '👤' : suspect.category === 'witness' ? '👁️' : '💼'}
-                </span>
-
-                {/* Category Badge (Top Left) */}
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: '8px',
-                    left: '8px',
-                    backgroundColor: categoryInfo.bg,
-                    color: 'white',
-                    fontFamily: 'monospace',
-                    fontSize: '0.68rem',
-                    padding: '2px 7px',
-                    borderRadius: '4px',
-                    fontWeight: 'bold',
-                    letterSpacing: '0.5px'
-                  }}
-                >
-                  {categoryInfo.text}
-                </span>
+                <span style={{ fontSize: '3.2rem' }}>👤</span>
 
                 {/* Mood Badge (Top Right) */}
                 <span

@@ -31,17 +31,34 @@ body {
   color: #333;
   margin: 0;
   min-height: 100vh;
-  background-attachment: fixed; /* Keeps the lighting fixed when scrolling */
+  background-attachment: scroll; /* Allows the wood background and textures to scroll with content */
 }
+
+/* ============================================================
+   3D TAPED PAPER NOTE LIFT EFFECT ON HOVER
+   Top stays pinned by tape, bottom lifts forward off the board
+   ============================================================ */
 
 /* Base style for paper elements */
 .paper-note {
-  background: #c9d6b8; /* Changed to faded green */
+  background: #c9d6b8;
   padding: 20px;
-  box-shadow: 2px 4px 10px rgba(0, 0, 0, 0.4); /* Darkened shadow slightly for the dark wood */
+  box-shadow: 2px 4px 10px rgba(0, 0, 0, 0.35);
   position: relative;
   max-width: 300px;
+  transform-origin: top center !important;
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.3, 1), box-shadow 0.35s cubic-bezier(0.2, 0.8, 0.3, 1);
+  will-change: transform, box-shadow;
 }
+
+/* Hover effect: Top stays taped, bottom lifts forward in 3D perspective casting realistic shadow */
+.paper-note:not(.interrogation-modal):hover {
+  transform: perspective(900px) rotateX(10deg) rotateY(-2deg) rotateZ(var(--base-rot, 0deg)) translateY(-2px) !important;
+  box-shadow: 12px 24px 35px rgba(0, 0, 0, 0.5), 3px 8px 12px rgba(0, 0, 0, 0.3) !important;
+  z-index: 10;
+  cursor: pointer;
+}
+
 /* The tape effect */
 .paper-note::before {
   content: '';
@@ -49,10 +66,12 @@ body {
   top: -10px;
   left: 50%;
   transform: translateX(-50%) rotate(-2deg);
-  width: 60px;
-  height: 20px;
-  background: rgba(255, 255, 255, 0.6);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  width: 65px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.65);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  z-index: 12;
+  pointer-events: none;
 }
 
 .handwritten {
@@ -361,7 +380,10 @@ body {
   box-sizing: border-box;
 }
 
-.mobile-carousel-controls {
+.desktop-tab-text {
+  display: inline;
+}
+.mobile-tab-text {
   display: none;
 }
 
@@ -377,56 +399,47 @@ body {
 }
 
 @media (max-width: 768px) {
+  /* Case Manager Tabs in Mobile View: Symmetrical 2x2 Grid */
+  .desktop-tab-text {
+    display: none !important;
+  }
+  .mobile-tab-text {
+    display: inline !important;
+  }
+
+  .case-manager-tabs {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    width: 100% !important;
+    max-width: 440px !important;
+    margin: 0 auto 18px auto !important;
+    padding: 0 10px !important;
+    box-sizing: border-box !important;
+  }
+
+  .case-manager-tab-btn {
+    width: 100% !important;
+    min-height: 42px !important;
+    padding: 8px 6px !important;
+    font-size: 0.76rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    border-radius: 6px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.25) !important;
+  }
+
   /* Retain horizontal swipe carousel on mobile */
   .case-files-carousel-track {
     display: flex !important;
     grid-template-columns: none !important;
     justify-items: initial !important;
     padding: 10px 20px 24px 20px !important;
-  }
-
-  .mobile-carousel-controls {
-    display: flex !important;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    max-width: 380px;
-    margin-bottom: 14px;
-    padding: 0 10px;
-    box-sizing: border-box;
-  }
-
-  .mobile-carousel-arrow-btn {
-    background: #3e2723;
-    color: #ffd54f;
-    border: 1.5px solid #8d6e63;
-    border-radius: 50%;
-    width: 36px;
-    height: 36px;
-    font-size: 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-    transition: all 0.15s ease;
-  }
-
-  .mobile-carousel-arrow-btn:active {
-    transform: scale(0.92);
-    background: #8b3a3a;
-  }
-
-  .mobile-carousel-indicator {
-    font-family: 'Special Elite', monospace;
-    font-size: 0.85rem;
-    color: #f5eedc;
-    background: rgba(30, 20, 15, 0.75);
-    padding: 5px 14px;
-    border-radius: 14px;
-    border: 1px solid rgba(255, 213, 79, 0.35);
-    letter-spacing: 0.5px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
   }
 
   .mobile-carousel-track {

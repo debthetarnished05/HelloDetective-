@@ -95,10 +95,9 @@ export default function CaseHub() {
             Persons of Interest
           </h2>
 
-          {displaySuspects.map((suspect, idx) => (
+          {displaySuspects.map((suspect) => (
             <div key={suspect.id} style={styles.contentBlock}>
               <h3 style={styles.subHeader}>
-                {idx === 0 ? 'Primary Suspect: ' : idx === 1 ? 'POI: ' : 'Witness: '}
                 {suspect.name} ({suspect.role})
               </h3>
               <ul style={styles.list}>
@@ -126,10 +125,7 @@ const styles = {
     alignItems: 'start'
   },
   card: {
-    backgroundColor: '#c9d6b8',
     padding: 'clamp(18px, 3vw, 28px)',
-    boxShadow: '2px 4px 15px rgba(0, 0, 0, 0.4)',
-    transform: 'none',
     maxWidth: '100%',
     boxSizing: 'border-box' as const
   },
