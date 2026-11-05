@@ -2,7 +2,19 @@ import axios from 'axios';
 import type { IStory } from '../types/index';
 import type { AuthResponse, IUser } from '../types/auth';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+function getApiBaseUrl(): string {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl && envUrl.trim() !== '') {
+    const trimmed = envUrl.trim().replace(/\/+$/, '');
+    // Ensure '/api' is included at the end
+    return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
+  }
+  // In development, default to local backend server
+  // In production on the same domain/service, default to relative '/api'
+  return import.meta.env.DEV ? 'http://localhost:3001/api' : '/api';
+}
+
+const BASE_URL = getApiBaseUrl();
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
