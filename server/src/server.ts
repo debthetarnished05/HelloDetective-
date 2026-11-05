@@ -3,8 +3,8 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
-import gameRoutes from './routes/gameRoutes';
-import authRoutes from './routes/authRoutes';
+import gameRoutes from './routes/gameRoutes.js';
+import authRoutes from './routes/authRoutes.js';
 
 import { seedDefaultStories } from './controllers/gameController';
 
