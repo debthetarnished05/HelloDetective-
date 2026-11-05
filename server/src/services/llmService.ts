@@ -4,7 +4,7 @@ import { ISuspectRuntimeState, ISuspectItem, IStageDefinition, IGroundTruth, ISt
 
 dotenv.config();
 
-const MODEL_NAME = 'qwen/qwen3.8-27b';
+const MODEL_NAME = process.env.GROQ_MODEL || 'qwen/qwen3.8-27b';
 
 export const ARCHETYPE_BLUEPRINTS: Record<MysteryArchetype, { name: string; description: string; instructions: string }> = {
   classic_procedural: {

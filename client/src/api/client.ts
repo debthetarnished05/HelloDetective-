@@ -2,7 +2,7 @@ import axios from 'axios';
 import type { IStory } from '../types/index';
 import type { AuthResponse, IUser } from '../types/auth';
 
-const BASE_URL = 'http://localhost:3001/api';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,

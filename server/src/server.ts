@@ -11,8 +11,19 @@ import { seedDefaultStories } from './controllers/gameController';
 dotenv.config();
 
 const app = express();
+
+const clientOrigins = (process.env.CLIENT_URL || 'http://localhost:5173,http://127.0.0.1:5173')
+  .split(',')
+  .map(url => url.trim());
+
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+  origin: (origin, callback) => {
+    // allow requests with no origin (like mobile apps, curl, Postman) or matching allowed origins
+    if (!origin || clientOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
   credentials: true
 }));
 app.use(express.json());
