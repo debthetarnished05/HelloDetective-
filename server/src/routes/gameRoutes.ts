@@ -20,6 +20,14 @@ const router = Router();
 
 // Gameplay endpoints
 router.post('/start', optionalAuth, startNewGame);
+router.get('/start', (_req, res) => {
+  res.json({
+    status: 'online',
+    endpoint: '/api/game/start',
+    allowedMethod: 'POST',
+    message: 'To initiate a new detective game session, submit an HTTP POST request to this endpoint with optional { storyId } in the JSON body.'
+  });
+});
 router.get('/session/:sessionId', optionalAuth, getSessionState);
 router.post('/chat', optionalAuth, chatSuspect);
 router.post('/location/canvass', optionalAuth, canvassLocation);
