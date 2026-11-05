@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken, TokenPayload } from '../utils/token.js';
-import User, { IUser } from '../models/User';
+import User, { IUser } from '../models/User.js';
 
 export interface AuthRequest extends Request {
   user?: IUser | null;

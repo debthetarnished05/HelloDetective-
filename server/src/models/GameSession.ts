@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
-import { ISuspectRuntimeState, IChatMessage, IOfficerChatMessage, IRecordedClue } from '../types/index';
+import { ISuspectRuntimeState, IChatMessage, IOfficerChatMessage, IRecordedClue } from '../types/index.js';
 
 export interface IGameSession extends Document {
   storyId: Types.ObjectId;
