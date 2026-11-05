@@ -1,4 +1,4 @@
-import { IStory } from '../types/index';
+import { IStory } from '../types/index.js';
 
 export const DEFAULT_STORY: IStory = {
   title: 'Silicon Alibi: The Murder of Michael Reynolds',

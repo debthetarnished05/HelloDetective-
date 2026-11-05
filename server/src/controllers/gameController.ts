@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
-import GameSession from '../models/GameSession';
-import Story from '../models/StoryData';
-import User, { calculateDetectiveRank } from '../models/User';
-import { AuthRequest } from '../middleware/authMiddleware';
-import { DEFAULT_STORY } from '../data/defaultStory';
+import GameSession from '../models/GameSession.js';
+import Story from '../models/StoryData.js';
+import User, { calculateDetectiveRank } from '../models/User.js';
+import { AuthRequest } from '../middleware/authMiddleware.js';
+import { DEFAULT_STORY } from '../data/defaultStory.js';
 import {
   OPERA_STORY,
   ARCTIC_STORY,
@@ -12,9 +12,9 @@ import {
   MANOR_STORY,
   MIDNIGHT_LOUNGE_STORY,
   NEON_STORY
-} from '../data/seedStories';
-import { LLMService } from '../services/llmService';
-import { IStory, ISuspectRuntimeState } from '../types/index';
+} from '../data/seedStories.js';
+import { LLMService } from '../services/llmService.js';
+import { IStory, ISuspectRuntimeState } from '../types/index.js';
 
 export async function seedDefaultStories() {
   // 1. Ensure DEFAULT_STORY (Silicon Alibi)

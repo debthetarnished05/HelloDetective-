@@ -1,4 +1,4 @@
-import { IStory } from '../types/index';
+import { IStory } from '../types/index.js';
 
 // ============================================================================
 // CASE 2: The Gilded Aria (Deliberate Frame Job)

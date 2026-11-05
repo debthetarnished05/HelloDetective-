@@ -1,6 +1,6 @@
 import Groq from 'groq-sdk';
 import dotenv from 'dotenv';
-import { ISuspectRuntimeState, ISuspectItem, IStageDefinition, IGroundTruth, IStory, IEvidenceItem, MysteryArchetype } from '../types/index';
+import { ISuspectRuntimeState, ISuspectItem, IStageDefinition, IGroundTruth, IStory, IEvidenceItem, MysteryArchetype } from '../types/index.js';
 
 dotenv.config();
 

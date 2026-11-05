@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import User, { calculateDetectiveRank } from '../models/User';
-import GameSession from '../models/GameSession';
-import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/token';
-import { AuthRequest } from '../middleware/authMiddleware';
+import User, { calculateDetectiveRank } from '../models/User.js';
+import GameSession from '../models/GameSession.js';
+import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/token.js';
+import { AuthRequest } from '../middleware/authMiddleware.js';
 
 export const register = async (req: Request, res: Response) => {
   try {

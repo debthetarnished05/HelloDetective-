@@ -13,8 +13,8 @@ import {
   getStoryById,
   createStory,
   generateAiStory
-} from '../controllers/gameController';
-import { optionalAuth, requireAuth } from '../middleware/authMiddleware';
+} from '../controllers/gameController.js';
+import { optionalAuth, requireAuth } from '../middleware/authMiddleware.js';
 
 const router = Router();
 

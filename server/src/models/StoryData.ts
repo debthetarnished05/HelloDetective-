@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { IStory } from '../types/index';
+import { IStory } from '../types/index.js';
 
 export interface IStoryDocument extends Omit<IStory, '_id'>, Document {}
 

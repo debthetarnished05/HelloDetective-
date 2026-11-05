@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { IUser } from '../models/User';
+import { IUser } from '../models/User.js';
 
 function getSecret(key: string): string {
   const value = process.env[key];
