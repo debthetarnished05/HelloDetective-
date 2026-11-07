@@ -545,15 +545,42 @@ export const chatOfficer = async (req: Request, res: Response) => {
 
     const combinedSearchText = `${message || ''} ${activeClue?.statement || ''} ${activeEvidence?.title || ''} ${activeLocation?.title || ''}`.toLowerCase();
 
+    const escapeRegExp = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
     const targetMatches = (text: string, titleOrName: string, id: string): boolean => {
-      const lower = text.toLowerCase();
-      if (lower.includes(id.toLowerCase())) return true;
-      if (lower.includes(titleOrName.toLowerCase())) return true;
-      const tokens = titleOrName.toLowerCase()
+      if (!text || !titleOrName) return false;
+      const lowerText = text.toLowerCase();
+      const lowerTitle = titleOrName.toLowerCase();
+      const lowerId = id.toLowerCase();
+
+      // 1. Direct whole-word or phrase match for id or full title
+      const idRegex = new RegExp(`\\b${escapeRegExp(lowerId)}\\b`, 'i');
+      if (idRegex.test(lowerText) || lowerText.includes(lowerId)) return true;
+
+      const titleRegex = new RegExp(`\\b${escapeRegExp(lowerTitle)}\\b`, 'i');
+      if (titleRegex.test(lowerText)) return true;
+
+      // 2. Distinctive single-word boundary matching (ignoring generic common words)
+      const titleWords = lowerTitle
         .replace(/[^a-z0-9\s]/g, ' ')
         .split(/\s+/)
-        .filter(t => t.length >= 4 && !['cafe', 'suite', 'lane', 'street', 'drive', 'center', 'park', 'parkade', 'room', 'office', 'with', 'from', 'that', 'this', 'have', 'were'].includes(t));
-      return tokens.some(tok => lower.includes(tok));
+        .filter(t => t.length >= 4 && !['cafe', 'suite', 'lane', 'street', 'drive', 'center', 'park', 'parkade', 'room', 'office', 'with', 'from', 'that', 'this', 'have', 'were', 'rear', 'drain', 'service'].includes(t));
+
+      for (const word of titleWords) {
+        const wordRegex = new RegExp(`\\b${escapeRegExp(word)}\\b`, 'i');
+        if (wordRegex.test(lowerText)) return true;
+      }
+
+      // 3. Two-word bigram match (e.g., "storm drain", "service alley")
+      const rawWords = lowerTitle.replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
+      for (let i = 0; i < rawWords.length - 1; i++) {
+        const bigram = `${rawWords[i]} ${rawWords[i + 1]}`;
+        if (bigram.length >= 8 && new RegExp(`\\b${escapeRegExp(bigram)}\\b`, 'i').test(lowerText)) {
+          return true;
+        }
+      }
+
+      return false;
     };
 
     let targetEntity: any = null;
