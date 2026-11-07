@@ -187,10 +187,23 @@ export const gameApi = {
     return response.data;
   },
 
-  chatOfficer: async (sessionId: string, message: string) => {
+  chatOfficer: async (
+    sessionId: string,
+    message: string,
+    options?: {
+      attachedClue?: any | null;
+      attachedClueId?: string | null;
+      referencedEvidenceId?: string | null;
+      referencedLocationId?: string | null;
+    }
+  ) => {
     const response = await apiClient.post('/game/officer/chat', {
       sessionId,
-      message
+      message,
+      attachedClue: options?.attachedClue || null,
+      attachedClueId: options?.attachedClueId || null,
+      referencedEvidenceId: options?.referencedEvidenceId || null,
+      referencedLocationId: options?.referencedLocationId || null
     });
     return response.data;
   },

@@ -84,6 +84,10 @@ interface FormLocation {
   isInitiallyUnlocked: boolean;
   hiddenEvidenceIds: string;
   canvassReport: string;
+  leadSourceType?: 'suspect_clue' | 'evidence_mention';
+  leadSourceName?: string;
+  leadSourceId?: string;
+  leadSourceDescription?: string;
 }
 
 interface FormEvidence {
@@ -95,7 +99,9 @@ interface FormEvidence {
   location: string;
   priority: 'Low' | 'Medium' | 'High' | 'Critical';
   isInitiallyUnlocked: boolean;
+  discoveryType?: 'initial' | 'location_canvass' | 'officer_subpoena';
   locationId: string;
+  subpoenaSource?: string;
 }
 
 interface FormDynamicUnlock {
@@ -122,6 +128,10 @@ interface FormSuspect {
   privateKnowledge: string;
   secrets: string;
   breakdownThreshold: number;
+  leadSourceType?: 'suspect_clue' | 'evidence_mention' | 'location_mention';
+  leadSourceName?: string;
+  leadSourceId?: string;
+  leadSourceDescription?: string;
   dynamicUnlocks: FormDynamicUnlock[];
 }
 
@@ -734,13 +744,21 @@ export default function StoryCreator() {
         hiddenEvidenceIds: loc.hiddenEvidenceIds
           ? loc.hiddenEvidenceIds.split(',').map(s => s.trim()).filter(Boolean)
           : [],
-        canvassReport: loc.canvassReport?.trim() || `CSI completed a comprehensive forensic sweep of ${loc.title}.`
+        canvassReport: loc.canvassReport?.trim() || `CSI completed a comprehensive forensic sweep of ${loc.title}.`,
+        leadSource: !loc.isInitiallyUnlocked && loc.leadSourceType ? {
+          type: loc.leadSourceType,
+          sourceName: loc.leadSourceName?.trim(),
+          sourceId: loc.leadSourceId?.trim(),
+          description: loc.leadSourceDescription?.trim()
+        } : undefined
       })),
       evidence: formData.evidence.map((ev, idx) => ({
         ...ev,
         id: ev.id.trim() || `ev_${idx + 1}_${ev.title.toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
         isInitiallyUnlocked: Boolean(ev.isInitiallyUnlocked),
-        locationId: ev.locationId?.trim() || undefined
+        discoveryType: ev.discoveryType || (ev.isInitiallyUnlocked ? 'initial' : (ev.locationId ? 'location_canvass' : 'officer_subpoena')),
+        locationId: ev.locationId?.trim() || undefined,
+        subpoenaSource: ev.subpoenaSource?.trim() || undefined
       })),
       suspects: formData.suspects.map((susp, idx) => ({
         ...susp,
@@ -748,10 +766,15 @@ export default function StoryCreator() {
         secrets: susp.secrets.split('\n').map(s => s.trim()).filter(Boolean),
         personality: susp.personality || 'defensive',
         isInitiallyUnlocked: Boolean(susp.isInitiallyUnlocked),
+        leadSource: !susp.isInitiallyUnlocked && susp.leadSourceType ? {
+          type: susp.leadSourceType,
+          sourceName: susp.leadSourceName?.trim(),
+          sourceId: susp.leadSourceId?.trim(),
+          description: susp.leadSourceDescription?.trim()
+        } : undefined,
         dynamicUnlocks: (susp.dynamicUnlocks || []).map(u => ({
           type: u.type,
           targetId: u.targetId.trim(),
-          triggerStress: u.triggerStress !== undefined && u.triggerStress !== '' ? Number(u.triggerStress) : undefined,
           triggerEvidenceId: u.triggerEvidenceId?.trim() || undefined,
           revealDialogue: u.revealDialogue?.trim() || undefined
         }))

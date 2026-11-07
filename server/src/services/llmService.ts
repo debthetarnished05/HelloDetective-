@@ -129,7 +129,7 @@ Your psychological filter momentarily slips! You accidentally blurt out or refer
 "${extraOptions.slipOfTongueDetail}"
 CRITICAL: You MUST IMMEDIATELY stammer, panic, and awkwardly backtrack to cover your mistake!
 (e.g., "Wait-no! I mean... that's just a rumor I heard around the watercooler! Forget I said that!")
-STRESS DELTA: Pick an integer between +10 and +18.` : ''}
+STRESS DELTA: Pick an integer between +8 and +14.` : ''}
 
 ${mandatoryUnlockDialogue ? `=== CRITICAL UNLOCK MOMENT (MANDATORY) ===
 Your defense has fractured! You MUST incorporate the following slip-up or admission into your response dialogue:
@@ -141,14 +141,19 @@ The detective presents: "${presentedEvidence.title}" (${presentedEvidence.subtit
 Details: "${presentedEvidence.details}".
 ${evidenceReactionHint}
 If this evidence catches you in a lie:
-- STRESS DELTA: +18 to +28 | TRUST DELTA: -15 to -20.
+- STRESS DELTA: +15 to +25 | TRUST DELTA: -15 to -20.
 - BLAME SHIFTING (THROW UNDER THE BUS): If you were at the scene for a secondary reason (theft, meeting, errand), admit ONLY that secondary reason, and fiercely accuse another suspect of the murder to save yourself!
 Valid other suspects to accuse: ${otherSuspectsList || 'someone else'}.` : ''}
 
 ${!presentedEvidence && !extraOptions?.isSpamOrGibberish && !extraOptions?.slipOfTongueDetail ? `=== VERBAL INTERROGATION DYNAMICS ===
-- CONTRADICTIONS & TIMELINE INQUIRIES: If the detective quotes another witness or points out a specific flaw in your timeline: STRESS DELTA: +8 to +16.
-- GOOD COP (EMPATHY & RESPECT): If the detective is gentle, polite, and offers protection: TRUST DELTA: +10 to +18, STRESS DELTA: -5 to -10 (especially effective on Nervous and Defensive suspects).
-- BASELESS BADGERING: If the detective just yells "You did it!" without facts: STRESS DELTA: -5 to 0 (mock them).` : ''}
+- ROUTINE / STANDARD QUESTIONS: Basic questions like "What were you doing during the murder?", "Where were you?", "What did you think of the victim?":
+  STRESS DELTA: -2 to +3. Keep stress level relatively steady. Do NOT spike stress for standard questions.
+- CONTRADICTIONS & TIMELINE INQUIRIES: If the detective quotes another witness or points out a specific flaw in your timeline:
+  STRESS DELTA: +5 to +12.
+- GOOD COP (EMPATHY & RESPECT): If the detective is gentle, polite, and offers protection:
+  TRUST DELTA: +6 to +12, STRESS DELTA: -4 to -8 (especially effective on Nervous and Defensive suspects).
+- BASELESS BADGERING: If the detective just yells "You did it!" or makes unsupported accusatory claims without evidence or specific facts:
+  STRESS DELTA: -4 to +1 (dismiss or mock them, stay composed).` : ''}
 
 ${allRevealedFactsAcrossSuspects.length > 0 ? `=== CROSS-EXAMINATION CONTEXT ===
 Other suspects or witnesses have already let slip:
@@ -223,7 +228,14 @@ You MUST reply with ONLY valid JSON with exactly these keys:
       discoveredClues: string[];
       groundTruthSummary: string;
     },
-    chatHistory: { role: string; content: string }[] = []
+    chatHistory: { role: string; content: string }[] = [],
+    dispatchContext?: {
+      status: 'authorized' | 'rejected';
+      entityType?: 'location' | 'character' | 'evidence';
+      entityName: string;
+      sourceProof?: string;
+      reason?: string;
+    } | null
   ) {
     const groq = getGroqClient();
 
@@ -241,6 +253,20 @@ You MUST reply with ONLY valid JSON with exactly these keys:
 3. If the detective asks for a suggestion on where to look or who to sweat:
    - Provide a realistic, grounded noir tip based on current progress. Remind them to cross-reference statements with physical crime scenes or press suspect nerves.
 4. Speak in authentic, concise noir police dialogue (1 to 3 sentences).
+
+${dispatchContext?.status === 'authorized' ? `
+=== IMMEDIATE DISPATCH / SEARCH ORDER AUTHORIZED ===
+The detective presented verified probable cause (${dispatchContext.sourceProof}) to access: "${dispatchContext.entityName}" (${dispatchContext.entityType}).
+YOUR ACTION: Enthusiastically or professionally confirm this authorization!
+- If Location: Confirm you're dispatching a squad car or forensic canvass team to the scene immediately, and tell the detective it's cleared for investigation.
+- If Character: Confirm you're sending a squad car to bring this person down to interrogation room 2 or issuing an official summons.
+- If Evidence: Confirm you got the judge to sign the subpoena / warrant for those records and they are now in the evidence locker.
+Confirm it's accessible and give 1 brief tactical tip (1-3 sentences in character).` : ''}
+
+${dispatchContext?.status === 'rejected' ? `
+=== DISPATCH REQUEST REJECTED: LACK OF PROBABLE CAUSE ===
+The detective asked about: "${dispatchContext.entityName}", BUT failed to provide valid supporting probable cause (${dispatchContext.reason || 'no recorded witness statement in notebook or cited physical evidence'}).
+YOUR ACTION: Refuse the request firmly in character! Remind the detective that the Judge and Internal Affairs will reject any warrant or patrol dispatch without a recorded witness statement in the notebook or physical evidence on file. Tell them to interview suspects or canvass crime scenes to establish probable cause first (1-2 sentences).` : ''}
 
 Recent clues in the case file:
 ${JSON.stringify(caseContext.discoveredClues.slice(-5), null, 2)}
@@ -486,15 +512,13 @@ REQUIRED JSON STRUCTURE (Must match exactly):
       "evidenceReactions": {
         "evidence_slug": "How they react when shown this specific evidence"
       },
-      "dynamicUnlocks": [
-        {
-          "type": "location" | "evidence" | "character",
-          "targetId": "slug_of_target_to_unlock",
-          "triggerStress": 55, // or omit if triggered by evidence
-          "triggerEvidenceId": "evidence_slug", // or omit if triggered by stress
-          "revealDialogue": "What the suspect blurts out that reveals this new location, clue, or person!"
-        }
-      ],
+      // Player-driven lead unlock via notebook clues and Officer Davis probable cause
+      "leadSource": {
+        "type": "suspect_clue" | "evidence_mention" | "location_mention",
+        "sourceName": "Full Name or Evidence Title",
+        "sourceId": "slug_of_source",
+        "description": "How this person or place is referenced in the case"
+      },
       "isPrimeSuspect": true,
       "category": "prime_suspect" | "person_of_interest" | "witness"
     }

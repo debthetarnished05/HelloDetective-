@@ -5,7 +5,14 @@ import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
+import dns from 'dns';
 import { fileURLToPath } from 'url';
+
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (e) {
+  // ignore
+}
 import gameRoutes from './routes/gameRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 

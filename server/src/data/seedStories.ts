@@ -175,20 +175,7 @@ export const OPERA_STORY: IStory = {
         'He used the service dumbwaiter from the mezzanine to bypass stage door guards.'
       ],
       breakdownThreshold: 80,
-      dynamicUnlocks: [
-        {
-          type: 'location',
-          targetId: 'blackwood_private_office',
-          triggerStress: 60,
-          revealDialogue: "You want to talk about finances? Fine, search my office! You won't find anything but legitimate production ledger books!"
-        },
-        {
-          type: 'character',
-          targetId: 'dr_pendelton',
-          triggerStress: 75,
-          revealDialogue: "If you're looking for pharmaceutical poisons, speak to Dr. Pendelton! The man runs the mezzanine dispensary, not me!"
-        }
-      ]
+      dynamicUnlocks: []
     },
     {
       id: 'camille_dupre',
@@ -210,20 +197,7 @@ export const OPERA_STORY: IStory = {
         'She has never purchased belladonna and was on stage during the alleged purchase.'
       ],
       breakdownThreshold: 85,
-      dynamicUnlocks: [
-        {
-          type: 'evidence',
-          targetId: 'dress_rehearsal_callsheet',
-          triggerStress: 65,
-          revealDialogue: "Check Maestro Bellini's call-sheet! I was on stage singing the duet when that apothecary slip was supposedly signed! I was never in the East End!"
-        },
-        {
-          type: 'location',
-          targetId: 'blackwood_dispensary',
-          triggerStress: 75,
-          revealDialogue: "Mr. Blackwood has keys to the private dispensary on the mezzanine! I saw him slipping up the service stairs during intermission!"
-        }
-      ]
+      dynamicUnlocks: []
     },
     {
       id: 'dr_pendelton',
@@ -245,14 +219,7 @@ export const OPERA_STORY: IStory = {
         'Saw Blackwood carry an amber glass vial toward the dumbwaiter shaft.'
       ],
       breakdownThreshold: 75,
-      dynamicUnlocks: [
-        {
-          type: 'evidence',
-          targetId: 'poison_vial_dumbwaiter',
-          triggerStress: 70,
-          revealDialogue: "God forgive me! Blackwood took the belladonna! He told me he needed it for rat extermination in the boiler rooms, then dropped the empty vial down the dumbwaiter!"
-        }
-      ]
+      dynamicUnlocks: []
     },
     {
       id: 'maestro_bellini',
@@ -273,14 +240,7 @@ export const OPERA_STORY: IStory = {
         'Saw Julian Blackwood leave Royal Box A at 9:35 PM during the second act.'
       ],
       breakdownThreshold: 80,
-      dynamicUnlocks: [
-        {
-          type: 'evidence',
-          targetId: 'embezzled_pension_audit',
-          triggerStress: 60,
-          revealDialogue: "Vivienne told me she had cornered Blackwood. She kept her audit locked in his desk safe after threatening to hand it to Scotland Yard!"
-        }
-      ]
+      dynamicUnlocks: []
     }
   ],
   groundTruth: {
@@ -436,14 +396,7 @@ export const ARCTIC_STORY: IStory = {
         'Saw Dr. Ingrid Meyer walking toward the B4 vault elevator as he was running away.'
       ],
       breakdownThreshold: 60,
-      dynamicUnlocks: [
-        {
-          type: 'location',
-          targetId: 'scada_control_room',
-          triggerStress: 90,
-          revealDialogue: "I swear I hit him and ran! But I never touched the nitrogen valves! When I was sprinting for the stairs, I saw Ingrid entering the elevator corridor with a keycard!"
-        }
-      ]
+      dynamicUnlocks: []
     },
     {
       id: 'ingrid_meyer',
@@ -465,20 +418,7 @@ export const ARCTIC_STORY: IStory = {
         'Knew Nikolai\'s fight with the victim would provide the perfect cover story.'
       ],
       breakdownThreshold: 80,
-      dynamicUnlocks: [
-        {
-          type: 'location',
-          targetId: 'ingrid_private_office',
-          triggerStress: 65,
-          revealDialogue: "You have Nikolai's signed confession! Why are you rifling through my private research office? Everything in there is proprietary corporate property!"
-        },
-        {
-          type: 'evidence',
-          targetId: 'nitrogen_override_log',
-          triggerEvidenceId: 'shattered_faceplate',
-          revealDialogue: "The autopsy says asphyxiation? Well, accidents happen in polar cryo-vaults... but that doesn't link me to any valve malfunctions!"
-        }
-      ]
+      dynamicUnlocks: []
     },
     {
       id: 'maya_zhang',
@@ -499,14 +439,7 @@ export const ARCTIC_STORY: IStory = {
         'Examined the SCADA server and discovered the admin login originated from Meyer\'s credentials.'
       ],
       breakdownThreshold: 75,
-      dynamicUnlocks: [
-        {
-          type: 'evidence',
-          targetId: 'looped_sleep_tracker',
-          triggerStress: 50,
-          revealDialogue: "Check the medical telemetry server! Dr. Meyer's heart rate doesn't have a single normal arrhythmia—it's a synthetic loop file!"
-        }
-      ]
+      dynamicUnlocks: []
     }
   ],
   groundTruth: {
@@ -674,20 +607,7 @@ export const JAZZ_STORY: IStory = {
         'His right French cuff has microscopic gunpowder burn residue.'
       ],
       breakdownThreshold: 80,
-      dynamicUnlocks: [
-        {
-          type: 'location',
-          targetId: 'backstage_alley_exit',
-          triggerStress: 60,
-          revealDialogue: "Look, I had a cigarette out in the alley before the set with Dolores! That's all! Search the alley if you don't believe me!"
-        },
-        {
-          type: 'evidence',
-          targetId: 'sound_booth_recording_wire',
-          triggerStress: 75,
-          revealDialogue: "The sound booth wire? What about it? We were just improvising on stage... lots of rhythm changes..."
-        }
-      ]
+      dynamicUnlocks: []
     },
     {
       id: 'dolores_dawn',
@@ -709,14 +629,7 @@ export const JAZZ_STORY: IStory = {
         'Saw Frankie stash something heavy into the piano casing after the applause died down.'
       ],
       breakdownThreshold: 75,
-      dynamicUnlocks: [
-        {
-          type: 'evidence',
-          targetId: 'snubnose_revolver',
-          triggerStress: 65,
-          revealDialogue: "Frankie didn't just play the piano! I saw him reach into the lower cabinet behind the pedals after the drum solo! Check the piano soundbox!"
-        }
-      ]
+      dynamicUnlocks: []
     },
     {
       id: 'big_tony_marcone',
@@ -737,14 +650,7 @@ export const JAZZ_STORY: IStory = {
         'Heard the muffled gunshot but thought it was the drummer hitting the rimshot.'
       ],
       breakdownThreshold: 85,
-      dynamicUnlocks: [
-        {
-          type: 'evidence',
-          targetId: 'moretti_extortion_ledger',
-          triggerStress: 50,
-          revealDialogue: "Moretti kept all his debts in the safe behind the painting. Check the ledger—Frankie was on the hook for twelve grand and his hands were about to be broken."
-        }
-      ]
+      dynamicUnlocks: []
     }
   ],
   groundTruth: {
@@ -899,14 +805,7 @@ export const HARBOR_STORY: IStory = {
         'Saw Sean Callahan dragging a heavy tarp toward the pier edge at midnight.'
       ],
       breakdownThreshold: 85,
-      dynamicUnlocks: [
-        {
-          type: 'location',
-          targetId: 'harbor_master_office',
-          triggerStress: 90,
-          revealDialogue: "I lied! I lied to make you stop yelling! I didn't push him! I was hiding in the breakroom! It was Sean Callahan—I saw him dragging something heavy out of Warehouse 9!"
-        }
-      ]
+      dynamicUnlocks: []
     },
     {
       id: 'sean_callahan',
@@ -928,20 +827,7 @@ export const HARBOR_STORY: IStory = {
         'Booked a one-way flight to Rio under an alias for tomorrow morning.'
       ],
       breakdownThreshold: 80,
-      dynamicUnlocks: [
-        {
-          type: 'evidence',
-          targetId: 'galvanized_mooring_wire',
-          triggerEvidenceId: 'coroner_submersion_report',
-          revealDialogue: "Higgins didn't drown? What kind of coroner quack are you listening to? Warehouse 9 is a working pier, you won't find anything there!"
-        },
-        {
-          type: 'evidence',
-          targetId: 'contraband_smuggling_audit',
-          triggerStress: 75,
-          revealDialogue: "You want to talk about manifests? The Port Authority has been riding my back for months! Higgins had no right to snoop in my freight!"
-        }
-      ]
+      dynamicUnlocks: []
     },
     {
       id: 'martha_higgins',
@@ -962,14 +848,7 @@ export const HARBOR_STORY: IStory = {
         'Said: "If anything happens to me, tell the police to look at Callahan\'s offshore bank accounts."'
       ],
       breakdownThreshold: 75,
-      dynamicUnlocks: [
-        {
-          type: 'evidence',
-          targetId: 'bloodstained_freight_manifest',
-          triggerStress: 55,
-          revealDialogue: "Don told me Callahan had been forging freight manifests for months. Look in Warehouse 9 where Callahan keeps his private cargo!"
-        }
-      ]
+      dynamicUnlocks: []
     }
   ],
   groundTruth: {
@@ -1148,20 +1027,7 @@ export const MANOR_STORY: IStory = {
         'Maid Clara saw her shadow slip out of the library passage at the 11:30 half-hour chime.'
       ],
       breakdownThreshold: 80,
-      dynamicUnlocks: [
-        {
-          type: 'location',
-          targetId: 'eleanor_boudoir',
-          triggerStress: 60,
-          revealDialogue: "My boudoir is private! You have no right to rummage through my personal effects! Alistair loved me and provided for me!"
-        },
-        {
-          type: 'evidence',
-          targetId: 'down_feathered_dressing_gown',
-          triggerEvidenceId: 'pillow_down_fibers',
-          revealDialogue: "Pillow feathers? In his throat? Why are you asking me about pillows when Jenkins was poisoning his wine and Roderick smashed the terrace window?"
-        }
-      ]
+      dynamicUnlocks: []
     },
     {
       id: 'arthur_jenkins',
@@ -1183,20 +1049,7 @@ export const MANOR_STORY: IStory = {
         'Saw Lady Eleanor sneaking down the west service stairs in her silk robe at 11:32 PM.'
       ],
       breakdownThreshold: 75,
-      dynamicUnlocks: [
-        {
-          type: 'location',
-          targetId: 'terrace_conservatory',
-          triggerStress: 65,
-          revealDialogue: "I didn't break into the library! Look at the terrace! Roderick was shouting outside in the garden with a brass poker!"
-        },
-        {
-          type: 'character',
-          targetId: 'roderick_ravenscroft',
-          triggerStress: 70,
-          revealDialogue: "Roderick Ravenscroft came back to the estate tonight! He swore he would kill his father if he didn't get his inheritance!"
-        }
-      ]
+      dynamicUnlocks: []
     },
     {
       id: 'roderick_ravenscroft',
@@ -1218,14 +1071,7 @@ export const MANOR_STORY: IStory = {
         'Panicked when he touched his father\'s face and felt no pulse, dropping the poker and fleeing into the storm.'
       ],
       breakdownThreshold: 75,
-      dynamicUnlocks: [
-        {
-          type: 'evidence',
-          targetId: 'roderick_gold_cufflink',
-          triggerStress: 70,
-          revealDialogue: "Alright! Yes, I smashed the terrace window at a quarter to midnight! But he was already dead! His hands were cold and his eyes were open! I didn't touch him!"
-        }
-      ]
+      dynamicUnlocks: []
     },
     {
       id: 'clara_pemberton',
@@ -1246,14 +1092,7 @@ export const MANOR_STORY: IStory = {
         'Noticed Lady Eleanor was breathing heavily and hiding something in her pocket when she returned upstairs at 11:42 PM.'
       ],
       breakdownThreshold: 70,
-      dynamicUnlocks: [
-        {
-          type: 'evidence',
-          targetId: 'revised_inheritance_will',
-          triggerStress: 50,
-          revealDialogue: "Milady Eleanor had Lord Alistair sign a new will yesterday morning. She told me to make sure the library was kept completely quiet tonight."
-        }
-      ]
+      dynamicUnlocks: []
     }
   ],
   groundTruth: {
@@ -1305,12 +1144,17 @@ export const MIDNIGHT_LOUNGE_STORY: IStory = {
       "lastVisited": "August 14, 2:20 AM",
       "witnesses": "Club Doorman",
       "notes": "Mahogany desk, half-full rye bottle",
+      "isInitiallyUnlocked": true,
+      "hiddenEvidenceIds": ["cyanide_whiskey_glass"],
+      "canvassReport": "Forensics canvassed the VIP booth and secured the poisoned whiskey glass.",
       "unlockStage": 1
     }
   ],
   "evidence": [
     {
       "id": "cyanide_whiskey_glass",
+      "isInitiallyUnlocked": true,
+      "discoveryType": "initial",
       "title": "Crystal Whiskey Tumbler",
       "subtitle": "Traces of lethal potassium cyanide",
       "details": "Lab tests confirm crystalline cyanide dissolved in 18-year rye whiskey.",
@@ -1390,6 +1234,8 @@ export const NEON_STORY: IStory = {
     {
       "id": "neon_alley_sector_7",
       "title": "Neon Alley Sector 7",
+      "isInitiallyUnlocked": true,
+      "canvassReport": "CSI canvassed the rain-soaked alley and retrieved the cybernetic limb and toxic neural trace.",
       "subtitle": "Backlot of Kurogane Brokerage",
       "status": "Active Crime Scene",
       "lastVisited": "Oct 14, 2085, 03:00 AM",
@@ -1431,6 +1277,8 @@ export const NEON_STORY: IStory = {
   "evidence": [
     {
       "id": "bronze_cyber_arm",
+      "isInitiallyUnlocked": true,
+      "discoveryType": "initial",
       "title": "Detached Bronze Cybernetic Arm",
       "subtitle": "Blunt Force Instrument",
       "details": "A heavy, bronze-plated prosthetic limb. Analysis shows it was used to strike the victim's temple. The force was sufficient to cause a severe concussion and unconsciousness, but not fatal trauma. The arm has no fingerprints, only smudges consistent with the victim's own hand slipping during impact.",

@@ -22,6 +22,13 @@ const ObjectivesSchema = new Schema({
   currentObjectives: [{ type: String }]
 }, { _id: false });
 
+const LeadSourceSchema = new Schema({
+  type: { type: String, enum: ['suspect_clue', 'evidence_mention', 'location_mention'] },
+  sourceName: { type: String },
+  sourceId: { type: String },
+  description: { type: String }
+}, { _id: false });
+
 const DynamicUnlockSchema = new Schema({
   type: { type: String, enum: ['evidence', 'location', 'character'], required: true },
   targetId: { type: String, required: true },
@@ -40,6 +47,7 @@ const LocationItemSchema = new Schema({
   witnesses: { type: String, default: 'None identified' },
   notes: { type: String, default: '' },
   isInitiallyUnlocked: { type: Boolean, default: false },
+  leadSource: LeadSourceSchema,
   hiddenEvidenceIds: [{ type: String }],
   canvassReport: { type: String },
   imageUrl: { type: String }
@@ -54,6 +62,8 @@ const EvidenceItemSchema = new Schema({
   location: { type: String, default: 'Crime Scene' },
   priority: { type: String, enum: ['Low', 'Medium', 'High', 'Critical'], default: 'Medium' },
   isInitiallyUnlocked: { type: Boolean, default: false },
+  discoveryType: { type: String, enum: ['initial', 'location_canvass', 'officer_subpoena'], default: 'location_canvass' },
+  subpoenaSource: { type: String },
   locationId: { type: String },
   imageUrl: { type: String }
 }, { _id: false });
@@ -65,6 +75,7 @@ const SuspectItemSchema = new Schema({
   trait: { type: String, required: true },
   personality: { type: String, enum: ['confident', 'nervous', 'cunning', 'aggressive', 'defensive'], default: 'defensive' },
   isInitiallyUnlocked: { type: Boolean, default: true },
+  leadSource: LeadSourceSchema,
   dynamicUnlocks: [DynamicUnlockSchema],
   initialTrust: { type: Number, default: 50 },
   initialStress: { type: Number, default: 20 },

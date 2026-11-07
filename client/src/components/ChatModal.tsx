@@ -509,16 +509,20 @@ export default function ChatModal({ suspectId, sessionId, onClose }: ChatModalPr
                         type="button"
                         onClick={() => handleRecordClue(msg.content, i)}
                         style={{
-                          background: 'none',
-                          border: 'none',
-                          color: copiedClueId === i ? '#2e7d32' : '#8b3a3a',
+                          background: copiedClueId === i ? '#dcfce7' : 'none',
+                          border: copiedClueId === i ? '1px solid #22c55e' : 'none',
+                          borderRadius: copiedClueId === i ? '4px' : '0',
+                          padding: copiedClueId === i ? '2px 8px' : '0',
+                          color: copiedClueId === i ? '#15803d' : '#8b3a3a',
                           fontFamily: 'monospace',
                           fontSize: '0.8rem',
+                          fontWeight: copiedClueId === i ? 'bold' : 'normal',
                           cursor: 'pointer',
-                          textDecoration: 'underline'
+                          textDecoration: copiedClueId === i ? 'none' : 'underline',
+                          transition: 'all 0.2s'
                         }}
                       >
-                        {copiedClueId === i ? '✓ Saved to Notebook' : '+ Record Clue in Notebook'}
+                        {copiedClueId === i ? '✓ Clue Saved! (Take to Officer Davis to dispatch patrol)' : '+ Record Clue in Notebook'}
                       </button>
                     </div>
                   )}

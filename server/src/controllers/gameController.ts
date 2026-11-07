@@ -299,30 +299,8 @@ export const chatSuspect = async (req: Request, res: Response) => {
 
     const unlockRules = suspectProfile.dynamicUnlocks || [];
     for (const rule of unlockRules) {
-      let triggered = false;
       if (rule.triggerEvidenceId && presentedEvidenceId === rule.triggerEvidenceId) {
-        triggered = true;
-      } else if (typeof rule.triggerStress === 'number' && suspectState.stressLevel >= rule.triggerStress) {
-        triggered = true;
-      }
-
-      if (triggered) {
-        if (rule.type === 'location' && !session.unlockedLocations.includes(rule.targetId)) {
-          session.unlockedLocations.push(rule.targetId);
-          const loc = story.locations.find((l: any) => l.id === rule.targetId);
-          newlyUnlocked.push({ type: 'location', id: rule.targetId, name: loc?.title || rule.targetId });
-          if (rule.revealDialogue) mandatoryUnlockDialogue = rule.revealDialogue;
-        } else if (rule.type === 'evidence' && !session.unlockedEvidence.includes(rule.targetId)) {
-          session.unlockedEvidence.push(rule.targetId);
-          const ev = story.evidence.find((e: any) => e.id === rule.targetId);
-          newlyUnlocked.push({ type: 'evidence', id: rule.targetId, name: ev?.title || rule.targetId });
-          if (rule.revealDialogue) mandatoryUnlockDialogue = rule.revealDialogue;
-        } else if (rule.type === 'character' && !session.unlockedSuspects.includes(rule.targetId)) {
-          session.unlockedSuspects.push(rule.targetId);
-          const susp = story.suspects.find((s: any) => s.id === rule.targetId);
-          newlyUnlocked.push({ type: 'character', id: rule.targetId, name: susp?.name || rule.targetId });
-          if (rule.revealDialogue) mandatoryUnlockDialogue = rule.revealDialogue;
-        }
+        if (rule.revealDialogue) mandatoryUnlockDialogue = rule.revealDialogue;
       }
     }
 
@@ -423,24 +401,7 @@ export const chatSuspect = async (req: Request, res: Response) => {
       suspectState.revealedFacts.push(slipOfTongueDetail);
     }
 
-    // Second-pass check: if new stress level just triggered any unlock rule
-    for (const rule of unlockRules) {
-      if (typeof rule.triggerStress === 'number' && suspectState.stressLevel >= rule.triggerStress) {
-        if (rule.type === 'location' && !session.unlockedLocations.includes(rule.targetId)) {
-          session.unlockedLocations.push(rule.targetId);
-          const loc = story.locations.find((l: any) => l.id === rule.targetId);
-          newlyUnlocked.push({ type: 'location', id: rule.targetId, name: loc?.title || rule.targetId });
-        } else if (rule.type === 'evidence' && !session.unlockedEvidence.includes(rule.targetId)) {
-          session.unlockedEvidence.push(rule.targetId);
-          const ev = story.evidence.find((e: any) => e.id === rule.targetId);
-          newlyUnlocked.push({ type: 'evidence', id: rule.targetId, name: ev?.title || rule.targetId });
-        } else if (rule.type === 'character' && !session.unlockedSuspects.includes(rule.targetId)) {
-          session.unlockedSuspects.push(rule.targetId);
-          const susp = story.suspects.find((s: any) => s.id === rule.targetId);
-          newlyUnlocked.push({ type: 'character', id: rule.targetId, name: susp?.name || rule.targetId });
-        }
-      }
-    }
+// Suspects do not silently unlock entities into the session. Unlocking is strictly player-directed via Officer Davis probable cause.
 
     // Save AI response to chat history
     suspectState.chatHistory.push({
@@ -539,7 +500,15 @@ export const canvassLocation = async (req: Request, res: Response) => {
 
 export const chatOfficer = async (req: Request, res: Response) => {
   try {
-    const { sessionId, message } = req.body;
+    const {
+      sessionId,
+      message,
+      attachedClue,
+      attachedClueId,
+      referencedEvidenceId,
+      referencedLocationId
+    } = req.body;
+
     const session = await GameSession.findById(sessionId);
     if (!session) return res.status(404).json({ error: 'Session not found' });
 
@@ -547,7 +516,167 @@ export const chatOfficer = async (req: Request, res: Response) => {
     if (!story) return res.status(404).json({ error: 'Story not found' });
 
     if (!session.unlockedSuspects) session.unlockedSuspects = (story.suspects || []).slice(0, 2).map((s: any) => s.id);
+    if (!session.unlockedLocations) session.unlockedLocations = (story.locations || []).slice(0, 1).map((l: any) => l.id);
+    if (!session.unlockedEvidence) session.unlockedEvidence = [];
     if (!session.canvassedLocations) session.canvassedLocations = [];
+
+    // Resolve attached clue if only ID was provided
+    let activeClue = attachedClue || null;
+    if (!activeClue && attachedClueId) {
+      activeClue = (session.recordedClues || []).find((c: any) => c.id === attachedClueId) || null;
+    }
+
+    // Resolve referenced evidence if unlocked
+    let activeEvidence = null;
+    if (referencedEvidenceId && session.unlockedEvidence.includes(referencedEvidenceId)) {
+      activeEvidence = (story.evidence || []).find((e: any) => e.id === referencedEvidenceId) || null;
+    }
+
+    // Resolve referenced location if visited / unlocked
+    let activeLocation = null;
+    if (referencedLocationId && session.unlockedLocations.includes(referencedLocationId)) {
+      activeLocation = (story.locations || []).find((l: any) => l.id === referencedLocationId) || null;
+    }
+
+    // Match candidate target among locked entities
+    const lockedLocations = (story.locations || []).filter((l: any) => !session.unlockedLocations.includes(l.id));
+    const lockedSuspects = (story.suspects || []).filter((s: any) => !session.unlockedSuspects.includes(s.id));
+    const lockedEvidence = (story.evidence || []).filter((e: any) => !session.unlockedEvidence.includes(e.id) && e.discoveryType === 'officer_subpoena');
+
+    const combinedSearchText = `${message || ''} ${activeClue?.statement || ''} ${activeEvidence?.title || ''} ${activeLocation?.title || ''}`.toLowerCase();
+
+    const targetMatches = (text: string, titleOrName: string, id: string): boolean => {
+      const lower = text.toLowerCase();
+      if (lower.includes(id.toLowerCase())) return true;
+      if (lower.includes(titleOrName.toLowerCase())) return true;
+      const tokens = titleOrName.toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .filter(t => t.length >= 4 && !['cafe', 'suite', 'lane', 'street', 'drive', 'center', 'park', 'parkade', 'room', 'office', 'with', 'from', 'that', 'this', 'have', 'were'].includes(t));
+      return tokens.some(tok => lower.includes(tok));
+    };
+
+    let targetEntity: any = null;
+    let targetType: 'location' | 'character' | 'evidence' | null = null;
+
+    // 1. Check locations
+    for (const loc of lockedLocations) {
+      if (targetMatches(combinedSearchText, loc.title, loc.id)) {
+        targetEntity = loc;
+        targetType = 'location';
+        break;
+      }
+    }
+
+    // 2. Check suspects
+    if (!targetEntity) {
+      for (const susp of lockedSuspects) {
+        if (targetMatches(combinedSearchText, susp.name, susp.id)) {
+          targetEntity = susp;
+          targetType = 'character';
+          break;
+        }
+      }
+    }
+
+    // 3. Check subpoena evidence
+    if (!targetEntity) {
+      for (const ev of lockedEvidence) {
+        if (targetMatches(combinedSearchText, ev.title, ev.id)) {
+          targetEntity = ev;
+          targetType = 'evidence';
+          break;
+        }
+      }
+    }
+
+    // Evaluate Probable Cause
+    let isAuthorized = false;
+    let proofDescription = '';
+    let rejectionReason = '';
+    let newlyUnlocked: { type: 'location' | 'evidence' | 'character'; id: string; name: string } | null = null;
+
+    if (targetEntity && targetType) {
+      if (targetType === 'location') {
+        if (activeClue && targetMatches(activeClue.statement, targetEntity.title, targetEntity.id)) {
+          isAuthorized = true;
+          proofDescription = `Suspect statement recorded from ${activeClue.suspectName}`;
+        } else if (activeEvidence && targetMatches(`${activeEvidence.title} ${activeEvidence.details} ${activeEvidence.location}`, targetEntity.title, targetEntity.id)) {
+          isAuthorized = true;
+          proofDescription = `Physical lead from evidence "${activeEvidence.title}"`;
+        } else if (targetEntity.leadSource && activeClue && targetEntity.leadSource.sourceId === activeClue.suspectId) {
+          isAuthorized = true;
+          proofDescription = `Suspect statement recorded from ${activeClue.suspectName}`;
+        } else if (targetEntity.leadSource && activeEvidence && targetEntity.leadSource.sourceId === activeEvidence.id) {
+          isAuthorized = true;
+          proofDescription = `Physical lead from evidence "${activeEvidence.title}"`;
+        } else {
+          rejectionReason = 'No recorded witness statement from your notebook or verified forensic evidence was attached to support investigating this location.';
+        }
+
+        if (isAuthorized) {
+          session.unlockedLocations.push(targetEntity.id);
+          newlyUnlocked = { type: 'location', id: targetEntity.id, name: targetEntity.title };
+        }
+      } else if (targetType === 'character') {
+        if (activeClue && targetMatches(activeClue.statement, targetEntity.name, targetEntity.id)) {
+          isAuthorized = true;
+          proofDescription = `Witness statement recorded from ${activeClue.suspectName}`;
+        } else if (activeEvidence && targetMatches(`${activeEvidence.title} ${activeEvidence.details}`, targetEntity.name, targetEntity.id)) {
+          isAuthorized = true;
+          proofDescription = `Official forensic lead from evidence "${activeEvidence.title}"`;
+        } else if (activeLocation && targetMatches(`${activeLocation.notes} ${activeLocation.witnesses} ${activeLocation.canvassReport || ''}`, targetEntity.name, targetEntity.id)) {
+          isAuthorized = true;
+          proofDescription = `Crime scene canvass report from "${activeLocation.title}"`;
+        } else if (targetEntity.leadSource && activeClue && targetEntity.leadSource.sourceId === activeClue.suspectId) {
+          isAuthorized = true;
+          proofDescription = `Witness statement recorded from ${activeClue.suspectName}`;
+        } else if (targetEntity.leadSource && activeEvidence && targetEntity.leadSource.sourceId === activeEvidence.id) {
+          isAuthorized = true;
+          proofDescription = `Official forensic lead from evidence "${activeEvidence.title}"`;
+        } else {
+          rejectionReason = `No recorded suspect admission or physical evidence naming ${targetEntity.name} was attached.`;
+        }
+
+        if (isAuthorized) {
+          session.unlockedSuspects.push(targetEntity.id);
+          newlyUnlocked = { type: 'character', id: targetEntity.id, name: targetEntity.name };
+        }
+      } else if (targetType === 'evidence') {
+        if (activeClue && (targetMatches(activeClue.statement, targetEntity.title, targetEntity.id) || (targetEntity.subpoenaSource && activeClue.suspectId === targetEntity.subpoenaSource))) {
+          isAuthorized = true;
+          proofDescription = `Sworn suspect statement from ${activeClue.suspectName}`;
+        } else if (activeEvidence && targetMatches(`${activeEvidence.title} ${activeEvidence.details}`, targetEntity.title, targetEntity.id)) {
+          isAuthorized = true;
+          proofDescription = `Forensic link from "${activeEvidence.title}"`;
+        } else {
+          rejectionReason = 'Judge requires a sworn witness statement or prior digital audit trail to sign an evidence subpoena.';
+        }
+
+        if (isAuthorized) {
+          session.unlockedEvidence.push(targetEntity.id);
+          newlyUnlocked = { type: 'evidence', id: targetEntity.id, name: targetEntity.title };
+        }
+      }
+    }
+
+    let dispatchContext: any = null;
+    if (targetEntity) {
+      if (isAuthorized) {
+        dispatchContext = {
+          status: 'authorized',
+          entityType: targetType!,
+          entityName: targetEntity.title || targetEntity.name,
+          sourceProof: proofDescription
+        };
+      } else {
+        dispatchContext = {
+          status: 'rejected',
+          entityName: targetEntity.title || targetEntity.name,
+          reason: rejectionReason
+        };
+      }
+    }
 
     const caseContext = {
       caseTitle: story.title,
@@ -562,29 +691,51 @@ export const chatOfficer = async (req: Request, res: Response) => {
       groundTruthSummary: story.groundTruth?.timelineSummary || ''
     };
 
+    // Save user message with supporting metadata
     session.officerChatHistory.push({
       role: 'user',
       content: message,
-      timestamp: new Date()
+      timestamp: new Date(),
+      attachedClue: activeClue ? {
+        id: activeClue.id,
+        suspectId: activeClue.suspectId,
+        suspectName: activeClue.suspectName,
+        statement: activeClue.statement,
+        timestamp: activeClue.timestamp || new Date()
+      } : null,
+      referencedEvidenceId: activeEvidence ? activeEvidence.id : null,
+      referencedLocationId: activeLocation ? activeLocation.id : null
     });
 
     const officerDialogue = await LLMService.chatWithOfficerAdvisor(
       message,
       caseContext,
-      session.officerChatHistory
+      session.officerChatHistory,
+      dispatchContext
     );
 
+    // Save assistant response
     session.officerChatHistory.push({
       role: 'assistant',
       content: officerDialogue,
-      timestamp: new Date()
+      timestamp: new Date(),
+      isApproved: isAuthorized,
+      unlockedEntity: newlyUnlocked
     });
+
+    checkAndTriggerClosing(session, story);
 
     await session.save();
 
     res.status(200).json({
       dialogue: officerDialogue,
-      officerChatHistory: session.officerChatHistory
+      officerChatHistory: session.officerChatHistory,
+      newlyUnlocked,
+      unlockedLocations: session.unlockedLocations,
+      unlockedEvidence: session.unlockedEvidence,
+      unlockedSuspects: session.unlockedSuspects,
+      caseClosingTriggered: session.caseClosingTriggered,
+      remainingClosingQuestions: session.remainingClosingQuestions
     });
   } catch (error: any) {
     console.error('chatOfficer error:', error);

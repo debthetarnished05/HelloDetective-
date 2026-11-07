@@ -43,8 +43,8 @@ export const DEFAULT_STORY: IStory = {
       witnesses: 'Security Guard John Smith, Janitor Maria Garcia',
       notes: 'Primary homicide scene. The victim was found slumped over his desk. Letter opener missing from desk caddy.',
       isInitiallyUnlocked: true,
-      hiddenEvidenceIds: ['crime_scene_photos', 'autopsy_report'],
-      canvassReport: 'Forensic investigators dusted the mahogany desk and recovered the Medical Examiner preliminary autopsy report and detailed crime scene photos.'
+      hiddenEvidenceIds: ['crime_scene_photos', 'autopsy_report', 'camera_override_log'],
+      canvassReport: 'Forensic investigators dusted the mahogany desk, recovered the Medical Examiner preliminary autopsy report, detailed crime scene photos, and extracted the 42nd-floor server override audit trail.'
     },
     {
       id: 'riverside_brews',
@@ -55,18 +55,28 @@ export const DEFAULT_STORY: IStory = {
       witnesses: 'Barista Alex Rivera',
       notes: 'Marcus Chen claims he sat here working alone until midnight. IP address of the threatening email traces to their public Wi-Fi.',
       isInitiallyUnlocked: false,
+      leadSource: {
+        type: 'suspect_clue',
+        sourceName: "Marcus Chen's Alibi",
+        description: 'Marcus claims he was working alone at Riverside Brews coffee shop on 5th Street.'
+      },
       hiddenEvidenceIds: ['threatening_email', 'barista_statement'],
       canvassReport: 'Detectives swept the public Wi-Fi logs and interviewed the night barista, recovering the email dispatch origin and the barista sworn deposition.'
     },
     {
       id: 'marcus_offsite_lab',
-      title: 'Marcus\'s Offsite Hardware Lab',
+      title: "Marcus's Offsite Hardware Lab",
       subtitle: 'Pier 9 Tech Incubator, Unit 4',
       status: 'Search Warrant Executed',
       lastVisited: 'Pending Detective Visit',
       witnesses: 'Lab Tech Leo Vance',
       notes: 'Private server racks and development benches. Potential storage for proprietary corporate data and foreign contracts.',
       isInitiallyUnlocked: false,
+      leadSource: {
+        type: 'suspect_clue',
+        sourceName: "Marcus's Secret Facility",
+        description: 'Private offsite development lab located at Pier 9 Unit 4.'
+      },
       hiddenEvidenceIds: ['secret_partnership_agreement'],
       canvassReport: 'A search warrant at the incubator lab revealed locked server racks containing the foreign acquisition contract between Marcus Chen and Aegis Global.'
     },
@@ -79,6 +89,11 @@ export const DEFAULT_STORY: IStory = {
       witnesses: 'None',
       notes: 'Maintenance access drain located beneath the rear emergency fire exit stairs.',
       isInitiallyUnlocked: false,
+      leadSource: {
+        type: 'suspect_clue',
+        sourceName: "Diana Wilkins's Confession",
+        description: 'Diana witnessed someone sprint toward the rear alley storm drain and ditch something heavy.'
+      },
       hiddenEvidenceIds: ['damascus_letter_opener', 'parkade_security_log'],
       canvassReport: 'CSI recovery divers dredged the rear alley drain, retrieving the bloodstained Damascus letter opener and recovering parkade Gate B scanner records.'
     }
@@ -92,7 +107,8 @@ export const DEFAULT_STORY: IStory = {
       date: 'April 18, 2025',
       location: 'County Morgue',
       priority: 'Critical',
-      isInitiallyUnlocked: true
+      isInitiallyUnlocked: true,
+      discoveryType: 'initial'
     },
     {
       id: 'crime_scene_photos',
@@ -102,18 +118,20 @@ export const DEFAULT_STORY: IStory = {
       date: 'April 18, 2025',
       location: 'Riverside Corporate Center',
       priority: 'High',
-      isInitiallyUnlocked: true
+      isInitiallyUnlocked: true,
+      discoveryType: 'initial'
     },
     {
-      id: 'parkade_security_log',
-      title: 'Corporate Parkade Access Log',
-      subtitle: 'Automated License Plate & Keycard Scanner',
-      details: 'Black Audi sedan registered to Marcus Chen entered the executive underground parking gate at 10:48 PM and departed at 11:22 PM. This directly conflicts with any alibi placing him miles away at that hour.',
+      id: 'camera_override_log',
+      title: 'Building Server Override Audit Trail',
+      subtitle: '42nd Floor Security Subsystem',
+      details: 'Diagnostic log showing administrative credentials for Diana Wilkins were used at 10:32 PM to trigger an emergency firmware reset loop on the 42nd-floor cameras, blindfolding the surveillance system until 11:18 PM.',
       date: 'April 17, 2025',
-      location: 'Riverside Corporate Center Gate B',
+      location: 'TechVision Mainframe',
       priority: 'Critical',
       isInitiallyUnlocked: false,
-      locationId: 'storm_drain_parkade'
+      discoveryType: 'location_canvass',
+      locationId: 'riverside_corporate_center'
     },
     {
       id: 'threatening_email',
@@ -124,6 +142,7 @@ export const DEFAULT_STORY: IStory = {
       location: 'Riverside Brews / TechVision Servers',
       priority: 'High',
       isInitiallyUnlocked: false,
+      discoveryType: 'location_canvass',
       locationId: 'riverside_brews'
     },
     {
@@ -135,29 +154,20 @@ export const DEFAULT_STORY: IStory = {
       location: 'Riverside Brews',
       priority: 'Critical',
       isInitiallyUnlocked: false,
+      discoveryType: 'location_canvass',
       locationId: 'riverside_brews'
     },
     {
-      id: 'secret_partnership_agreement',
-      title: 'Drafted Foreign Acquisition Contract',
-      subtitle: 'Aegis Global Ltd & Marcus Chen',
-      details: 'Confidential contract showing Marcus Chen secretly agreed to sell TechVision\'s neural encryption source code for $14,000,000. A handwritten note on the draft from Michael reads: "Over my dead body. Criminal fraud referral filed with SEC."',
-      date: 'April 12, 2025',
-      location: 'Marcus\'s Offsite Lab Safe',
-      priority: 'Critical',
-      isInitiallyUnlocked: false,
-      locationId: 'marcus_offsite_lab'
-    },
-    {
-      id: 'camera_override_log',
-      title: 'Building Server Override Audit Trail',
-      subtitle: '42nd Floor Security Subsystem',
-      details: 'Diagnostic log showing administrative credentials for Diana Wilkins were used at 10:32 PM to trigger an emergency firmware reset loop on the 42nd-floor cameras, blindfolding the surveillance system until 11:18 PM.',
+      id: 'parkade_security_log',
+      title: 'Corporate Parkade Access Log',
+      subtitle: 'Automated License Plate & Keycard Scanner',
+      details: 'Black Audi sedan registered to Marcus Chen entered the executive underground parking gate at 10:48 PM and departed at 11:22 PM. This directly conflicts with any alibi placing him miles away at that hour.',
       date: 'April 17, 2025',
-      location: 'TechVision Mainframe',
+      location: 'Riverside Corporate Center Gate B',
       priority: 'Critical',
       isInitiallyUnlocked: false,
-      locationId: 'riverside_corporate_center'
+      discoveryType: 'location_canvass',
+      locationId: 'storm_drain_parkade'
     },
     {
       id: 'damascus_letter_opener',
@@ -168,7 +178,20 @@ export const DEFAULT_STORY: IStory = {
       location: 'Rear Service Alley Storm Drain',
       priority: 'Critical',
       isInitiallyUnlocked: false,
+      discoveryType: 'location_canvass',
       locationId: 'storm_drain_parkade'
+    },
+    {
+      id: 'secret_partnership_agreement',
+      title: 'Drafted Foreign Acquisition Contract',
+      subtitle: 'Aegis Global Ltd & Marcus Chen',
+      details: 'Confidential contract showing Marcus Chen secretly agreed to sell TechVision\'s neural encryption source code for $14,000,000. A handwritten note on the draft from Michael reads: "Over my dead body. Criminal fraud referral filed with SEC."',
+      date: 'April 12, 2025',
+      location: 'Marcus\'s Offsite Lab Safe',
+      priority: 'Critical',
+      isInitiallyUnlocked: false,
+      discoveryType: 'location_canvass',
+      locationId: 'marcus_offsite_lab'
     }
   ],
   suspects: [
@@ -179,25 +202,11 @@ export const DEFAULT_STORY: IStory = {
       trait: 'Arrogant, calculating, easily defensive when trapped by hard data',
       personality: 'cunning',
       isInitiallyUnlocked: true,
-      dynamicUnlocks: [
-        {
-          type: 'location',
-          targetId: 'riverside_brews',
-          triggerStress: 40,
-          revealDialogue: "Fine! If you must know, I was sitting at Riverside Brews coffee shop on 5th Street all night! Go check their Wi-Fi logs if you don't believe me!"
-        },
-        {
-          type: 'location',
-          targetId: 'marcus_offsite_lab',
-          triggerStress: 70,
-          revealDialogue: "The Aegis contract? Who gave you that?! It was locked in my private offsite lab at Pier 9!"
-        }
-      ],
       initialTrust: 45,
-      initialStress: 25,
+      initialStress: 20,
       isPrimeSuspect: true,
       category: 'prime_suspect',
-      alibi: 'Claims he was working alone at Riverside Brews coffee shop from 9:30 PM until after midnight, minding his own business and writing code.',
+      alibi: 'Claims he was working alone at Riverside Brews coffee shop on 5th Street from 9:30 PM until after midnight, minding his own business and writing code.',
       motive: 'Michael caught him selling confidential company patents to Aegis Global and threatened to fire him and send him to federal prison the following morning.',
       privateKnowledge: 'He left the coffee shop in a panic after Michael rejected his phone call, drove his Audi to the office, entered via parking gate B, confronted Michael in the penthouse, and stabbed him with the letter opener during a struggle when Michael reached for the phone to call 911.',
       secrets: [
@@ -221,16 +230,8 @@ export const DEFAULT_STORY: IStory = {
       trait: 'Grieving, high-strung, guarded about her catastrophic debts',
       personality: 'defensive',
       isInitiallyUnlocked: true,
-      dynamicUnlocks: [
-        {
-          type: 'character',
-          targetId: 'diana_wilkins',
-          triggerStress: 45,
-          revealDialogue: "Michael wasn't alone that afternoon! I saw Diana Wilkins, his lead systems architect, having an intense argument with him near the server room!"
-        }
-      ],
       initialTrust: 40,
-      initialStress: 35,
+      initialStress: 25,
       isPrimeSuspect: true,
       category: 'prime_suspect',
       alibi: 'Claims she was at her downtown condo all night watching television and crying after an argument with Michael earlier that afternoon.',
@@ -254,22 +255,13 @@ export const DEFAULT_STORY: IStory = {
       trait: 'Nervous, talkative, terrified of getting caught in an illegal conspiracy',
       personality: 'nervous',
       isInitiallyUnlocked: false,
-      dynamicUnlocks: [
-        {
-          type: 'location',
-          targetId: 'storm_drain_parkade',
-          triggerStress: 60,
-          revealDialogue: "I disabled the cameras because Marcus blackmailed me! And after the 11 PM thud, I saw someone sprint toward the rear alley storm drain and ditch something heavy!"
-        },
-        {
-          type: 'evidence',
-          targetId: 'camera_override_log',
-          triggerStress: 45,
-          revealDialogue: "I kept an audit log of the camera override on the mainframe. Here, look at the server timestamps yourself!"
-        }
-      ],
+      leadSource: {
+        type: 'evidence_mention',
+        sourceName: 'Building Server Override Audit Trail',
+        description: 'Diana Wilkins\'s administrative credentials were used to blind the 42nd-floor cameras during the murder window.'
+      },
       initialTrust: 55,
-      initialStress: 40,
+      initialStress: 35,
       isPrimeSuspect: true,
       category: 'prime_suspect',
       alibi: 'Claims she was at home running scheduled server updates from her couch and heard a muffled thud through the building walls around 11:00 PM.',
@@ -278,7 +270,7 @@ export const DEFAULT_STORY: IStory = {
       secrets: [
         'Admitted she was blackmailed by Marcus Chen',
         'Confessed she disabled the 42nd-floor security cameras from 10:32 PM to 11:18 PM on Marcus\'s orders',
-        'Revealed she saw Marcus running out of the fire exit stairs toward the alley storm drain at 11:20 PM'
+        'Revealed she saw Marcus running out of the fire exit stairs toward the rear alley storm drain at 11:20 PM'
       ],
       breakdownThreshold: 70,
       evidenceReactions: {
@@ -293,14 +285,11 @@ export const DEFAULT_STORY: IStory = {
       trait: 'Observant, street-smart, defensive about tipping rules and customer privacy',
       personality: 'confident',
       isInitiallyUnlocked: false,
-      dynamicUnlocks: [
-        {
-          type: 'evidence',
-          targetId: 'barista_statement',
-          triggerStress: 45,
-          revealDialogue: "Marcus gave me a hundred bucks to lie, but I ain't going down for murder. He stormed out at 10:35 PM in a blind panic."
-        }
-      ],
+      leadSource: {
+        type: 'location_mention',
+        sourceName: 'Riverside Brews Cafe',
+        description: 'Night Barista on duty at Riverside Brews coffee shop.'
+      },
       initialTrust: 60,
       initialStress: 20,
       isPrimeSuspect: false,
@@ -327,16 +316,13 @@ export const DEFAULT_STORY: IStory = {
       trait: 'Bitter, sharp-tongued engineer, obsessed with proprietary patents and unpaid royalties',
       personality: 'aggressive',
       isInitiallyUnlocked: false,
-      dynamicUnlocks: [
-        {
-          type: 'evidence',
-          targetId: 'secret_partnership_agreement',
-          triggerStress: 50,
-          revealDialogue: "Marcus hid the Aegis partnership contract right here in the Pier 9 server safe! Here is the safe code."
-        }
-      ],
+      leadSource: {
+        type: 'location_mention',
+        sourceName: "Marcus's Offsite Hardware Lab",
+        description: 'Senior hardware engineer at Pier 9 Unit 4.'
+      },
       initialTrust: 45,
-      initialStress: 35,
+      initialStress: 30,
       isPrimeSuspect: false,
       category: 'person_of_interest',
       alibi: 'Claims he was working alone soldering prototype boards at the Pier 9 lab until midnight.',
@@ -360,16 +346,13 @@ export const DEFAULT_STORY: IStory = {
       trait: 'Observant, polite, terrified of losing her job or immigration status',
       personality: 'nervous',
       isInitiallyUnlocked: false,
-      dynamicUnlocks: [
-        {
-          type: 'evidence',
-          targetId: 'parkade_security_log',
-          triggerStress: 40,
-          revealDialogue: "I saw the black Audi speed out of Gate B into the street without headlights at 11:22 PM! Check the gate scanner records!"
-        }
-      ],
+      leadSource: {
+        type: 'location_mention',
+        sourceName: 'Riverside Corporate Center',
+        description: 'Night shift custodian on duty at the corporate center.'
+      },
       initialTrust: 65,
-      initialStress: 25,
+      initialStress: 20,
       isPrimeSuspect: false,
       category: 'witness',
       alibi: 'Cleaning the 38th through 41st floor restrooms and cubicles between 9:00 PM and 11:00 PM.',

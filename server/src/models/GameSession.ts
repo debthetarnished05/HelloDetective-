@@ -54,7 +54,20 @@ const OfficerChatMessageSchema = new Schema({
   role: { type: String, enum: ['user', 'assistant'], required: true },
   content: { type: String, required: true },
   timestamp: { type: Date, default: Date.now },
-  isApproved: { type: Boolean, default: false }
+  isApproved: { type: Boolean, default: false },
+  attachedClue: {
+    id: { type: String },
+    suspectId: { type: String },
+    suspectName: { type: String },
+    statement: { type: String }
+  },
+  referencedEvidenceId: { type: String, default: null },
+  referencedLocationId: { type: String, default: null },
+  unlockedEntity: {
+    type: { type: String },
+    id: { type: String },
+    name: { type: String }
+  }
 }, { _id: false });
 
 const RecordedClueSchema = new Schema({

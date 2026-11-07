@@ -28,6 +28,13 @@ export interface IDynamicUnlockRule {
   revealed?: boolean;
 }
 
+export interface ILeadSource {
+  type: 'suspect_clue' | 'evidence_mention' | 'location_mention';
+  sourceName?: string;
+  sourceId?: string;
+  description?: string;
+}
+
 export interface ILocationItem {
   id: string;
   title: string;
@@ -38,6 +45,7 @@ export interface ILocationItem {
   notes: string;
   unlockStage?: number;
   isInitiallyUnlocked?: boolean;
+  leadSource?: ILeadSource;
   hiddenEvidenceIds?: string[];
   canvassReport?: string;
   imageUrl?: string;
@@ -53,6 +61,8 @@ export interface IEvidenceItem {
   priority: 'Low' | 'Medium' | 'High' | 'Critical';
   unlockStage?: number;
   isInitiallyUnlocked?: boolean;
+  discoveryType?: 'initial' | 'location_canvass' | 'officer_subpoena';
+  subpoenaSource?: string;
   locationId?: string;
   imageUrl?: string;
 }
@@ -64,6 +74,7 @@ export interface ISuspectItem {
   trait: string;
   personality?: SuspectPersonality;
   isInitiallyUnlocked?: boolean;
+  leadSource?: ILeadSource;
   dynamicUnlocks?: IDynamicUnlockRule[];
   initialTrust: number;
   initialStress: number;
@@ -147,6 +158,14 @@ export interface IOfficerChatMessage {
   content: string;
   timestamp: string | Date;
   isApproved?: boolean;
+  attachedClue?: IRecordedClue | null;
+  referencedEvidenceId?: string | null;
+  referencedLocationId?: string | null;
+  unlockedEntity?: {
+    type: 'location' | 'character' | 'evidence';
+    id: string;
+    name: string;
+  } | null;
 }
 
 export interface IRecordedClue {
