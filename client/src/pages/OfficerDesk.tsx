@@ -10,7 +10,6 @@ export default function OfficerDesk() {
     story,
     unlockedEvidence,
     unlockedLocations,
-    unlockedSuspects,
     recordedClues,
     officerChatHistory,
     setOfficerChatHistory,
@@ -40,101 +39,14 @@ export default function OfficerDesk() {
     "Do we have enough to file an arrest warrant?"
   ];
 
-  // Helper to test if a text references a target entity
-  const targetMatches = (text: string, titleOrName: string, id: string): boolean => {
-    const lower = text.toLowerCase();
-    if (lower.includes(id.toLowerCase())) return true;
-    if (lower.includes(titleOrName.toLowerCase())) return true;
-    const tokens = titleOrName.toLowerCase()
-      .replace(/[^a-z0-9\s]/g, ' ')
-      .split(/\s+/)
-      .filter(t => t.length >= 4 && !['cafe', 'suite', 'lane', 'street', 'drive', 'center', 'park', 'parkade', 'room', 'office', 'with', 'from', 'that', 'this', 'have', 'were'].includes(t));
-    return tokens.some(tok => lower.includes(tok));
-  };
-
-  // Smart suggestions from recorded clues & unlocked evidence
-  const smartSuggestions: Array<{
-    label: string;
-    text: string;
-    clue?: IRecordedClue;
-    evidenceId?: string;
-    targetName: string;
-  }> = [];
-
-  const lockedLocations = (story?.locations || []).filter(l => !unlockedLocations.includes(l.id));
-  const lockedSuspects = (story?.suspects || []).filter(s => !unlockedSuspects.includes(s.id));
-
-  // Check clues pointing to locked locations or suspects
-  for (const clue of recordedClues) {
-    for (const loc of lockedLocations) {
-      if (targetMatches(clue.statement, loc.title, loc.id)) {
-        if (!smartSuggestions.some(s => s.targetName === loc.title)) {
-          smartSuggestions.push({
-            label: `Dispatch to ${loc.title}`,
-            text: `Officer Davis, ${clue.suspectName} stated: "${clue.statement.slice(0, 60)}...". I need a patrol unit dispatched to ${loc.title}.`,
-            clue,
-            targetName: loc.title
-          });
-        }
-      }
-    }
-    for (const susp of lockedSuspects) {
-      if (targetMatches(clue.statement, susp.name, susp.id)) {
-        if (!smartSuggestions.some(s => s.targetName === susp.name)) {
-          smartSuggestions.push({
-            label: `Bring in ${susp.name}`,
-            text: `Officer Davis, ${clue.suspectName} named ${susp.name} during questioning. Issue a summons to bring them in.`,
-            clue,
-            targetName: susp.name
-          });
-        }
-      }
-    }
-  }
-
-  // Check evidence pointing to locked suspects or locations
-  for (const evId of unlockedEvidence) {
-    const ev = (story?.evidence || []).find(e => e.id === evId);
-    if (!ev) continue;
-    for (const susp of lockedSuspects) {
-      if (targetMatches(`${ev.title} ${ev.details}`, susp.name, susp.id)) {
-        if (!smartSuggestions.some(s => s.targetName === susp.name)) {
-          smartSuggestions.push({
-            label: `Summon ${susp.name} (from ${ev.title})`,
-            text: `Officer Davis, forensic evidence "${ev.title}" points directly to ${susp.name}. We have probable cause to interrogate them.`,
-            evidenceId: ev.id,
-            targetName: susp.name
-          });
-        }
-      }
-    }
-    for (const loc of lockedLocations) {
-      if (targetMatches(`${ev.title} ${ev.details}`, loc.title, loc.id)) {
-        if (!smartSuggestions.some(s => s.targetName === loc.title)) {
-          smartSuggestions.push({
-            label: `Canvas ${loc.title} (from ${ev.title})`,
-            text: `Officer Davis, evidence "${ev.title}" lists ${loc.title}. Dispatch a forensic team to canvass the site.`,
-            evidenceId: ev.id,
-            targetName: loc.title
-          });
-        }
-      }
-    }
-  }
-
-  const handleSend = async (
-    userText: string,
-    overrideClue?: IRecordedClue | null,
-    overrideEvidenceId?: string | null,
-    overrideLocationId?: string | null
-  ) => {
+  const handleSend = async (userText: string) => {
     if (!userText.trim() || !sessionId || loading) return;
 
     setLoading(true);
     const query = userText.trim();
-    const clueToAttach = overrideClue !== undefined ? overrideClue : attachedClue;
-    const evidenceToCite = overrideEvidenceId !== undefined ? overrideEvidenceId : referencedEvidenceId;
-    const locationToCite = overrideLocationId !== undefined ? overrideLocationId : referencedLocationId;
+    const clueToAttach = attachedClue;
+    const evidenceToCite = referencedEvidenceId;
+    const locationToCite = referencedLocationId;
 
     setMessage('');
     setAttachedClue(null);
@@ -325,40 +237,7 @@ export default function OfficerDesk() {
           </div>
         )}
 
-        {/* Smart Lead Suggestion Chips */}
-        {smartSuggestions.length > 0 && (
-          <div style={{ marginBottom: '14px' }}>
-            <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#4b5563', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>
-              ⚡ Actionable Leads in Notebook & Locker:
-            </span>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              {smartSuggestions.map((sug, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => handleSend(sug.text, sug.clue || null, sug.evidenceId || null, null)}
-                  disabled={loading}
-                  style={{
-                    backgroundColor: '#fef3c7',
-                    border: '1px solid #f59e0b',
-                    borderRadius: '16px',
-                    padding: '6px 12px',
-                    fontFamily: 'monospace',
-                    fontSize: '0.82rem',
-                    color: '#92400e',
-                    cursor: loading ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  <span>🎯</span>
-                  <strong>{sug.label}</strong>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+
 
         {/* Quick Consultation Prompt Chips */}
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
