@@ -47,7 +47,7 @@ export default function SuspectsDirectory() {
   return (
     <div className="page-wrapper" style={{ paddingBottom: '90px' }}>
       <div className="taped-title handwritten">
-        Interrogation Directory
+        Interrogation Room
       </div>
 
       {/* CASE CLOSING BANNER */}
@@ -59,7 +59,7 @@ export default function SuspectsDirectory() {
               DISTRICT ATTORNEY MANDATE: INTERROGATION ROOMS SEALED
             </strong>
             <span style={{ fontFamily: 'monospace', fontSize: '0.88rem', color: '#f5f5f5' }}>
-              All 12 closing questions have been exhausted. You may no longer interrogate suspects. Review your case notes and submit your formal Arrest Warrant.
+              You may no longer interrogate suspects. Review your case notes and submit your formal Arrest Warrant.
             </span>
           </div>
         </div>
@@ -71,7 +71,7 @@ export default function SuspectsDirectory() {
               CLOSING WINDOW ACTIVE — {remainingClosingQuestions} QUESTIONS REMAINING
             </strong>
             <span style={{ fontFamily: 'monospace', fontSize: '0.88rem', color: '#fff' }}>
-              All locations canvassed and forensic evidence recovered. The DA demands an arrest warrant. Each question asked to any suspect reduces this remaining counter!
+              The DA demands an arrest warrant. Each question asked to any suspect reduces this remaining counter!
             </span>
           </div>
         </div>

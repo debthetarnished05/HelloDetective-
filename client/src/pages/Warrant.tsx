@@ -182,10 +182,10 @@ export default function Warrant() {
         {/* Lined Paper */}
         <div style={styles.paper}>
           <h2 className="handwritten" style={{ fontSize: '2.8rem', color: '#2c3e50', textAlign: 'center', marginBottom: '5px' }}>
-            Official Arrest Warrant & Prosecution Form
+            Official Arrest Warrant Form
           </h2>
           <p style={{ fontFamily: 'monospace', textAlign: 'center', color: '#555', marginBottom: '20px', fontSize: '0.9rem' }}>
-            Submit your formal indictment to the Superior Court at any time. The AI Judge will deliberate your physical forensics, suspect admissions, and motive.
+            Submit your formal indictment to the Superior Court at any time. The Judge will deliberate your physical forensics, suspect admissions and motive.
           </p>
 
           {interrogationLocked ? (
@@ -239,7 +239,7 @@ export default function Warrant() {
 
             {/* 2. Motive Input / Select */}
             <div style={styles.inputGroup}>
-              <label style={styles.label}>2. The Incontrovertible Motive:</label>
+              <label style={styles.label}>2. The Motive:</label>
               <input
                 type="text"
                 value={motive}

@@ -13,7 +13,7 @@ export default function CaseHub() {
     );
   }
 
-  const leadDetectiveDisplay = user ? `Detective ${user.username}` : (story.leadDetective || 'Guest Detective');
+  const leadDetectiveDisplay = user ? `Detective ${user.username}` : ('Detective Gene Yuss');
   const allSuspects = story.suspects || [];
   const displaySuspects = allSuspects.filter(s => unlockedSuspects.includes(s.id));
 

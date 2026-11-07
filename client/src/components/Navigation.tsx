@@ -91,7 +91,7 @@ export default function Navigation() {
             Suspects
           </Link>
           <Link to="/officer" style={{ ...styles.link, borderBottom: isActive('/officer') ? '2px solid #ffd54f' : 'none' }}>
-            Officer Davis (Advisor)
+            Officer Davis
           </Link>
           <Link to="/warrant" style={{ ...styles.link, color: '#ff8a80', borderBottom: isActive('/warrant') ? '2px solid #ff8a80' : 'none' }}>
             Submit Warrant
@@ -107,7 +107,7 @@ export default function Navigation() {
               borderBottom: isActive('/story-creator') ? '2px solid #a7ffeb' : 'none'
             }}
           >
-            ⚙️ Case Manager
+            Case Manager
           </Link>
         </div>
 
@@ -131,8 +131,7 @@ export default function Navigation() {
               style={styles.guestPillBtn}
               title="Authenticate or Issue Detective Badge for Cloud Save & Creator Clearance"
             >
-              <span style={{ fontSize: '0.95rem' }}>🕵️</span>
-              <span style={styles.guestText}>Guest Agent</span>
+              
               <span style={styles.signInTag}>SIGN IN</span>
             </button>
           )}
@@ -362,6 +361,8 @@ const styles = {
   guestPillBtn: {
     display: 'flex',
     alignItems: 'center',
+
+
     gap: '6px',
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
     border: '1px solid #78909c',
@@ -377,13 +378,13 @@ const styles = {
     fontSize: '0.8rem'
   },
   signInTag: {
-    backgroundColor: '#8b3a3a',
-    color: '#ffd54f',
+    backgroundColor: 'transparent',
+    color: 'white',
     fontFamily: "'Special Elite', monospace",
-    fontSize: '0.68rem',
-    padding: '2px 6px',
+    fontSize: '0.85rem',
+    padding: '4px 4px 2px 4px',
     borderRadius: '4px',
     fontWeight: 'bold',
-    letterSpacing: '0.5px'
-  }
+    letterSpacing: '0.5px',
+  },
 };

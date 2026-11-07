@@ -64,7 +64,7 @@ export default function AuthModal() {
       >
         {/* Top Manila Clip / Stamp */}
         <div style={styles.stampHeader}>
-          <span style={styles.rubberStamp}>CONFIDENTIAL // HOMICIDE BUREAU</span>
+          <span style={styles.rubberStamp}>CONFIDENTIAL</span>
           <button style={styles.closeBtn} onClick={closeAuthModal} title="Close dossier">
             ✕
           </button>
@@ -75,7 +75,7 @@ export default function AuthModal() {
           <div style={{ fontSize: '1.75rem', marginBottom: '2px' }}>🛡️</div>
           <h2 style={styles.title}>BUREAU PERSONNEL REGISTRY</h2>
           <p style={styles.subtitle}>
-            Authenticate with official precinct credentials or issue a new Detective Badge.
+            Authenticate with official credentials or issue a new Detective Badge.
           </p>
         </div>
 
@@ -110,7 +110,7 @@ export default function AuthModal() {
               boxShadow: tab === 'register' ? 'inset 0 -2px 0 #ffd54f' : 'none'
             }}
           >
-            🎖️ ISSUE NEW BADGE (REGISTER)
+            🎖️ ISSUE NEW BADGE
           </button>
         </div>
 
@@ -125,7 +125,7 @@ export default function AuthModal() {
         {tab === 'login' ? (
           <form onSubmit={handleLoginSubmit} style={styles.form}>
             <div style={styles.inputGroup}>
-              <label style={styles.label}>DETECTIVE CALLSIGN OR EMAIL</label>
+              <label style={styles.label}>USERNAME/EMAIL</label>
               <input
                 type="text"
                 value={identifier}
@@ -160,7 +160,7 @@ export default function AuthModal() {
         ) : (
           <form onSubmit={handleRegisterSubmit} style={styles.form}>
             <div style={styles.inputGroup}>
-              <label style={styles.label}>CHOSEN DETECTIVE NAME / CALLSIGN</label>
+              <label style={styles.label}>USERNAME</label>
               <input
                 type="text"
                 value={regUsername}
@@ -170,11 +170,11 @@ export default function AuthModal() {
                 autoFocus
                 required
               />
-              <span style={styles.hint}>This name will replace the lead detective on all case briefs.</span>
+              
             </div>
 
             <div style={styles.inputGroup}>
-              <label style={styles.label}>PRECINCT DISPATCH EMAIL</label>
+              <label style={styles.label}>EMAIL</label>
               <input
                 type="email"
                 value={regEmail}
@@ -210,7 +210,7 @@ export default function AuthModal() {
             </div>
 
             <button type="submit" disabled={isLoading} style={styles.submitBtn}>
-              {isLoading ? 'ISSUING BADGE...' : 'ISSUE OFFICIAL BADGE & SIGN IN →'}
+              {isLoading ? 'ISSUING BADGE...' : 'ISSUE OFFICIAL BADGE →'}
             </button>
           </form>
         )}

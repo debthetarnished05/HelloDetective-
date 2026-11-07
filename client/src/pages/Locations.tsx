@@ -73,7 +73,7 @@ export default function Locations() {
                   marginTop: '8px',
                   fontWeight: 'bold'
                 }}>
-                  {isCanvassed ? 'Review Forensic Findings ➔' : 'Inspect & Canvass Site ➔'}
+                  {isCanvassed ? 'Review Forensic Findings ➔' : 'Inspect Site ➔'}
                 </div>
               </div>
             </div>

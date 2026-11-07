@@ -66,25 +66,50 @@ export default function EvidenceLocker() {
               }}
               onClick={() => setSelectedEvidenceId(ev.id)}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span
-                  style={{
-                    backgroundColor: getPriorityColor(ev.priority),
-                    color: 'white',
-                    fontFamily: 'monospace',
-                    fontSize: '0.72rem',
-                    padding: '2px 8px',
-                    borderRadius: '8px',
-                    textTransform: 'uppercase',
-                    fontWeight: 'bold'
-                  }}
-                >
-                  {ev.priority}
-                </span>
-                <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#666' }}>
-                  {ev.location || 'Forensic Exhibit'}
-                </span>
-              </div>
+              <div
+  style={{
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: '8px',
+    marginBottom: '8px',
+    width: '100%',
+  }}
+>
+  {/* Priority Badge */}
+  <span
+    style={{
+      backgroundColor: getPriorityColor(ev.priority),
+      color: 'white',
+      fontFamily: 'monospace',
+      fontSize: '0.72rem',
+      padding: '3px 9px',
+      borderRadius: '8px',
+      textTransform: 'uppercase',
+      fontWeight: 'bold',
+      whiteSpace: 'nowrap',
+      flexShrink: 0,
+    }}
+  >
+    {ev.priority}
+  </span>
+
+  {/* Location */}
+  <span
+    style={{
+      fontFamily: 'monospace',
+      fontSize: '0.75rem',
+      color: '#666',
+      textAlign: 'right',
+      flex: 1,
+      minWidth: 0,
+      lineHeight: '1.3',
+      overflowWrap: 'break-word',
+    }}
+  >
+    {ev.location || 'Forensic Exhibit'}
+  </span>
+</div>
 
               <h3 className="handwritten" style={{ color: '#2c3e50', textAlign: 'center', fontSize: '1.8rem', margin: '4px 0' }}>
                 {ev.title}
@@ -142,7 +167,7 @@ function EvidenceDetailModal({ evidence, onClose }: { evidence: IEvidenceItem; o
               borderRadius: '10px'
             }}
           >
-            {evidence.priority} Priority
+            {evidence.priority}
           </span>
         </div>
         <p style={styles.modalSubtitle}>{evidence.subtitle}</p>
