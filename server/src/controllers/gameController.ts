@@ -227,7 +227,10 @@ function checkAndTriggerClosing(session: any, story: any): boolean {
   const canvassedCount = (session.canvassedLocations || []).length;
   const evidenceCount = (session.unlockedEvidence || []).length;
 
-  if (canvassedCount >= totalLocations && evidenceCount >= totalEvidence && !session.caseClosingTriggered) {
+  const allLocationsCanvassed = totalLocations > 0 && canvassedCount >= totalLocations;
+  const allEvidenceRecovered = totalEvidence > 0 && evidenceCount >= totalEvidence;
+
+  if ((allLocationsCanvassed || allEvidenceRecovered) && !session.caseClosingTriggered) {
     session.caseClosingTriggered = true;
     session.remainingClosingQuestions = 12;
     session.closingNotificationSent = true;
@@ -418,6 +421,11 @@ export const chatSuspect = async (req: Request, res: Response) => {
 
     await session.save();
 
+    // Increment user interrogations stat if authenticated
+    if (session.userId) {
+      User.findByIdAndUpdate(session.userId, { $inc: { 'stats.interrogationsCount': 1 } }).catch(() => {});
+    }
+
     res.status(200).json({
       dialogue: aiResponse.dialogue,
       trustScore: suspectState.trustScore,
@@ -586,16 +594,46 @@ export const chatOfficer = async (req: Request, res: Response) => {
     let targetEntity: any = null;
     let targetType: 'location' | 'character' | 'evidence' | null = null;
 
-    // 1. Check locations
-    for (const loc of lockedLocations) {
-      if (targetMatches(combinedSearchText, loc.title, loc.id)) {
-        targetEntity = loc;
-        targetType = 'location';
-        break;
+    // Priority 1: Check if the detective explicitly named a person, place, or document in their message
+    const rawMessage = (message || '').trim();
+    if (rawMessage) {
+      for (const susp of lockedSuspects) {
+        if (targetMatches(rawMessage, susp.name, susp.id)) {
+          targetEntity = susp;
+          targetType = 'character';
+          break;
+        }
+      }
+      if (!targetEntity) {
+        for (const loc of lockedLocations) {
+          if (targetMatches(rawMessage, loc.title, loc.id)) {
+            targetEntity = loc;
+            targetType = 'location';
+            break;
+          }
+        }
+      }
+      if (!targetEntity) {
+        for (const ev of lockedEvidence) {
+          if (targetMatches(rawMessage, ev.title, ev.id)) {
+            targetEntity = ev;
+            targetType = 'evidence';
+            break;
+          }
+        }
       }
     }
 
-    // 2. Check suspects
+    // Priority 2: If message did not name an entity directly, check attached clue or cited evidence
+    if (!targetEntity) {
+      for (const loc of lockedLocations) {
+        if (targetMatches(combinedSearchText, loc.title, loc.id)) {
+          targetEntity = loc;
+          targetType = 'location';
+          break;
+        }
+      }
+    }
     if (!targetEntity) {
       for (const susp of lockedSuspects) {
         if (targetMatches(combinedSearchText, susp.name, susp.id)) {
@@ -605,8 +643,6 @@ export const chatOfficer = async (req: Request, res: Response) => {
         }
       }
     }
-
-    // 3. Check subpoena evidence
     if (!targetEntity) {
       for (const ev of lockedEvidence) {
         if (targetMatches(combinedSearchText, ev.title, ev.id)) {
@@ -719,6 +755,8 @@ export const chatOfficer = async (req: Request, res: Response) => {
     };
 
     // Save user message with supporting metadata
+    const safeOfficerQuery = (message || '').trim() || 'Officer Davis, requesting sit-rep on available leads.';
+
     session.officerChatHistory.push({
       role: 'user',
       content: message,
@@ -735,7 +773,7 @@ export const chatOfficer = async (req: Request, res: Response) => {
     });
 
     const officerDialogue = await LLMService.chatWithOfficerAdvisor(
-      message,
+      safeOfficerQuery,
       caseContext,
       session.officerChatHistory,
       dispatchContext
@@ -790,16 +828,18 @@ export const submitWarrant = async (req: AuthRequest, res: Response) => {
     const verdict = await LLMService.evaluateWarrant(
       { suspect, motive, weapon, keyContradiction },
       story.groundTruth,
-      story.title
+      story.title,
+      story
     );
 
-    session.status = verdict.outcome === 'guilty' ? 'solved' : 'active';
+    const isConvicted = verdict.outcome === 'perfect' || verdict.outcome === 'guilty';
+    session.status = isConvicted ? 'solved' : 'active';
     session.verdict = {
       suspect,
       motive,
       weapon,
       keyContradiction,
-      outcome: verdict.outcome,
+      outcome: isConvicted ? 'perfect' : verdict.outcome,
       epilogue: verdict.epilogue,
       score: verdict.score
     };
@@ -814,7 +854,7 @@ export const submitWarrant = async (req: AuthRequest, res: Response) => {
       const user = await User.findById(req.user._id);
       if (user) {
         user.stats.totalWarrantsFiled = (user.stats.totalWarrantsFiled || 0) + 1;
-        if (verdict.outcome === 'guilty') {
+        if (isConvicted) {
           user.stats.totalConvictions = (user.stats.totalConvictions || 0) + 1;
           const storyIdStr = story._id.toString();
           if (!user.casesSolved.includes(storyIdStr)) {
@@ -945,6 +985,11 @@ export const recordClue = async (req: Request, res: Response) => {
 
     session.recordedClues.push(newClue);
     await session.save();
+
+    // Increment user clues stat if authenticated
+    if (session.userId) {
+      User.findByIdAndUpdate(session.userId, { $inc: { 'stats.cluesFoundCount': 1 } }).catch(() => {});
+    }
 
     res.status(200).json({ clues: session.recordedClues });
   } catch (error: any) {

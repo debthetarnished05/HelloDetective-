@@ -47,6 +47,22 @@ function getGroqClient(): Groq {
   return new Groq({ apiKey });
 }
 
+export function cleanJsonString(raw: string): string {
+  if (!raw) return '{}';
+  let cleaned = raw.trim();
+  // Strip markdown code blocks (```json ... ``` or ``` ... ```)
+  if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+  }
+  // Extract outermost JSON object if surrounded by preamble/postamble
+  const firstBrace = cleaned.indexOf('{');
+  const lastBrace = cleaned.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+  }
+  return cleaned;
+}
+
 export class LLMService {
 
   // 1. Suspect Interrogation (Dual-Memory, Trust, Stress & Personality)
@@ -177,20 +193,22 @@ You MUST reply with ONLY valid JSON with exactly these keys:
       content: msg.content
     }));
 
+    const safeUserText = (userMessage || '').trim() || (presentedEvidence ? 'Explain your connection to this evidence.' : 'What were you doing during the murder?');
+
     const completion = await groq.chat.completions.create({
       model: MODEL_NAME,
       messages: [
         { role: 'system', content: systemPrompt },
         ...historyMessages,
-        { role: 'user', content: presentedEvidence ? `[Shows Evidence: ${presentedEvidence.title}] ${userMessage}` : userMessage }
+        { role: 'user', content: presentedEvidence ? `[Shows Evidence: ${presentedEvidence.title}] ${safeUserText}` : safeUserText }
       ],
       response_format: { type: 'json_object' },
       temperature: 0.7,
-      max_tokens: 350
+      max_tokens: 500
     });
 
     try {
-      const parsed = JSON.parse(completion.choices[0]?.message?.content || '{}');
+      const parsed = JSON.parse(cleanJsonString(completion.choices[0]?.message?.content || '{}'));
       return {
         dialogue: parsed.dialogue || "I have nothing further to say to you without my lawyer.",
         trust_delta: typeof parsed.trust_delta === 'number' ? parsed.trust_delta : 0,
@@ -291,10 +309,10 @@ Return your response in JSON:
         ],
         response_format: { type: 'json_object' },
         temperature: 0.6,
-        max_tokens: 300
+        max_tokens: 450
       });
 
-      const parsed = JSON.parse(completion.choices[0]?.message?.content || '{}');
+      const parsed = JSON.parse(cleanJsonString(completion.choices[0]?.message?.content || '{}'));
       return parsed.dialogue || "Keep shaking the tree, Detective. Someone's bound to slip up.";
     } catch (err) {
       console.warn('Groq json_object mode in chatWithOfficerAdvisor failed, retrying plain text:', err);
@@ -320,7 +338,8 @@ Return your response in JSON:
   static async evaluateWarrant(
     warrant: { suspect: string; motive: string; weapon: string; keyContradiction: string },
     groundTruth: IGroundTruth,
-    storyTitle: string
+    storyTitle: string,
+    storyContext?: any
   ) {
     const groq = getGroqClient();
 
@@ -329,19 +348,40 @@ Return your response in JSON:
     const redHerringCrime = groundTruth.redHerringCrime;
     const trueFatalMechanism = groundTruth.trueFatalMechanism;
 
+    const suspectsList = storyContext?.suspects || [];
+    const evidenceList = storyContext?.evidence || [];
+
+    const accusedSuspectObj = suspectsList.find((s: any) => s.id === warrant.suspect);
+    const accusedSuspectName = accusedSuspectObj?.name || warrant.suspect;
+
+    const accusedWeaponObj = evidenceList.find((e: any) => e.id === warrant.weapon);
+    const accusedWeaponTitle = accusedWeaponObj?.title || warrant.weapon;
+
+    const trueKillerObj = suspectsList.find((s: any) => s.id === groundTruth.killer);
+    const trueKillerName = trueKillerObj?.name || groundTruth.killer;
+
+    const trueWeaponObj = evidenceList.find((e: any) => e.id === groundTruth.weapon);
+    const trueWeaponTitle = trueWeaponObj?.title || groundTruth.weapon;
+
     const systemPrompt = `You are the Presiding Superior Court Judge and District Attorney delivering the grand judicial epilogue for the case: "${storyTitle}".
 The detective has submitted an official Arrest Warrant to close the case.
 
+MATCHING CRITERIA:
+- The detective submitted: Accused "${accusedSuspectName}" (ID: "${warrant.suspect}").
+- If this matches the True Killer ("${trueKillerName}" / ID: "${groundTruth.killer}"), they identified the correct suspect!
+- If the murder weapon/method ("${accusedWeaponTitle}" / ID: "${warrant.weapon}") aligns with the True Weapon ("${trueWeaponTitle}" / ID: "${groundTruth.weapon}"), the physical charge is accurate.
+- IMPORTANT: In the written epilogue narrative, use character real names ("${accusedSuspectName}", "${trueKillerName}") and real evidence titles, NEVER raw database slugs!
+
 DETECTIVE'S SUBMITTED WARRANT:
-- Arrested Suspect: "${warrant.suspect}"
+- Arrested Suspect: "${accusedSuspectName}"
 - Stated Motive: "${warrant.motive}"
-- Murder Weapon / Opportunity: "${warrant.weapon}"
+- Murder Weapon / Opportunity: "${accusedWeaponTitle}"
 - Key Contradiction That Broke The Case: "${warrant.keyContradiction}"
 
 ACTUAL GROUND TRUTH:
-- True Killer: "${groundTruth.killer}"
+- True Killer: "${trueKillerName}" (ID: "${groundTruth.killer}")
 - True Motive: "${groundTruth.motive}"
-- True Weapon: "${groundTruth.weapon}"
+- True Weapon: "${trueWeaponTitle}" (ID: "${groundTruth.weapon}")
 - True Contradiction: "${groundTruth.keyContradiction}"
 - Full Summary: "${groundTruth.timelineSummary}"
 - Case Archetype: "${archetype}"
@@ -385,11 +425,11 @@ Respond with ONLY valid JSON:
       ],
       response_format: { type: 'json_object' },
       temperature: 0.6,
-      max_tokens: 500
+      max_tokens: 1200
     });
 
     try {
-      const parsed = JSON.parse(completion.choices[0]?.message?.content || '{}');
+      const parsed = JSON.parse(cleanJsonString(completion.choices[0]?.message?.content || '{}'));
       return {
         outcome: parsed.outcome || 'weak_case',
         score: typeof parsed.score === 'number' ? parsed.score : 50,
@@ -551,7 +591,7 @@ Return ONLY valid JSON.`;
     const rawContent = completion.choices[0]?.message?.content || '{}';
     let parsed: any;
     try {
-      parsed = JSON.parse(rawContent);
+      parsed = JSON.parse(cleanJsonString(rawContent));
     } catch (e) {
       console.error('Failed to parse Groq response JSON:', rawContent);
       throw new Error('Groq returned invalid JSON');
