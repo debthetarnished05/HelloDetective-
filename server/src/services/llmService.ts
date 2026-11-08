@@ -77,6 +77,7 @@ export class LLMService {
       isSpamOrGibberish?: boolean;
       slipOfTongueDetail?: string | null;
       otherSuspects?: { id: string; name: string; role: string }[];
+      presentedEvidenceTitles?: string[];
     }
   ) {
     const groq = getGroqClient();
@@ -98,6 +99,10 @@ export class LLMService {
       .map(s => `${s.name} (${s.role})`)
       .join(', ');
 
+    const presentedEvidenceListStr = (extraOptions?.presentedEvidenceTitles && extraOptions.presentedEvidenceTitles.length > 0)
+      ? extraOptions.presentedEvidenceTitles.join(', ')
+      : 'None';
+
     const systemPrompt = `You are roleplaying as ${suspectProfile.name} in a murder mystery investigation.
 ROLE: ${suspectProfile.role}
 PERSONALITY & TRAITS: ${suspectProfile.trait}
@@ -110,6 +115,27 @@ TRUST SCORE: ${suspectState.trustScore}/100
 STRESS / PRESSURE LEVEL: ${suspectState.stressLevel}/100
 CURRENT MOOD: ${suspectState.mood}
 BREAKDOWN THRESHOLD: ${suspectProfile.breakdownThreshold}/100
+
+=== THEORY OF MIND: WHAT YOU KNOW vs. WHAT THE POLICE KNOW ===
+1. YOUR INTERNAL KNOWLEDGE (What YOU know happened):
+   You are fully aware of your own past, actions, movements, and secrets:
+   "${suspectProfile.privateKnowledge}"
+
+2. THE DETECTIVE'S CURRENT KNOWLEDGE (What the Police actually know so far):
+   - The police only know the basic public facts: the victim was killed at the crime scene.
+   - The police only know about specific forensic items if the detective has EXPLICITLY presented or mentioned them in this conversation.
+   - Physical evidence items presented to you in this interrogation: [${presentedEvidenceListStr}]
+
+3. THE GOLDEN RULE OF SECRECY (DO NOT PREMATURELY LEAK):
+   - You must actively track what the detective DOES NOT know.
+   - If the detective has NOT specifically brought up or presented the murder weapon:
+     YOU MUST NOT NAME IT, MENTION IT, OR USE IT IN METAPHORS, ANALOGIES, OR IDIOMS (e.g. NEVER say "as obvious as the blood on that letter opener").
+   - If the detective has NOT mentioned a hidden location, alibi vehicle, or private file:
+     YOU MUST NOT VOLUNTEER IT.
+   - You only discuss, defend against, or react to an unrevealed fact IF:
+     a) The detective explicitly brings it up first (e.g. Detective says "We found the murder weapon" or shows the item), OR
+     b) Your STRESS LEVEL breaks past your breakdown threshold (${suspectProfile.breakdownThreshold || 80}/100), causing your defenses to fracture, OR
+     c) A slip of the tongue (Freudian blunder) momentarily forces you to blurt out a specific detail (which you immediately attempt to backtrack/deny).
 
 === VERIFIED CANON KNOWLEDGE (STRICT RULE: NEVER FABRICATE FICTIONAL FACTS) ===
 1. PRIVATE KNOWLEDGE (What you privately know and try to hide):
@@ -195,19 +221,19 @@ You MUST reply with ONLY valid JSON with exactly these keys:
 
     const safeUserText = (userMessage || '').trim() || (presentedEvidence ? 'Explain your connection to this evidence.' : 'What were you doing during the murder?');
 
-    const completion = await groq.chat.completions.create({
-      model: MODEL_NAME,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...historyMessages,
-        { role: 'user', content: presentedEvidence ? `[Shows Evidence: ${presentedEvidence.title}] ${safeUserText}` : safeUserText }
-      ],
-      response_format: { type: 'json_object' },
-      temperature: 0.7,
-      max_tokens: 500
-    });
-
     try {
+      const completion = await groq.chat.completions.create({
+        model: MODEL_NAME,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...historyMessages,
+          { role: 'user', content: presentedEvidence ? `[Shows Evidence: ${presentedEvidence.title}] ${safeUserText}` : safeUserText }
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.6,
+        max_tokens: 500
+      });
+
       const parsed = JSON.parse(cleanJsonString(completion.choices[0]?.message?.content || '{}'));
       return {
         dialogue: parsed.dialogue || "I have nothing further to say to you without my lawyer.",
@@ -218,16 +244,40 @@ You MUST reply with ONLY valid JSON with exactly these keys:
         mood: (['composed', 'defensive', 'nervous', 'broken_down'].includes(parsed.mood) ? parsed.mood : 'composed') as any,
         broke_down: suspectState.stressLevel >= (suspectProfile.breakdownThreshold || 80)
       };
-    } catch (e) {
-      return {
-        dialogue: "You're trying to twist my words, Detective. I was nowhere near that office.",
-        trust_delta: -5,
-        stress_delta: 5,
-        new_revealed_fact: null,
-        threw_under_the_bus: null,
-        mood: 'defensive',
-        broke_down: false
-      };
+    } catch (e: any) {
+      console.warn('Groq suspect interrogation error or json failure, retrying plain text fallback:', e?.message);
+      try {
+        const fallback = await groq.chat.completions.create({
+          model: MODEL_NAME,
+          messages: [
+            { role: 'system', content: `You are roleplaying as ${suspectProfile.name} (${suspectProfile.role}) in an interrogation. Answer in character in 1-2 sentences. Do not confess to murder unless proven. Output plain dialogue only.` },
+            ...historyMessages,
+            { role: 'user', content: safeUserText }
+          ],
+          temperature: 0.6,
+          max_tokens: 250
+        });
+        const fallbackText = fallback.choices[0]?.message?.content?.trim();
+        return {
+          dialogue: fallbackText || "I have nothing further to say to you without my lawyer present.",
+          trust_delta: -2,
+          stress_delta: 3,
+          new_revealed_fact: null,
+          threw_under_the_bus: null,
+          mood: 'defensive',
+          broke_down: false
+        };
+      } catch (fallbackErr) {
+        return {
+          dialogue: "You're trying to twist my words, Detective. I was nowhere near that office.",
+          trust_delta: -5,
+          stress_delta: 5,
+          new_revealed_fact: null,
+          threw_under_the_bus: null,
+          mood: 'defensive',
+          broke_down: false
+        };
+      }
     }
   }
 

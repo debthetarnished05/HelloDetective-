@@ -377,6 +377,16 @@ export const chatSuspect = async (req: Request, res: Response) => {
       attachedEvidence: presentedEvidenceId || null
     });
 
+    // Track all physical evidence items presented to this suspect across interrogation
+    const presentedEvidenceIds = new Set<string>();
+    if (presentedEvidenceId) presentedEvidenceIds.add(presentedEvidenceId);
+    (suspectState.chatHistory || []).forEach((msg: any) => {
+      if (msg.attachedEvidence) presentedEvidenceIds.add(msg.attachedEvidence);
+    });
+    const presentedEvidenceTitles = (story.evidence || [])
+      .filter((e: any) => presentedEvidenceIds.has(e.id))
+      .map((e: any) => e.title);
+
     // Invoke AI Interrogation with personality-driven psychology
     const aiResponse = await LLMService.chatWithSuspect(
       suspectProfile,
@@ -388,7 +398,8 @@ export const chatSuspect = async (req: Request, res: Response) => {
       {
         isSpamOrGibberish,
         slipOfTongueDetail,
-        otherSuspects
+        otherSuspects,
+        presentedEvidenceTitles
       }
     );
 
