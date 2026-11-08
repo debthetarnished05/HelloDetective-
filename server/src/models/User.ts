@@ -5,7 +5,7 @@ export type DetectiveRank =
   | 'Junior Agent'
   | 'Special Agent'
   | 'Senior Special Agent'
-  | 'Chief Investigator';
+  | 'Chief Commissioner';
 
 export interface IUserBadge {
   id: string;
