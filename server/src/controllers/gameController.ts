@@ -551,196 +551,6 @@ export const chatOfficer = async (req: Request, res: Response) => {
     const lockedSuspects = (story.suspects || []).filter((s: any) => !session.unlockedSuspects.includes(s.id));
     const lockedEvidence = (story.evidence || []).filter((e: any) => !session.unlockedEvidence.includes(e.id) && e.discoveryType === 'officer_subpoena');
 
-    const combinedSearchText = `${message || ''} ${activeClue?.statement || ''} ${activeEvidence?.title || ''} ${activeLocation?.title || ''}`.toLowerCase();
-
-    const escapeRegExp = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-    const targetMatches = (text: string, titleOrName: string, id: string): boolean => {
-      if (!text || !titleOrName) return false;
-      const lowerText = text.toLowerCase();
-      const lowerTitle = titleOrName.toLowerCase();
-      const lowerId = id.toLowerCase();
-
-      // 1. Direct whole-word or phrase match for id or full title
-      const idRegex = new RegExp(`\\b${escapeRegExp(lowerId)}\\b`, 'i');
-      if (idRegex.test(lowerText) || lowerText.includes(lowerId)) return true;
-
-      const titleRegex = new RegExp(`\\b${escapeRegExp(lowerTitle)}\\b`, 'i');
-      if (titleRegex.test(lowerText)) return true;
-
-      // 2. Distinctive single-word boundary matching (ignoring generic common words)
-      const titleWords = lowerTitle
-        .replace(/[^a-z0-9\s]/g, ' ')
-        .split(/\s+/)
-        .filter(t => t.length >= 4 && !['cafe', 'suite', 'lane', 'street', 'drive', 'center', 'park', 'parkade', 'room', 'office', 'with', 'from', 'that', 'this', 'have', 'were', 'rear', 'drain', 'service'].includes(t));
-
-      for (const word of titleWords) {
-        const wordRegex = new RegExp(`\\b${escapeRegExp(word)}\\b`, 'i');
-        if (wordRegex.test(lowerText)) return true;
-      }
-
-      // 3. Two-word bigram match (e.g., "storm drain", "service alley")
-      const rawWords = lowerTitle.replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
-      for (let i = 0; i < rawWords.length - 1; i++) {
-        const bigram = `${rawWords[i]} ${rawWords[i + 1]}`;
-        if (bigram.length >= 8 && new RegExp(`\\b${escapeRegExp(bigram)}\\b`, 'i').test(lowerText)) {
-          return true;
-        }
-      }
-
-      return false;
-    };
-
-    let targetEntity: any = null;
-    let targetType: 'location' | 'character' | 'evidence' | null = null;
-
-    // Priority 1: Check if the detective explicitly named a person, place, or document in their message
-    const rawMessage = (message || '').trim();
-    if (rawMessage) {
-      for (const susp of lockedSuspects) {
-        if (targetMatches(rawMessage, susp.name, susp.id)) {
-          targetEntity = susp;
-          targetType = 'character';
-          break;
-        }
-      }
-      if (!targetEntity) {
-        for (const loc of lockedLocations) {
-          if (targetMatches(rawMessage, loc.title, loc.id)) {
-            targetEntity = loc;
-            targetType = 'location';
-            break;
-          }
-        }
-      }
-      if (!targetEntity) {
-        for (const ev of lockedEvidence) {
-          if (targetMatches(rawMessage, ev.title, ev.id)) {
-            targetEntity = ev;
-            targetType = 'evidence';
-            break;
-          }
-        }
-      }
-    }
-
-    // Priority 2: If message did not name an entity directly, check attached clue or cited evidence
-    if (!targetEntity) {
-      for (const loc of lockedLocations) {
-        if (targetMatches(combinedSearchText, loc.title, loc.id)) {
-          targetEntity = loc;
-          targetType = 'location';
-          break;
-        }
-      }
-    }
-    if (!targetEntity) {
-      for (const susp of lockedSuspects) {
-        if (targetMatches(combinedSearchText, susp.name, susp.id)) {
-          targetEntity = susp;
-          targetType = 'character';
-          break;
-        }
-      }
-    }
-    if (!targetEntity) {
-      for (const ev of lockedEvidence) {
-        if (targetMatches(combinedSearchText, ev.title, ev.id)) {
-          targetEntity = ev;
-          targetType = 'evidence';
-          break;
-        }
-      }
-    }
-
-    // Evaluate Probable Cause
-    let isAuthorized = false;
-    let proofDescription = '';
-    let rejectionReason = '';
-    let newlyUnlocked: { type: 'location' | 'evidence' | 'character'; id: string; name: string } | null = null;
-
-    if (targetEntity && targetType) {
-      if (targetType === 'location') {
-        if (activeClue && targetMatches(activeClue.statement, targetEntity.title, targetEntity.id)) {
-          isAuthorized = true;
-          proofDescription = `Suspect statement recorded from ${activeClue.suspectName}`;
-        } else if (activeEvidence && targetMatches(`${activeEvidence.title} ${activeEvidence.details} ${activeEvidence.location}`, targetEntity.title, targetEntity.id)) {
-          isAuthorized = true;
-          proofDescription = `Physical lead from evidence "${activeEvidence.title}"`;
-        } else if (targetEntity.leadSource && activeClue && targetEntity.leadSource.sourceId === activeClue.suspectId) {
-          isAuthorized = true;
-          proofDescription = `Suspect statement recorded from ${activeClue.suspectName}`;
-        } else if (targetEntity.leadSource && activeEvidence && targetEntity.leadSource.sourceId === activeEvidence.id) {
-          isAuthorized = true;
-          proofDescription = `Physical lead from evidence "${activeEvidence.title}"`;
-        } else {
-          rejectionReason = 'No recorded witness statement from your notebook or verified forensic evidence was attached to support investigating this location.';
-        }
-
-        if (isAuthorized) {
-          session.unlockedLocations.push(targetEntity.id);
-          newlyUnlocked = { type: 'location', id: targetEntity.id, name: targetEntity.title };
-        }
-      } else if (targetType === 'character') {
-        if (activeClue && targetMatches(activeClue.statement, targetEntity.name, targetEntity.id)) {
-          isAuthorized = true;
-          proofDescription = `Witness statement recorded from ${activeClue.suspectName}`;
-        } else if (activeEvidence && targetMatches(`${activeEvidence.title} ${activeEvidence.details}`, targetEntity.name, targetEntity.id)) {
-          isAuthorized = true;
-          proofDescription = `Official forensic lead from evidence "${activeEvidence.title}"`;
-        } else if (activeLocation && targetMatches(`${activeLocation.notes} ${activeLocation.witnesses} ${activeLocation.canvassReport || ''}`, targetEntity.name, targetEntity.id)) {
-          isAuthorized = true;
-          proofDescription = `Crime scene canvass report from "${activeLocation.title}"`;
-        } else if (targetEntity.leadSource && activeClue && targetEntity.leadSource.sourceId === activeClue.suspectId) {
-          isAuthorized = true;
-          proofDescription = `Witness statement recorded from ${activeClue.suspectName}`;
-        } else if (targetEntity.leadSource && activeEvidence && targetEntity.leadSource.sourceId === activeEvidence.id) {
-          isAuthorized = true;
-          proofDescription = `Official forensic lead from evidence "${activeEvidence.title}"`;
-        } else {
-          rejectionReason = `No recorded suspect admission or physical evidence naming ${targetEntity.name} was attached.`;
-        }
-
-        if (isAuthorized) {
-          session.unlockedSuspects.push(targetEntity.id);
-          newlyUnlocked = { type: 'character', id: targetEntity.id, name: targetEntity.name };
-        }
-      } else if (targetType === 'evidence') {
-        if (activeClue && (targetMatches(activeClue.statement, targetEntity.title, targetEntity.id) || (targetEntity.subpoenaSource && activeClue.suspectId === targetEntity.subpoenaSource))) {
-          isAuthorized = true;
-          proofDescription = `Sworn suspect statement from ${activeClue.suspectName}`;
-        } else if (activeEvidence && targetMatches(`${activeEvidence.title} ${activeEvidence.details}`, targetEntity.title, targetEntity.id)) {
-          isAuthorized = true;
-          proofDescription = `Forensic link from "${activeEvidence.title}"`;
-        } else {
-          rejectionReason = 'Judge requires a sworn witness statement or prior digital audit trail to sign an evidence subpoena.';
-        }
-
-        if (isAuthorized) {
-          session.unlockedEvidence.push(targetEntity.id);
-          newlyUnlocked = { type: 'evidence', id: targetEntity.id, name: targetEntity.title };
-        }
-      }
-    }
-
-    let dispatchContext: any = null;
-    if (targetEntity) {
-      if (isAuthorized) {
-        dispatchContext = {
-          status: 'authorized',
-          entityType: targetType!,
-          entityName: targetEntity.title || targetEntity.name,
-          sourceProof: proofDescription
-        };
-      } else {
-        dispatchContext = {
-          status: 'rejected',
-          entityName: targetEntity.title || targetEntity.name,
-          reason: rejectionReason
-        };
-      }
-    }
-
     const caseContext = {
       caseTitle: story.title,
       victimName: story.victimProfile?.name || 'the victim',
@@ -772,17 +582,56 @@ export const chatOfficer = async (req: Request, res: Response) => {
       referencedLocationId: activeLocation ? activeLocation.id : null
     });
 
-    const officerDialogue = await LLMService.chatWithOfficerAdvisor(
+    // Officer Davis AI evaluates probable cause and semantic relevance directly
+    const evalResult = await LLMService.chatWithOfficerAdvisor(
       safeOfficerQuery,
+      {
+        clue: activeClue ? { suspectName: activeClue.suspectName, statement: activeClue.statement, suspectId: activeClue.suspectId } : null,
+        evidence: activeEvidence ? { title: activeEvidence.title, subtitle: activeEvidence.subtitle, details: activeEvidence.details, location: activeEvidence.location } : null,
+        location: activeLocation ? { title: activeLocation.title, subtitle: activeLocation.subtitle, notes: activeLocation.notes, witnesses: activeLocation.witnesses, canvassReport: activeLocation.canvassReport } : null
+      },
+      {
+        locations: lockedLocations.map((l: any) => ({ id: l.id, title: l.title, subtitle: l.subtitle, notes: l.notes })),
+        suspects: lockedSuspects.map((s: any) => ({ id: s.id, name: s.name, role: s.role })),
+        evidence: lockedEvidence.map((e: any) => ({ id: e.id, title: e.title, subtitle: e.subtitle, details: e.details }))
+      },
       caseContext,
-      session.officerChatHistory,
-      dispatchContext
+      session.officerChatHistory
     );
+
+    let newlyUnlocked: { type: 'location' | 'evidence' | 'character'; id: string; name: string } | null = null;
+    let isAuthorized = false;
+
+    if (evalResult.authorizedUnlock && evalResult.authorizedUnlock.id) {
+      const auth = evalResult.authorizedUnlock;
+      if (auth.type === 'location') {
+        const matched = lockedLocations.find((l: any) => l.id === auth.id);
+        if (matched && !session.unlockedLocations.includes(matched.id)) {
+          session.unlockedLocations.push(matched.id);
+          newlyUnlocked = { type: 'location', id: matched.id, name: matched.title };
+          isAuthorized = true;
+        }
+      } else if (auth.type === 'character') {
+        const matched = lockedSuspects.find((s: any) => s.id === auth.id);
+        if (matched && !session.unlockedSuspects.includes(matched.id)) {
+          session.unlockedSuspects.push(matched.id);
+          newlyUnlocked = { type: 'character', id: matched.id, name: matched.name };
+          isAuthorized = true;
+        }
+      } else if (auth.type === 'evidence') {
+        const matched = lockedEvidence.find((e: any) => e.id === auth.id);
+        if (matched && !session.unlockedEvidence.includes(matched.id)) {
+          session.unlockedEvidence.push(matched.id);
+          newlyUnlocked = { type: 'evidence', id: matched.id, name: matched.title };
+          isAuthorized = true;
+        }
+      }
+    }
 
     // Save assistant response
     session.officerChatHistory.push({
       role: 'assistant',
-      content: officerDialogue,
+      content: evalResult.dialogue,
       timestamp: new Date(),
       isApproved: isAuthorized,
       unlockedEntity: newlyUnlocked
@@ -793,7 +642,7 @@ export const chatOfficer = async (req: Request, res: Response) => {
     await session.save();
 
     res.status(200).json({
-      dialogue: officerDialogue,
+      dialogue: evalResult.dialogue,
       officerChatHistory: session.officerChatHistory,
       newlyUnlocked,
       unlockedLocations: session.unlockedLocations,

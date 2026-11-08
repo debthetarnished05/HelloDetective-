@@ -231,9 +231,19 @@ You MUST reply with ONLY valid JSON with exactly these keys:
     }
   }
 
-  // 2. The Silent Advisor (Officer Davis)
+  // 2. The Silent Advisor & Probable Cause Evaluator (Officer Davis)
   static async chatWithOfficerAdvisor(
     userMessage: string,
+    attachments: {
+      clue?: { suspectName: string; statement: string; suspectId?: string } | null;
+      evidence?: { title: string; subtitle?: string; details?: string; location?: string } | null;
+      location?: { title: string; subtitle?: string; notes?: string; witnesses?: string; canvassReport?: string } | null;
+    },
+    lockedEntities: {
+      locations: Array<{ id: string; title: string; subtitle?: string; notes?: string }>;
+      suspects: Array<{ id: string; name: string; role?: string }>;
+      evidence: Array<{ id: string; title: string; subtitle?: string; details?: string }>;
+    },
     caseContext: {
       caseTitle: string;
       victimName: string;
@@ -246,52 +256,91 @@ You MUST reply with ONLY valid JSON with exactly these keys:
       discoveredClues: string[];
       groundTruthSummary: string;
     },
-    chatHistory: { role: string; content: string }[] = [],
-    dispatchContext?: {
-      status: 'authorized' | 'rejected';
-      entityType?: 'location' | 'character' | 'evidence';
-      entityName: string;
-      sourceProof?: string;
-      reason?: string;
-    } | null
-  ) {
+    chatHistory: { role: string; content: string }[] = []
+  ): Promise<{
+    dialogue: string;
+    authorizedUnlock: { type: 'location' | 'character' | 'evidence'; id: string; name: string } | null;
+    rejectionReason: string | null;
+  }> {
     const groq = getGroqClient();
 
-    const systemPrompt = `You are Officer Davis, a gritty, sharp, and loyal veteran desk officer assisting the lead detective in the homicide investigation: "${caseContext.caseTitle}" (Victim: ${caseContext.victimName}).
+    const promptLockedLocations = (lockedEntities.locations || []).length > 0
+      ? lockedEntities.locations.map(l => `- Location [ID: "${l.id}"]: "${l.title}" (${l.subtitle || 'Vicinity'}) | Notes: ${l.notes || 'None'}`).join('\n')
+      : 'None (All locations already unlocked)';
 
-=== YOUR ROLE AS SILENT ADVISOR ===
-1. You assist the detective with case notes, guidance, and observational insights.
-2. CRITICAL RULE ON COUNTS/PROGRESS:
-   - Do NOT spontaneously volunteer the exact counts or completion statistics (e.g. "We have 4 of 6 evidence").
-   - ONLY report the exact numerical progress if the detective EXPLICITLY asks for a sit-rep, status report, count, or how many leads are remaining!
-   - Current actual tracking (internal knowledge):
-     * Evidence recovered: ${caseContext.unlockedEvidence} of ${caseContext.totalEvidence}
-     * Locations canvassed: ${caseContext.canvassedLocations} of ${caseContext.totalLocations}
-     * Suspects/Witnesses identified: ${caseContext.unlockedSuspects} of ${caseContext.totalSuspects}
-3. If the detective asks for a suggestion on where to look or who to sweat:
-   - Provide a realistic, grounded noir tip based on current progress. Remind them to cross-reference statements with physical crime scenes or press suspect nerves.
-4. Speak in authentic, concise noir police dialogue (1 to 3 sentences).
+    const promptLockedSuspects = (lockedEntities.suspects || []).length > 0
+      ? lockedEntities.suspects.map(s => `- Person/Suspect [ID: "${s.id}"]: "${s.name}" (${s.role || 'Person of interest'})`).join('\n')
+      : 'None (All suspects already unlocked)';
 
-${dispatchContext?.status === 'authorized' ? `
-=== IMMEDIATE DISPATCH / SEARCH ORDER AUTHORIZED ===
-The detective presented verified probable cause (${dispatchContext.sourceProof}) to access: "${dispatchContext.entityName}" (${dispatchContext.entityType}).
-YOUR ACTION: Enthusiastically or professionally confirm this authorization!
-- If Location: Confirm you're dispatching a squad car or forensic canvass team to the scene immediately, and tell the detective it's cleared for investigation.
-- If Character: Confirm you're sending a squad car to bring this person down to interrogation room 2 or issuing an official summons.
-- If Evidence: Confirm you got the judge to sign the subpoena / warrant for those records and they are now in the evidence locker.
-Confirm it's accessible and give 1 brief tactical tip (1-3 sentences in character).` : ''}
+    const promptLockedEvidence = (lockedEntities.evidence || []).length > 0
+      ? lockedEntities.evidence.map(e => `- Subpoena Record [ID: "${e.id}"]: "${e.title}" (${e.subtitle || 'Official record'}) | Details: ${e.details || 'Subpoena required'}`).join('\n')
+      : 'None (All subpoenas already unlocked)';
 
-${dispatchContext?.status === 'rejected' ? `
-=== DISPATCH REQUEST REJECTED: LACK OF PROBABLE CAUSE ===
-The detective asked about: "${dispatchContext.entityName}", BUT failed to provide valid supporting probable cause (${dispatchContext.reason || 'no recorded witness statement in notebook or cited physical evidence'}).
-YOUR ACTION: Refuse the request firmly in character! Remind the detective that the Judge and Internal Affairs will reject any warrant or patrol dispatch without a recorded witness statement in the notebook or physical evidence on file. Tell them to interview suspects or canvass crime scenes to establish probable cause first (1-2 sentences).` : ''}
+    let attachmentContextText = '';
+    if (attachments.clue) {
+      attachmentContextText += `\n[ATTACHED NOTEBOOK CLUE / SUSPECT STATEMENT]:\nSpeaker: "${attachments.clue.suspectName}"\nStatement: "${attachments.clue.statement}"\n`;
+    }
+    if (attachments.evidence) {
+      attachmentContextText += `\n[CITED EVIDENCE IN LOCKER]:\nTitle: "${attachments.evidence.title}" (${attachments.evidence.subtitle || ''})\nDetails: "${attachments.evidence.details || ''}"\nFound At: "${attachments.evidence.location || ''}"\n`;
+    }
+    if (attachments.location) {
+      attachmentContextText += `\n[CITED INVESTIGATION SCENE]:\nTitle: "${attachments.location.title}" (${attachments.location.subtitle || ''})\nForensic Findings: "${attachments.location.canvassReport || attachments.location.notes || ''}"\n`;
+    }
+    if (!attachmentContextText) {
+      attachmentContextText = 'No specific clue or evidence cited with this message.';
+    }
 
-Recent clues in the case file:
-${JSON.stringify(caseContext.discoveredClues.slice(-5), null, 2)}
+    const systemPrompt = `You are Officer Davis, a gritty, sharp, loyal veteran desk officer and tactical gatekeeper assisting the lead detective in the homicide investigation: "${caseContext.caseTitle}" (Victim: ${caseContext.victimName}).
 
-Return your response in JSON:
+=== YOUR CORE RESPONSIBILITIES ===
+1. ADVISOR & TACTICAL PARTNER:
+   - Assist the detective with case notes, guidance, and observational insights.
+   - Speak in authentic, concise noir police dialogue (1 to 3 sentences).
+   - CRITICAL COUNT RULE: Do NOT volunteer exact completion counts unless explicitly asked for a status count/tally (Internal tally: Evidence: ${caseContext.unlockedEvidence}/${caseContext.totalEvidence}, Locations: ${caseContext.canvassedLocations}/${caseContext.totalLocations}, Suspects: ${caseContext.unlockedSuspects}/${caseContext.totalSuspects}).
+
+2. PRECINCT PROBABLE CAUSE GATEKEEPER (WARRANTS, DISPATCHES, SUBPOENAS):
+   - You evaluate whether the detective's message and attached lead/clue/evidence provide legitimate probable cause to dispatch patrol units, summon a new person of interest, or subpoena restricted records.
+   - Review the candidate LOCKED ENTITIES below:
+
+--- CURRENTLY LOCKED ENTITIES ---
+LOCKED LOCATIONS:
+${promptLockedLocations}
+
+LOCKED PERSONS / SUSPECTS:
+${promptLockedSuspects}
+
+LOCKED SUBPOENAS / EVIDENCE:
+${promptLockedEvidence}
+
+=== RIGOROUS PROBABLE CAUSE & ANTI-FALSE-POSITIVE EVALUATION RULES ===
+- SEMANTIC COMPREHENSION ONLY (STRICT):
+  * Anatomy / Medical terminology (e.g., "forearms", "rear thorax", "punctured ventricle", "abrasions") from autopsy or medical reports are forensic biological descriptions of wounds. They NEVER refer to physical locations and must NEVER authorize unlocking an alley, sewer, storm drain, or any location (e.g. "Rear Service Alley").
+  * A witness naming an individual person (e.g., "Marcus made me do it" or "I saw Marcus") only refers to that PERSON. It does NOT authorize searching a hardware lab, warehouse, or offsite facility unless the lab/facility/address itself was specifically named or described in the statement!
+  * Subpoenas for bank/phone records require an explicit mention of accounts, calls, transactions, or financial records in a clue or evidence.
+- AUTHORIZATION CRITERIA:
+  * Only authorize an unlock if the detective's transmission (message + attached clue/evidence) provides genuine probable cause or direct naming of one of the LOCKED entities above.
+  * If authorized:
+    - Set "authorizedUnlock": { "type": "location" | "character" | "evidence", "id": "<EXACT_ID_FROM_LOCKED_LIST>", "name": "<EXACT_NAME_FROM_LOCKED_LIST>" }
+    - In your dialogue, confirm the dispatch/summons/subpoena enthusiastically or professionally (e.g., "Squad car dispatched to the lab now," or "I've filed the summons for them.").
+  * If NOT authorized:
+    - Set "authorizedUnlock": null
+    - In your dialogue, answer naturally in character. If the detective asked to search or subpoena something without probable cause, explain firmly why the Judge or Captain won't sign off without concrete proof.
+
+--- RECENT CLUES IN CASE FILE ---
+${JSON.stringify((caseContext.discoveredClues || []).slice(-4), null, 2)}
+
+--- ATTACHED TRANSMISSION CONTEXT ---
+${attachmentContextText}
+
+Return your response in valid JSON:
 {
-  "dialogue": "Officer Davis's in-character spoken dialogue."
+  "dialogue": "Officer Davis's spoken dialogue (1-3 sentences in character)",
+  "authorizedUnlock": {
+    "type": "location" | "character" | "evidence",
+    "id": "exact_id",
+    "name": "exact_name"
+  } | null,
+  "rejectionReason": "Short explanation if detective requested an unlock without sufficient probable cause, otherwise null"
 }`;
 
     const historyMessages = (chatHistory || []).slice(-6).map(m => ({
@@ -308,12 +357,25 @@ Return your response in JSON:
           { role: 'user', content: userMessage }
         ],
         response_format: { type: 'json_object' },
-        temperature: 0.6,
+        temperature: 0.5,
         max_tokens: 450
       });
 
       const parsed = JSON.parse(cleanJsonString(completion.choices[0]?.message?.content || '{}'));
-      return parsed.dialogue || "Keep shaking the tree, Detective. Someone's bound to slip up.";
+      const dialogue = parsed.dialogue || "Keep shaking the tree, Detective. Someone's bound to slip up.";
+      let authorizedUnlock = null;
+      if (parsed.authorizedUnlock && parsed.authorizedUnlock.id && parsed.authorizedUnlock.type) {
+        authorizedUnlock = {
+          type: parsed.authorizedUnlock.type,
+          id: String(parsed.authorizedUnlock.id).trim(),
+          name: String(parsed.authorizedUnlock.name || parsed.authorizedUnlock.id).trim()
+        };
+      }
+      return {
+        dialogue,
+        authorizedUnlock,
+        rejectionReason: parsed.rejectionReason || null
+      };
     } catch (err) {
       console.warn('Groq json_object mode in chatWithOfficerAdvisor failed, retrying plain text:', err);
       try {
@@ -327,9 +389,17 @@ Return your response in JSON:
           temperature: 0.6,
           max_tokens: 250
         });
-        return fallbackCompletion.choices[0]?.message?.content?.trim() || "Keep shaking the tree, Detective. Someone's bound to slip up.";
+        return {
+          dialogue: fallbackCompletion.choices[0]?.message?.content?.trim() || "Keep shaking the tree, Detective. Someone's bound to slip up.",
+          authorizedUnlock: null,
+          rejectionReason: null
+        };
       } catch (fallbackErr) {
-        return "I'm holding down the precinct desk, Detective. What's your play?";
+        return {
+          dialogue: "I'm holding down the precinct desk, Detective. What's your play?",
+          authorizedUnlock: null,
+          rejectionReason: null
+        };
       }
     }
   }
