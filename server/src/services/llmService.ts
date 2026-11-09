@@ -477,8 +477,17 @@ Return your response in valid JSON:
     const accusedWeaponObj = evidenceList.find((e: any) => e.id === warrant.weapon);
     const accusedWeaponTitle = accusedWeaponObj?.title || warrant.weapon;
 
-    const trueKillerObj = suspectsList.find((s: any) => s.id === groundTruth.killer);
-    const trueKillerName = trueKillerObj?.name || groundTruth.killer;
+    const killerIds = (groundTruth.killer || '')
+      .split(',')
+      .map((k: string) => k.trim())
+      .filter(Boolean);
+
+    const trueKillerNames = killerIds
+      .map((kid: string) => {
+        const found = suspectsList.find((s: any) => s.id === kid);
+        return found?.name || kid;
+      })
+      .join(' and ');
 
     const trueWeaponObj = evidenceList.find((e: any) => e.id === groundTruth.weapon);
     const trueWeaponTitle = trueWeaponObj?.title || groundTruth.weapon;
@@ -488,9 +497,10 @@ The detective has submitted an official Arrest Warrant to close the case.
 
 MATCHING CRITERIA:
 - The detective submitted: Accused "${accusedSuspectName}" (ID: "${warrant.suspect}").
-- If this matches the True Killer ("${trueKillerName}" / ID: "${groundTruth.killer}"), they identified the correct suspect!
+- True Killer(s) / Conspirators: "${trueKillerNames}" (IDs: [${killerIds.map(k => `"${k}"`).join(', ')}]).
+- If this case involves joint conspirators or multiple culprits, the detective naming ANY of the true conspirators constitutes identifying the correct perpetrator!
 - If the murder weapon/method ("${accusedWeaponTitle}" / ID: "${warrant.weapon}") aligns with the True Weapon ("${trueWeaponTitle}" / ID: "${groundTruth.weapon}"), the physical charge is accurate.
-- IMPORTANT: In the written epilogue narrative, use character real names ("${accusedSuspectName}", "${trueKillerName}") and real evidence titles, NEVER raw database slugs!
+- IMPORTANT: In the written epilogue narrative, use character real names ("${accusedSuspectName}", "${trueKillerNames}") and real evidence titles, NEVER raw database slugs!
 
 DETECTIVE'S SUBMITTED WARRANT:
 - Arrested Suspect: "${accusedSuspectName}"
@@ -499,7 +509,7 @@ DETECTIVE'S SUBMITTED WARRANT:
 - Key Contradiction That Broke The Case: "${warrant.keyContradiction}"
 
 ACTUAL GROUND TRUTH:
-- True Killer: "${trueKillerName}" (ID: "${groundTruth.killer}")
+- True Killer(s): "${trueKillerNames}" (IDs: [${killerIds.map(k => `"${k}"`).join(', ')}])
 - True Motive: "${groundTruth.motive}"
 - True Weapon: "${trueWeaponTitle}" (ID: "${groundTruth.weapon}")
 - True Contradiction: "${groundTruth.keyContradiction}"
@@ -510,15 +520,15 @@ ${redHerringCrime ? `- Secondary Crime Committed by Fall Guy (NOT Murder): "${re
 ${trueFatalMechanism ? `- Actual Medical/Toxicological Fatal Mechanism: "${trueFatalMechanism}"` : ''}
 
 === JUDICIAL OUTCOME EVALUATION RULES ===
-1. If the detective named the True Killer ("${groundTruth.killer}") and correctly identified the murder weapon/method:
+1. If the detective named ANY of the True Killers ([${killerIds.map(k => `"${k}"`).join(', ')}]) and correctly identified the murder weapon/method:
    - "outcome": "perfect"
    - "score": 95 - 100
    - "verdictTitle": "GUILTY BEYOND REASONABLE DOUBT"
-   - Epilogue: A sensational, triumphant trial where the true killer breaks on the stand under irrefutable evidence.
+   - Epilogue: A sensational, triumphant trial where the true conspiracy is exposed and the killers break under irrefutable evidence.
 
 2. If the detective fell for the Archetype's specific trap:
    - For "multi_crime_convergence" if detective arrested "${fallGuy}": The defendant was only guilty of ${redHerringCrime}. Forensic timeline proves the victim died before/after. The suspect is convicted only of the lesser crime, while the real killer walks free. ("outcome": "wrong_suspect", "score": 35, "verdictTitle": "WRONGFUL ARREST - LESSER CRIME ONLY")
-   - For "deliberate_frame_job" if detective arrested "${fallGuy}": The defense easily exposes that evidence was planted and security was tampered with. The real killer ${groundTruth.killer} framed them and escaped! ("outcome": "wrong_suspect", "score": 30, "verdictTitle": "FRAME JOB COLLAPSE - KILLER ESCAPED")
+   - For "deliberate_frame_job" if detective arrested "${fallGuy}": The defense easily exposes that evidence was planted and security was tampered with. The real killer framed them and escaped! ("outcome": "wrong_suspect", "score": 30, "verdictTitle": "FRAME JOB COLLAPSE - KILLER ESCAPED")
    - For "cause_of_death_twist" if detective arrested "${fallGuy}": The suspect hit the victim, but toxicology proves the victim was already dead from ${trueFatalMechanism}. Murder charges are dismissed for assault! ("outcome": "wrong_suspect", "score": 40, "verdictTitle": "CAUSE OF DEATH FATAL FLAW - ACQUITTAL")
    - For "false_confession" if detective arrested "${fallGuy}": The coerced confession contradicted physical forensics and is thrown out by the judge, leading to a mistrial. ("outcome": "wrong_suspect", "score": 30, "verdictTitle": "COERCED CONFESSION SUPPRESSED - MISTRIAL")
    - For any other innocent person: "outcome": "wrong_suspect", "score": 25, "verdictTitle": "WRONGFUL ARREST - KILLER AT LARGE".

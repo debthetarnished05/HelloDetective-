@@ -11,7 +11,9 @@ import {
   HARBOR_STORY,
   MANOR_STORY,
   MIDNIGHT_LOUNGE_STORY,
-  NEON_STORY
+  NEON_STORY,
+  OBSIDIAN_CONSPIRACY_STORY,
+  ALCHEMISTS_PACT_STORY
 } from '../data/seedStories.js';
 import { LLMService } from '../services/llmService.js';
 import { IStory, ISuspectRuntimeState } from '../types/index.js';
@@ -52,7 +54,9 @@ export async function seedDefaultStories() {
     HARBOR_STORY,
     MANOR_STORY,
     MIDNIGHT_LOUNGE_STORY,
-    NEON_STORY
+    NEON_STORY,
+    OBSIDIAN_CONSPIRACY_STORY,
+    ALCHEMISTS_PACT_STORY
   ];
 
   for (const seed of ALL_SEED_STORIES) {

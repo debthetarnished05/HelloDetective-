@@ -1439,3 +1439,793 @@ export const NEON_STORY: IStory = {
   "archetype": "cause_of_death_twist",
   "trope": "The Stunner vs. The Killer"
 };
+
+
+// ============================================================================
+// CASE 6: The Obsidian Conspiracy (Joint Culprits / Duo Murder)
+// 6 Suspects, 14 Evidences, 8 Locations
+// ============================================================================
+export const OBSIDIAN_CONSPIRACY_STORY: IStory = {
+  title: 'The Obsidian Conspiracy: Murder at the Starlight Gala',
+  caseNumber: '2026-1109-OC',
+  leadDetective: 'Inspector Gabriel Vance',
+  status: 'Active Homicide Investigation',
+  archetype: 'multi_crime_convergence',
+  trope: 'The Dual-Culprit Conspiracy',
+  victimProfile: {
+    name: 'Sterling Vance',
+    age: 58,
+    occupation: 'Billionaire Antiquities Collector & Philanthropist',
+    discovered: 'November 9, 2026, 11:15 PM in the Penthouse Study',
+    causeOfDeath: 'Punctured left ventricle via obsidian blade following conotoxin-induced respiratory paralysis',
+    timeOfDeath: 'Between 10:25 PM and 10:40 PM'
+  },
+  briefing: {
+    initialBriefing: 'During the annual Starlight Gala atop the Vance Tower, host Sterling Vance retreated to his private study. Forty minutes later, his body was discovered slumped over his desk with an obsidian ceremonial dagger buried in his chest and a shattered champagne flute on the floor.',
+    detectiveInsights: 'The crime appears brutal, yet preliminary toxicology reveals a deeper plot: Vance suffered paralyzing neurotoxic shock before the blade struck. The study safe was emptied of the $30M Provenance Archive. Two distinct minds orchestrated this assassination.'
+  },
+  objectives: {
+    progress: [
+      'Secured the Vance Penthouse and cordoned off the Starlight Ballroom',
+      'Impounded the shattered champagne flute and initial coroner report',
+      'Interviewed the immediate gala attendees'
+    ],
+    currentObjectives: [
+      'Uncover the source of the rare synthetic conotoxin',
+      'Trace the missing $30M art provenance archive',
+      'Expose the collusion between the two conspirators',
+      'Submit the joint arrest warrant to the District Court'
+    ]
+  },
+  locations: [
+    {
+      id: 'starlight_ballroom',
+      title: 'Starlight Ballroom',
+      subtitle: 'Vance Tower - 50th Floor Gala Hall',
+      status: 'Active Crime Scene',
+      lastVisited: 'November 9, 2026',
+      witnesses: 'Dr. Julian Cole, Evelyn Cross',
+      notes: 'Grand ballroom bathed in chandelier light. Over 200 high-society guests. Sterling toasted with private vintage champagne from this room.',
+      isInitiallyUnlocked: true,
+      hiddenEvidenceIds: ['shattered_champagne_flute'],
+      canvassReport: 'Forensics gathered shards of Sterling\'s private vintage champagne glass and noted the VIP table placement.'
+    },
+    {
+      id: 'vance_private_study',
+      title: 'Vance\'s Private Penthouse Study',
+      subtitle: '50th Floor Executive Wing',
+      status: 'Primary Homicide Scene',
+      lastVisited: 'November 9, 2026',
+      witnesses: 'Victor Vance Jr.',
+      notes: 'Mahogany desk, open wall safe, shattered terrace French doors leading to the balcony.',
+      isInitiallyUnlocked: true,
+      hiddenEvidenceIds: [
+        'coroner_tox_prelim',
+        'obsidian_ceremonial_dagger',
+        'torn_silk_shawl_fiber',
+        'bloody_balcony_glass_shard',
+        'butler_keycard_audit_log'
+      ],
+      canvassReport: 'Forensic sweep recovered the obsidian dagger, the coroner\'s tox analysis showing conotoxin paralysis, silk shawl fibers matching Evelyn\'s evening wear, and glass with blood from Victor\'s hand.'
+    },
+    {
+      id: 'gala_catering_kitchen',
+      title: 'Gala Catering Kitchen',
+      subtitle: 'Service Wing - Level 49',
+      status: 'Secondary Search Site',
+      lastVisited: 'Pending Detective Sweep',
+      witnesses: 'Sophia Lin',
+      notes: 'Stainless steel preparation line and walk-in refrigeration units where VIP champagne was decanted.',
+      isInitiallyUnlocked: false,
+      hiddenEvidenceIds: ['sommelier_custom_champagne_order'],
+      canvassReport: 'Found sommelier records proving bottle #04 was specially hand-delivered to Dr. Julian Cole prior to service.'
+    },
+    {
+      id: 'curator_restoration_lab',
+      title: 'Curator Restoration Lab',
+      subtitle: 'Penthouse Gallery Annex',
+      status: 'Location of Interest',
+      lastVisited: 'Pending Detective Sweep',
+      witnesses: 'Evelyn Cross',
+      notes: 'High-tech conservation lab with chemical solvents and microscopes. Evelyn\'s private workplace.',
+      isInitiallyUnlocked: false,
+      hiddenEvidenceIds: ['falsified_art_provenance_deed', 'antiquities_smuggling_wire_transfer'],
+      canvassReport: 'Detectives seized forged provenance certificates and bank wire transfer slips linking Evelyn to offshore accounts.'
+    },
+    {
+      id: 'physician_mobile_clinic',
+      title: 'Dr. Cole\'s VIP Medical Suite',
+      subtitle: 'Mezzanine Suite 4B',
+      status: 'Search Warrant Executed',
+      lastVisited: 'Pending Detective Sweep',
+      witnesses: 'Dr. Julian Cole',
+      notes: 'Private examination room stocked with specialized pharmaceuticals and surgical equipment.',
+      isInitiallyUnlocked: false,
+      hiddenEvidenceIds: ['conotoxin_ampoule_residue', 'encrypted_burner_phone_texts'],
+      canvassReport: 'CSI discovered an excised ampoule of synthetic marine conotoxin and a burner phone with texts coordinating timing with Evelyn.'
+    },
+    {
+      id: 'obsidian_vault_archive',
+      title: 'Obsidian Archive Vault',
+      subtitle: 'Sub-Basement 2 Secure Storage',
+      status: 'Location of Interest',
+      lastVisited: 'Pending Detective Sweep',
+      witnesses: 'None',
+      notes: 'Reinforced vault where Sterling preserved deeds and his confidential revised last testament.',
+      isInitiallyUnlocked: false,
+      hiddenEvidenceIds: ['disinherited_will_amendment'],
+      canvassReport: 'Recovered Vance\'s handwritten codicil disinheriting his son Victor in favor of a museum trust.'
+    },
+    {
+      id: 'service_tunnel_dock',
+      title: 'Service Tunnel Loading Dock',
+      subtitle: 'Basement Freight Access',
+      status: 'Secondary Crime Scene',
+      lastVisited: 'Pending Detective Sweep',
+      witnesses: 'Marcus Brody',
+      notes: 'Underground dock connecting to the subway utility tunnels. Emergency CCTV junction box.',
+      isInitiallyUnlocked: false,
+      hiddenEvidenceIds: ['severed_cctv_optical_cable'],
+      canvassReport: 'Forensics confirmed the 50th-floor CCTV optical line was manually severed with a security lineman\'s tool.'
+    },
+    {
+      id: 'rooftop_helipad',
+      title: 'Vance Tower Rooftop Helipad',
+      subtitle: 'Level 52 Skydeck',
+      status: 'Extraction Point',
+      lastVisited: 'Pending Detective Sweep',
+      witnesses: 'Elena Rostova',
+      notes: 'Wind-swept helipad overlooking the city skyline. Private charter helicopter idling.',
+      isInitiallyUnlocked: false,
+      hiddenEvidenceIds: ['helipad_manifest_reservation'],
+      canvassReport: 'Flight records confirm an anonymous charter booked for midnight to an unmonitored private airstrip.'
+    }
+  ],
+  evidence: [
+    {
+      id: 'coroner_tox_prelim',
+      title: 'Coroner Toxicology & Pathological Report',
+      subtitle: 'Forensic Medicine Division',
+      details: 'Victim suffered fatal pericardial puncture, but blood samples reveal a lethal dose of synthetic conotoxin administered 15 minutes before death, completely paralyzing the diaphragm and motor nerves.',
+      date: 'Nov 9, 2026',
+      location: 'vance_private_study',
+      priority: 'Critical',
+      isInitiallyUnlocked: true,
+      discoveryType: 'initial',
+      locationId: 'vance_private_study'
+    },
+    {
+      id: 'shattered_champagne_flute',
+      title: 'Shattered Crystal Champagne Flute',
+      subtitle: 'Starlight Ballroom VIP Table',
+      details: 'Crystal shards from Sterling\'s private glass. Residue tests positive for marine neurotoxin and Sterling\'s saliva.',
+      date: 'Nov 9, 2026',
+      location: 'starlight_ballroom',
+      priority: 'Critical',
+      isInitiallyUnlocked: true,
+      discoveryType: 'initial',
+      locationId: 'starlight_ballroom'
+    },
+    {
+      id: 'obsidian_ceremonial_dagger',
+      title: 'Obsidian Ceremonial Dagger',
+      subtitle: 'The Murder Weapon',
+      details: 'Antique Aztec ritual blade with an 8-inch razor-sharp volcanic glass edge. Covered in Sterling\'s blood and partial gloved smudges.',
+      date: 'Nov 9, 2026',
+      location: 'vance_private_study',
+      priority: 'Critical',
+      isInitiallyUnlocked: false,
+      discoveryType: 'location_canvass',
+      locationId: 'vance_private_study'
+    },
+    {
+      id: 'torn_silk_shawl_fiber',
+      title: 'Emerald Silk Shawl Fiber',
+      subtitle: 'Physical Trace from Study Desk',
+      details: 'Microscopic threads of dyed emerald silk snagged on the study desk drawer, matching Evelyn Cross\'s designer gala dress.',
+      date: 'Nov 9, 2026',
+      location: 'vance_private_study',
+      priority: 'High',
+      isInitiallyUnlocked: false,
+      discoveryType: 'location_canvass',
+      locationId: 'vance_private_study'
+    },
+    {
+      id: 'bloody_balcony_glass_shard',
+      title: 'Balcony Glass Shard with Blood',
+      subtitle: 'Intrusion Evidence',
+      details: 'Shattered French door pane with fresh blood. DNA matches Victor Vance Jr., who cut his hand climbing through the broken window.',
+      date: 'Nov 9, 2026',
+      location: 'vance_private_study',
+      priority: 'High',
+      isInitiallyUnlocked: false,
+      discoveryType: 'location_canvass',
+      locationId: 'vance_private_study'
+    },
+    {
+      id: 'butler_keycard_audit_log',
+      title: 'Study Electronic Lock Audit Log',
+      subtitle: 'Master Security Terminal',
+      details: 'Study door was unlocked at 10:28 PM using Curator Passcard #03 (Evelyn Cross), followed by a forced terrace entry at 10:45 PM.',
+      date: 'Nov 9, 2026',
+      location: 'vance_private_study',
+      priority: 'Critical',
+      isInitiallyUnlocked: false,
+      discoveryType: 'location_canvass',
+      locationId: 'vance_private_study'
+    },
+    {
+      id: 'conotoxin_ampoule_residue',
+      title: 'Excised Conotoxin Ampoule',
+      subtitle: 'The Premeditation Chemical Evidence',
+      details: 'Glass medical ampoule marked "Conus Geographus Peptide" recovered from Dr. Cole\'s sharps disposal container.',
+      date: 'Nov 10, 2026',
+      location: 'physician_mobile_clinic',
+      priority: 'Critical',
+      isInitiallyUnlocked: false,
+      discoveryType: 'location_canvass',
+      locationId: 'physician_mobile_clinic'
+    },
+    {
+      id: 'encrypted_burner_phone_texts',
+      title: 'Encrypted Burner Phone Transmissions',
+      subtitle: 'Conspiracy Paper Trail',
+      details: 'Recovered texts between Dr. Cole and Evelyn: "Glass is spiked. He\'ll be helpless by 10:25. Secure the provenance book and finish it."',
+      date: 'Nov 10, 2026',
+      location: 'physician_mobile_clinic',
+      priority: 'Critical',
+      isInitiallyUnlocked: false,
+      discoveryType: 'location_canvass',
+      locationId: 'physician_mobile_clinic'
+    },
+    {
+      id: 'falsified_art_provenance_deed',
+      title: 'Forged Provenance Ledger',
+      subtitle: 'Financial Embezzlement Audit',
+      details: 'Documents showing Evelyn Cross and Dr. Cole laundered $12,000,000 in replica Greek antiquities through Vance\'s collection.',
+      date: 'Nov 10, 2026',
+      location: 'curator_restoration_lab',
+      priority: 'High',
+      isInitiallyUnlocked: false,
+      discoveryType: 'location_canvass',
+      locationId: 'curator_restoration_lab'
+    },
+    {
+      id: 'antiquities_smuggling_wire_transfer',
+      title: 'Offshore Cayman Wire Slips',
+      subtitle: 'Rostova Antiquities Link',
+      details: 'Wire confirmation of $4,000,000 sent from Elena Rostova to Evelyn Cross for the delivery of Vance\'s Minoan gold artifacts.',
+      date: 'Nov 10, 2026',
+      location: 'curator_restoration_lab',
+      priority: 'High',
+      isInitiallyUnlocked: false,
+      discoveryType: 'location_canvass',
+      locationId: 'curator_restoration_lab'
+    },
+    {
+      id: 'sommelier_custom_champagne_order',
+      title: 'Sommelier Service Log',
+      subtitle: 'Gala Kitchen Records',
+      details: 'Note showing Dr. Cole requested the uncorked 1996 Dom Pérignon bottle brought to his mezzanine lounge before Sterling\'s table.',
+      date: 'Nov 9, 2026',
+      location: 'gala_catering_kitchen',
+      priority: 'High',
+      isInitiallyUnlocked: false,
+      discoveryType: 'location_canvass',
+      locationId: 'gala_catering_kitchen'
+    },
+    {
+      id: 'severed_cctv_optical_cable',
+      title: 'Severed Fiber-Optic Line',
+      subtitle: 'Security Sabotage Exhibit',
+      details: 'Cut junction cable that blinded cameras on the 50th-floor study corridor between 10:20 PM and 10:50 PM.',
+      date: 'Nov 10, 2026',
+      location: 'service_tunnel_dock',
+      priority: 'High',
+      isInitiallyUnlocked: false,
+      discoveryType: 'location_canvass',
+      locationId: 'service_tunnel_dock'
+    },
+    {
+      id: 'disinherited_will_amendment',
+      title: 'Amended Vance Last Testament',
+      subtitle: 'Victor\'s Financial Motive',
+      details: 'Legal codicil signed yesterday disinheriting Victor Vance Jr. completely due to chronic gambling and debt.',
+      date: 'Nov 8, 2026',
+      location: 'obsidian_vault_archive',
+      priority: 'High',
+      isInitiallyUnlocked: false,
+      discoveryType: 'location_canvass',
+      locationId: 'obsidian_vault_archive'
+    },
+    {
+      id: 'helipad_manifest_reservation',
+      title: 'Private Helicopter Flight Charter',
+      subtitle: 'Escape Route Document',
+      details: 'Flight reservation for two passengers departing at 11:45 PM for an offshore yacht, booked under a shared Cole/Cross account.',
+      date: 'Nov 9, 2026',
+      location: 'rooftop_helipad',
+      priority: 'Critical',
+      isInitiallyUnlocked: false,
+      discoveryType: 'location_canvass',
+      locationId: 'rooftop_helipad'
+    }
+  ],
+  suspects: [
+    {
+      id: 'dr_julian_cole',
+      name: 'Dr. Julian Cole',
+      role: 'Vance Family Personal Physician (Joint Culprit)',
+      trait: 'Distinguished, clinical, condescending, calculating under cross-examination.',
+      personality: 'cunning',
+      isInitiallyUnlocked: true,
+      initialTrust: 45,
+      initialStress: 35,
+      breakdownThreshold: 80,
+      alibi: 'Claims he was in the VIP lounge mingling with city council members and attending to guests with mild headaches.',
+      motive: 'Sterling caught him embezzling foundation grants and forging provenance papers; faced total medical license revocation and ruin.',
+      privateKnowledge: 'He conspired with Evelyn Cross. He injected conotoxin into Sterling\'s private champagne flute at 10:15 PM so Evelyn could enter the study, stab him with the obsidian dagger, and take the ledger.',
+      secrets: [
+        'Admitted having access to synthetic marine conotoxin in his clinic',
+        'Confessed to pouring Sterling\'s private champagne toast before dinner',
+        'Broke down and admitted that Evelyn Cross was supposed to deliver the blade while he watched the hallway'
+      ],
+      evidenceReactions: {
+        shattered_champagne_flute: 'Julian blinks rapidly: "I poured the champagne, yes, as a courtesy! If it was tampered with, ask the sommelier Sophia Lin!"',
+        conotoxin_ampoule_residue: 'His hands tremble: "That was for research on cardiac peptide receptors! It has nothing to do with tonight!"',
+        encrypted_burner_phone_texts: 'Complete composure collapse: "Evelyn told me Sterling was going to destroy both of us! She held the dagger!"'
+      },
+      isPrimeSuspect: true,
+      category: 'prime_suspect'
+    },
+    {
+      id: 'evelyn_cross',
+      name: 'Evelyn Cross',
+      role: 'Chief Art Curator & Secret Lover (Joint Culprit)',
+      trait: 'Sophisticated, icy, elegant in emerald silk, master of misdirection.',
+      personality: 'cunning',
+      isInitiallyUnlocked: true,
+      initialTrust: 40,
+      initialStress: 30,
+      breakdownThreshold: 80,
+      alibi: 'Claims she was in the restoration annex cataloging the Renaissance gallery items from 10:00 PM until the alarm sounded.',
+      motive: 'Sold $12M in replica antiquities to offshore cartels; Vance discovered the fraud and ordered an audit that evening.',
+      privateKnowledge: 'She colluded with Dr. Cole. After Cole paralyzed Vance, she swiped her keycard at 10:28 PM, stabbed Vance with the obsidian dagger, seized the provenance ledger, and hid the flight tickets.',
+      secrets: [
+        'Admitted she had the master keycard to the private study',
+        'Confessed that her silk shawl was torn during a struggle in the penthouse',
+        'Broke down and confessed to striking Sterling with the obsidian blade while Julian stood watch'
+      ],
+      evidenceReactions: {
+        torn_silk_shawl_fiber: 'Her jaw sets: "A loose thread proves nothing in a mansion where I work fifty hours a week!"',
+        obsidian_ceremonial_dagger: 'She turns pale: "The Aztec blade... that was locked in the display vitrine!"',
+        encrypted_burner_phone_texts: 'Screams at the detective: "Julian promised me the poison would make it look like heart failure! He panicked!"'
+      },
+      isPrimeSuspect: true,
+      category: 'prime_suspect'
+    },
+    {
+      id: 'victor_vance_jr',
+      name: 'Victor Vance Jr.',
+      role: 'Disinherited Son (The Framed Fall Guy)',
+      trait: 'Intoxicated, angry, disheveled tuxedo with a bandaged right hand.',
+      personality: 'aggressive',
+      isInitiallyUnlocked: true,
+      initialTrust: 25,
+      initialStress: 65,
+      breakdownThreshold: 75,
+      alibi: 'Claims he stormed out of the gala at 9:45 PM after his father humiliated him in front of the board.',
+      motive: 'Completely cut out of the $200M will; desperate for funds to settle mob gambling debts.',
+      privateKnowledge: 'He climbed the terrace trellis at 10:45 PM to confront his father, smashed the glass, cut his hand, but found Sterling already dead and covered in blood. He panicked and fled into the night.',
+      secrets: [
+        'Admitted climbing the balcony and smashing the French doors at 10:45 PM',
+        'Confessed he found his father already dead and cold in the chair',
+        'Admitted fleeing in terror because he knew the police would blame him for the will dispute'
+      ],
+      evidenceReactions: {
+        bloody_balcony_glass_shard: 'Slams table: "Yes, I broke the damn glass! But he was already dead! His chest was bloody before I even opened the door!"',
+        disinherited_will_amendment: 'He curses: "He hated me! But I didn\'t poison or stab the old man!"'
+      },
+      isPrimeSuspect: true,
+      category: 'prime_suspect'
+    },
+    {
+      id: 'elena_rostova',
+      name: 'Elena Rostova',
+      role: 'Rival International Antiquities Dealer',
+      trait: 'Sharp, watchful, speaks with a polished accent, guarded about finances.',
+      personality: 'defensive',
+      isInitiallyUnlocked: false,
+      initialTrust: 50,
+      initialStress: 25,
+      breakdownThreshold: 70,
+      alibi: 'In the ballroom conducting auction negotiations with high-net-worth foreign collectors.',
+      motive: 'Desperate to acquire Vance\'s Minoan treasures to save her overseas auction house.',
+      privateKnowledge: 'She paid Evelyn Cross $4M for illegal antiquities, but had nothing to do with the murder.',
+      secrets: [
+        'Admitted transferring $4,000,000 to Evelyn\'s offshore account',
+        'Confessed she saw Evelyn slipping into the private study corridor at 10:25 PM'
+      ],
+      evidenceReactions: {
+        antiquities_smuggling_wire_transfer: 'Shrugs: "Private acquisitions are aggressive, Detective, but they are not capital murder."'
+      },
+      isPrimeSuspect: false,
+      category: 'person_of_interest',
+      leadSource: {
+        type: 'evidence_mention',
+        sourceName: 'Curator Restoration Lab',
+        sourceId: 'curator_restoration_lab',
+        description: 'Wire transfer slips in the restoration lab name Elena Rostova as an offshore buyer.'
+      }
+    },
+    {
+      id: 'marcus_brody',
+      name: 'Marcus Brody',
+      role: 'Head of Gala Security',
+      trait: 'Ex-military, rigid, embarrassed by security breaches.',
+      personality: 'defensive',
+      isInitiallyUnlocked: false,
+      initialTrust: 55,
+      initialStress: 30,
+      breakdownThreshold: 75,
+      alibi: 'Monitoring the ballroom entrance and perimeter radio checks.',
+      motive: 'None. Worried about negligence lawsuits.',
+      privateKnowledge: 'He noticed the 50th-floor camera feed go dead at 10:20 PM and was ordered by Dr. Cole to ignore it as a routine glitch.',
+      secrets: [
+        'Admitted Dr. Cole specifically told him not to send guards to the 50th-floor corridor',
+        'Confessed he found the severed optical cable in the service tunnel'
+      ],
+      evidenceReactions: {
+        severed_cctv_optical_cable: 'Nods grimly: "That was done with a master lineman\'s tool from the maintenance closet."'
+      },
+      isPrimeSuspect: false,
+      category: 'witness',
+      leadSource: {
+        type: 'location_mention',
+        sourceName: 'Service Tunnel Loading Dock',
+        sourceId: 'service_tunnel_dock',
+        description: 'Head of private security stationed near the freight docks.'
+      }
+    },
+    {
+      id: 'sophia_lin',
+      name: 'Sophia Lin',
+      role: 'Head Sommelier & Catering Director',
+      trait: 'Perfectionist, observant, terrified of poison allegations.',
+      personality: 'nervous',
+      isInitiallyUnlocked: false,
+      initialTrust: 70,
+      initialStress: 20,
+      breakdownThreshold: 65,
+      alibi: 'Supervising the four-course meal service in the catering kitchen.',
+      motive: 'None. Deep professional pride.',
+      privateKnowledge: 'She saw Dr. Julian Cole take Sterling\'s champagne bottle into the mezzanine alcove before service.',
+      secrets: [
+        'Swore on her career that the champagne bottle was unsealed by Dr. Cole in private',
+        'Observed Dr. Cole carrying a small silver syringe case in his tuxedo inner pocket'
+      ],
+      evidenceReactions: {
+        sommelier_custom_champagne_order: 'Weeps: "I told him it was improper, but he said Mr. Vance requested a special vitamin drop!"'
+      },
+      isPrimeSuspect: false,
+      category: 'witness',
+      leadSource: {
+        type: 'location_mention',
+        sourceName: 'Gala Catering Kitchen',
+        sourceId: 'gala_catering_kitchen',
+        description: 'Head sommelier in charge of the VIP beverage station.'
+      }
+    }
+  ],
+  groundTruth: {
+    killer: 'dr_julian_cole,evelyn_cross',
+    fallGuy: 'victor_vance_jr',
+    motive: 'stolen_ledger_and_embezzlement',
+    weapon: 'obsidian_ceremonial_dagger',
+    keyContradiction: 'conotoxin_ampoule_residue',
+    trueFatalMechanism: 'Synthetic conotoxin paralysis followed by pericardial dagger penetration',
+    timelineSummary: 'Dr. Julian Cole and Evelyn Cross conspired to murder Sterling Vance to prevent exposure of their $12M antiquities fraud and seize the provenance ledger. At 10:15 PM, Cole poisoned Vance\'s champagne with conotoxin, paralyzing him. At 10:28 PM, Cross entered the study, drove the Aztec obsidian dagger into his chest, and took the ledger. At 10:45 PM, drunken son Victor broke the balcony window, discovered his father\'s corpse, cut his hand on the glass, and fled in panic.',
+    archetype: 'multi_crime_convergence'
+  },
+  isDefault: false
+};
+
+// ============================================================================
+// CASE 7: The Alchemist's Pact (Zurich Vault Heist & Joint Culprits)
+// Mastermind Safecracker + Inside Security Architect
+// ============================================================================
+export const ALCHEMISTS_PACT_STORY: IStory = {
+  title: 'The Alchemist\'s Pact: The Zurich Vault Conspiracy',
+  caseNumber: '1988-0622-ZV',
+  leadDetective: 'Chief Inspector Kurt Steiner',
+  status: 'Active Homicide Investigation',
+  archetype: 'multi_crime_convergence',
+  trope: 'The Syndicate Vault Breach',
+  victimProfile: {
+    name: 'Heinrich Richter',
+    age: 63,
+    occupation: 'Master Vault Keeper, Bankhaus Richter & Co.',
+    discovered: 'June 22, 1988, 02:30 AM inside Subterranean Vault #4',
+    causeOfDeath: 'Aerosolized neurotoxin asphyxiation accompanied by severe thermal burns',
+    timeOfDeath: 'Between 01:15 AM and 01:40 AM'
+  },
+  briefing: {
+    initialBriefing: 'Inside the ultra-secure subterranean vault of Bankhaus Richter, Vault Keeper Heinrich Richter was discovered dead beside an incinerated titanium safety deposit gate. Over $45M in bearer bonds and gold bullion are missing.',
+    detectiveInsights: 'The biometric blast doors show zero signs of forced external breaching—they were unlocked from the security console. Yet the inner strongbox was melted using liquid thermite, indicating an expert safecracker and an inside accomplice working in lethal lockstep.'
+  },
+  objectives: {
+    progress: [
+      'Secured the underground vault sanctuary and sealed Zurich train exits',
+      'Impounded the thermal torch nozzle and preliminary toxicological report'
+    ],
+    currentObjectives: [
+      'Expose how the biometric blast doors were opened without triggering alarms',
+      'Identify the clandestine chemical workshop that formulated the thermite',
+      'Indict the inside conspirator and the safecracker together'
+    ]
+  },
+  locations: [
+    {
+      id: 'zurich_banking_hall',
+      title: 'Richter & Co. Main Banking Hall',
+      subtitle: 'Bahnhofstrasse 14 - Ground Floor',
+      status: 'Active Crime Scene',
+      lastVisited: 'June 22, 1988',
+      witnesses: 'Klaus Becker',
+      notes: 'Polished marble hall with bronze teller cages and heavy oak desks. Vice-President Becker was present late.',
+      isInitiallyUnlocked: true,
+      hiddenEvidenceIds: ['becker_unauthorized_ledger_transfer'],
+      canvassReport: 'Found ledger records showing Vice-President Klaus Becker made unauthorized fund transfers at 11:30 PM.'
+    },
+    {
+      id: 'subterranean_vault_sanctum',
+      title: 'Subterranean Vault Sanctum #4',
+      subtitle: 'Sub-Level 3 Reinforced Bunker',
+      status: 'Primary Homicide Scene',
+      lastVisited: 'June 22, 1988',
+      witnesses: 'None',
+      notes: 'Reinforced 10-ton steel vault. Air smells of burnt magnesium and bitter sulfur.',
+      isInitiallyUnlocked: true,
+      hiddenEvidenceIds: ['coroner_nerve_agent_report', 'liquid_thermite_torch_nozzle', 'melted_titanium_vault_bolt'],
+      canvassReport: 'Forensics gathered the custom torch nozzle, melted vault bolts, and toxicological findings of lethal aerosol neurotoxin.'
+    },
+    {
+      id: 'security_control_bastion',
+      title: 'Central Security Control Bastion',
+      subtitle: 'Mezzanine Security Room',
+      status: 'Location of Interest',
+      lastVisited: 'Pending Detective Sweep',
+      witnesses: 'Valeria Ramos',
+      notes: 'Bank of CRT monitors and magnetic tape decks monitoring all vaults.',
+      isInitiallyUnlocked: false,
+      hiddenEvidenceIds: ['biometric_loop_transceiver'],
+      canvassReport: 'CSI seized a hidden hardware transceiver on terminal #1 that looped camera feeds of the vault corridor.'
+    },
+    {
+      id: 'chemists_clandestine_workshop',
+      title: 'Damian\'s Industrial Workshop',
+      subtitle: 'Industrial District - Warehouse 12',
+      status: 'Search Warrant Executed',
+      lastVisited: 'Pending Detective Sweep',
+      witnesses: 'Damian Vance',
+      notes: 'Chemical hoods, pressurized argon canisters, and smelting tools for rare alloys.',
+      isInitiallyUnlocked: false,
+      hiddenEvidenceIds: ['pressurized_neurotoxin_canister'],
+      canvassReport: 'Found empty pressurized cylinders matching the chemical aerosol used to incapacitate Heinrich Richter.'
+    },
+    {
+      id: 'freight_railway_terminus',
+      title: 'Zurich Freight Railway Terminus',
+      subtitle: 'Platform 9 Cargo Yard',
+      status: 'Secondary Search Site',
+      lastVisited: 'Pending Detective Sweep',
+      witnesses: 'Sgt. Otto Keller',
+      notes: 'Overnight freight wagons scheduled for Austria and Germany.',
+      isInitiallyUnlocked: false,
+      hiddenEvidenceIds: ['swiss_rail_smuggling_ticket'],
+      canvassReport: 'Discovered two one-way sleeper compartment tickets to Vienna booked under shared aliases.'
+    }
+  ],
+  evidence: [
+    {
+      id: 'coroner_nerve_agent_report',
+      title: 'Autopsy Toxicology & Chemical Analysis',
+      subtitle: 'Zurich Cantonal Institute of Forensic Medicine',
+      details: 'Richter died from acute respiratory collapse induced by military-grade cyclosarin aerosol, followed by second-degree burns from a high-temperature thermal tool.',
+      date: 'June 22, 1988',
+      location: 'subterranean_vault_sanctum',
+      priority: 'Critical',
+      isInitiallyUnlocked: true,
+      discoveryType: 'initial',
+      locationId: 'subterranean_vault_sanctum'
+    },
+    {
+      id: 'liquid_thermite_torch_nozzle',
+      title: 'Custom Industrial Thermite Nozzle',
+      subtitle: 'The Safecracking Weapon',
+      details: 'Titanium cutting nozzle engineered to feed liquid thermite slurry at 2,800°C. Left behind in the breached vault box.',
+      date: 'June 22, 1988',
+      location: 'subterranean_vault_sanctum',
+      priority: 'Critical',
+      isInitiallyUnlocked: false,
+      discoveryType: 'location_canvass',
+      locationId: 'subterranean_vault_sanctum'
+    },
+    {
+      id: 'melted_titanium_vault_bolt',
+      title: 'Incinerated Vault Door Locking Bolt',
+      subtitle: 'Physical Ballistics Exhibit',
+      details: 'Solid titanium bolt sliced cleanly through by high-temperature exothermic chemical reaction.',
+      date: 'June 22, 1988',
+      location: 'subterranean_vault_sanctum',
+      priority: 'High',
+      isInitiallyUnlocked: false,
+      discoveryType: 'location_canvass',
+      locationId: 'subterranean_vault_sanctum'
+    },
+    {
+      id: 'biometric_loop_transceiver',
+      title: 'Video Loop Bypass Transceiver',
+      subtitle: 'Inside Sabotage Exhibit',
+      details: 'Microcontroller plugged into the central switcher, feeding pre-recorded 1:00 AM empty corridor footage while the vault was ransacked.',
+      date: 'June 22, 1988',
+      location: 'security_control_bastion',
+      priority: 'Critical',
+      isInitiallyUnlocked: false,
+      discoveryType: 'location_canvass',
+      locationId: 'security_control_bastion'
+    },
+    {
+      id: 'becker_unauthorized_ledger_transfer',
+      title: 'Embezzled Account Reallocation Ledger',
+      subtitle: 'Becker\'s Cover-Up Paper Trail',
+      details: 'Audit printout showing Vice-President Klaus Becker diverted 300,000 francs to cover bad investments, proving he was in the building.',
+      date: 'June 21, 1988',
+      location: 'zurich_banking_hall',
+      priority: 'High',
+      isInitiallyUnlocked: false,
+      discoveryType: 'location_canvass',
+      locationId: 'zurich_banking_hall'
+    },
+    {
+      id: 'pressurized_neurotoxin_canister',
+      title: 'Empty Pressurized Gas Canister',
+      subtitle: 'Premeditation Toxicological Exhibit',
+      details: 'Miniature canister fitted with a silent aerosol dispersal nozzle matching the victim\'s lung residue.',
+      date: 'June 22, 1988',
+      location: 'chemists_clandestine_workshop',
+      priority: 'Critical',
+      isInitiallyUnlocked: false,
+      discoveryType: 'location_canvass',
+      locationId: 'chemists_clandestine_workshop'
+    },
+    {
+      id: 'swiss_rail_smuggling_ticket',
+      title: 'Zurich-Vienna Sleeper Tickets',
+      subtitle: 'Escape Route Exhibit',
+      details: 'Two first-class sleeper car tickets booked under the names "Mr. & Mrs. Schmidt" scheduled for the 3:45 AM Alpine Express.',
+      date: 'June 22, 1988',
+      location: 'freight_railway_terminus',
+      priority: 'High',
+      isInitiallyUnlocked: false,
+      discoveryType: 'location_canvass',
+      locationId: 'freight_railway_terminus'
+    }
+  ],
+  suspects: [
+    {
+      id: 'damian_vance',
+      name: 'Damian Vance',
+      role: 'Master Safecracker & Chemist (Joint Culprit)',
+      trait: 'Cold, meticulous, intellectual, burns on his forearms, arrogant about his chemistry.',
+      personality: 'cunning',
+      isInitiallyUnlocked: true,
+      initialTrust: 40,
+      initialStress: 30,
+      breakdownThreshold: 80,
+      alibi: 'Claims he was in his industrial workshop all night testing metallurgy welds for a construction contractor.',
+      motive: 'Recruited to execute the heist of $45M in bearer bonds to fund an international private laboratory.',
+      privateKnowledge: 'He conspired with Valeria Ramos. Valeria disabled the alarms and opened the outer blast door at 01:15 AM. Damian entered, deployed the aerosol gas when Richter refused to step aside, and cut the lockbox with thermite.',
+      secrets: [
+        'Admitted formulating the liquid thermite slurry in his workshop',
+        'Confessed that Valeria Ramos provided the exact biometric blueprints of the vault door',
+        'Broke down and admitted that he deployed the aerosol gas while Valeria watched the camera feed'
+      ],
+      evidenceReactions: {
+        liquid_thermite_torch_nozzle: 'Damian sneers: "Only three people in Europe understand exothermic slurry chemistry at that grade, Detective. You won\'t prove it was me."',
+        pressurized_neurotoxin_canister: 'His face hardens: "Valeria swore the vault keeper would be unconscious, not asphyxiated!"'
+      },
+      isPrimeSuspect: true,
+      category: 'prime_suspect'
+    },
+    {
+      id: 'valeria_ramos',
+      name: 'Valeria Ramos',
+      role: 'Chief Security Architect (Joint Culprit)',
+      trait: 'Poised, professional, razor-sharp technical knowledge, defensive when questioned about system logs.',
+      personality: 'cunning',
+      isInitiallyUnlocked: true,
+      initialTrust: 45,
+      initialStress: 35,
+      breakdownThreshold: 80,
+      alibi: 'Claims she was monitoring the terminal banks in the security control room and noticed nothing unusual until 02:15 AM.',
+      motive: 'Faced with heavy debt and passed over for partnership; sought a 50% split of the $45M bearer bonds.',
+      privateKnowledge: 'She colluded with Damian. She installed the bypass transceiver, looped the CCTV, and keyed the electronic blast door open from her console.',
+      secrets: [
+        'Admitted she bypassed the vault door alarm from terminal #1',
+        'Confessed that she and Damian had booked sleeper tickets to Vienna',
+        'Broke down and admitted coordinating the heist with Damian over radio frequency 144.2 MHz'
+      ],
+      evidenceReactions: {
+        biometric_loop_transceiver: 'Valeria stammers: "That hardware... someone must have planted that on my port during maintenance!"',
+        swiss_rail_smuggling_ticket: 'Her voice breaks: "Damian promised no one would get hurt! He said the gas was a mild sedative!"'
+      },
+      isPrimeSuspect: true,
+      category: 'prime_suspect'
+    },
+    {
+      id: 'klaus_becker',
+      name: 'Klaus Becker',
+      role: 'Bank Vice-President (The Embezzling Fall Guy)',
+      trait: 'Sweaty, panicky, constantly checking his gold pocket watch, defensive about bookkeeping.',
+      personality: 'nervous',
+      isInitiallyUnlocked: true,
+      initialTrust: 30,
+      initialStress: 65,
+      breakdownThreshold: 75,
+      alibi: 'Claims he was working late on quarterly audits in the main banking hall until midnight.',
+      motive: 'Embezzled 300,000 francs from client accounts; faced prison if the vault audit occurred the next morning.',
+      privateKnowledge: 'He stayed late to alter account balances in the banking hall ledger, but never went down to the subterranean vault.',
+      secrets: [
+        'Admitted embezzling 300,000 francs to cover stock market losses',
+        'Confessed he saw someone in dark coveralls enter the vault corridor at 01:10 AM',
+        'Swore on his family that he had no safecracking or chemical knowledge'
+      ],
+      evidenceReactions: {
+        becker_unauthorized_ledger_transfer: 'Collapses in chair: "I diverted the money, yes! I am a thief, but I am not an assassin! I never touched Heinrich!"'
+      },
+      isPrimeSuspect: true,
+      category: 'prime_suspect'
+    },
+    {
+      id: 'sgt_otto_keller',
+      name: 'Sgt. Otto Keller',
+      role: 'Senior Night Watchman',
+      trait: 'Gruff, veteran security guard who feels responsible for the breach.',
+      personality: 'defensive',
+      isInitiallyUnlocked: false,
+      initialTrust: 65,
+      initialStress: 25,
+      breakdownThreshold: 70,
+      alibi: 'Patrolling the exterior perimeter and freight siding between 01:00 AM and 02:00 AM.',
+      motive: 'None. Dedicated employee.',
+      privateKnowledge: 'He noticed Valeria was unusually tense and insisted he take an early coffee break at 01:00 AM.',
+      secrets: [
+        'Admitted Valeria told him to patrol the outer street rather than the vault corridor',
+        'Saw a sports car with German plates idling near the freight terminus'
+      ],
+      evidenceReactions: {
+        swiss_rail_smuggling_ticket: 'Frowns: "Platform 9 was unusually quiet tonight. Miss Ramos specifically asked if the Vienna train had departed."'
+      },
+      isPrimeSuspect: false,
+      category: 'witness',
+      leadSource: {
+        type: 'location_mention',
+        sourceName: 'Zurich Freight Railway Terminus',
+        sourceId: 'freight_railway_terminus',
+        description: 'Night watchman on duty at the freight railway gate.'
+      }
+    }
+  ],
+  groundTruth: {
+    killer: 'damian_vance,valeria_ramos',
+    fallGuy: 'klaus_becker',
+    motive: 'bearer_bonds_heist',
+    weapon: 'liquid_thermite_torch_nozzle',
+    keyContradiction: 'biometric_loop_transceiver',
+    trueFatalMechanism: 'Military aerosol neurotoxin followed by thermal blast trauma',
+    timelineSummary: 'Valeria Ramos and Damian Vance executed a coordinated $45M vault breach. Valeria used her biometric credentials to loop the security feeds and open the inner blast door from the control bastion at 01:15 AM. Damian entered with liquid thermite and pressurized neurotoxin, eliminating Heinrich Richter when he refused to enter the master cipher, and melted open the lockboxes. Klaus Becker embezzled money upstairs but had no involvement in the murder.',
+    archetype: 'multi_crime_convergence'
+  },
+  isDefault: false
+};
