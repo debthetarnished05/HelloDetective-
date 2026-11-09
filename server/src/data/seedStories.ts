@@ -43,7 +43,7 @@ export const OPERA_STORY: IStory = {
       subtitle: 'Blackwood Grand Opera - Backstage Hallway',
       status: 'Primary Crime Scene',
       lastVisited: 'October 24, 1934',
-      witnesses: 'Wardrobe Mistress Eleanor Vance, Call Boy Tommy',
+      witnesses: 'Understudy Camille Dupré',
       notes: 'Lavish vanity room with gilded mirrors and silk drapes. Shattered crystal perfume atomizer rests near the velvet settee.',
       isInitiallyUnlocked: true,
       hiddenEvidenceIds: ['shattered_atomizer', 'monogrammed_handkerchief'],
@@ -58,7 +58,7 @@ export const OPERA_STORY: IStory = {
       witnesses: 'Conductor Maestro Bellini, Understudy Camille Dupré',
       notes: 'Dimly lit performers salon where tea and spirits were served during intermission. Stage door call-board hangs beside the piano.',
       isInitiallyUnlocked: true,
-      hiddenEvidenceIds: ['dress_rehearsal_callsheet', 'opera_tea_service'],
+      hiddenEvidenceIds: ['dress_rehearsal_callsheet'],
       canvassReport: 'Detectives seized the official Stage Master call-sheet signed by Maestro Bellini, confirming Camille was on stage in front of 400 patrons during the exact timestamp of the apothecary purchase.'
     },
     {
@@ -82,7 +82,7 @@ export const OPERA_STORY: IStory = {
       witnesses: 'Julian Blackwood',
       notes: 'Opulent wood-paneled office with a locked brass desk safe. Odor of expensive Turkish cigars and lavender cologne.',
       isInitiallyUnlocked: false,
-      hiddenEvidenceIds: ['embezzled_pension_audit', 'blackwood_bank_demand'],
+      hiddenEvidenceIds: ['embezzled_pension_audit'],
       canvassReport: 'CSI cracked the mahogany roll-top desk and recovered bank foreclosure notices totaling £15,000, and a confidential audit prepared by Vivienne Vance threatening Scotland Yard prosecution.'
     }
   ],
@@ -301,7 +301,7 @@ export const ARCTIC_STORY: IStory = {
       witnesses: 'Dr. Nikolai Vance, Dr. Ingrid Meyer',
       notes: 'Sub-zero drilling vault where ancient ice cores are stored. Liquid nitrogen manifold purge valve #2 was manually locked into the open position.',
       isInitiallyUnlocked: true,
-      hiddenEvidenceIds: ['shattered_faceplate', 'nitrogen_manifold_audit'],
+      hiddenEvidenceIds: ['shattered_faceplate'],
       canvassReport: 'CSI sweep verified that while Lindqvist suffered a fractured helmet faceplate from a wrench, the chamber air was 100% displaced by liquid nitrogen at -196°C, causing instant pulmonary freeze.'
     },
     {
@@ -325,7 +325,7 @@ export const ARCTIC_STORY: IStory = {
       witnesses: 'Dr. Ingrid Meyer',
       notes: 'Sterile, meticulous office with satellite communication uplinks and locked scientific filing safes.',
       isInitiallyUnlocked: false,
-      hiddenEvidenceIds: ['rare_earth_mining_concession', 'scrubbed_satellite_transmission'],
+      hiddenEvidenceIds: ['rare_earth_mining_concession'],
       canvassReport: 'Forensic extraction of Ingrid\'s personal hard drive revealed an unredacted survey proving $40 billion in neodymium reserves beneath the glacier, brokered to an offshore consortium.'
     }
   ],
@@ -498,7 +498,7 @@ export const JAZZ_STORY: IStory = {
       subtitle: 'Behind Soundproofed Velvet Curtains',
       status: 'Primary Crime Scene',
       lastVisited: 'August 14, 1952',
-      witnesses: 'Bartender Leo Russo, Enforcer Big Tony',
+      witnesses: 'Enforcer Big Tony Marcone',
       notes: 'Soundproofed mahogany room with leather banquettes and a steel safe. Smoke hangs heavy in the air; gunpowder stippling on the doorframe.',
       isInitiallyUnlocked: true,
       hiddenEvidenceIds: ['spent_38_casing', 'moretti_extortion_ledger'],
@@ -525,7 +525,7 @@ export const JAZZ_STORY: IStory = {
       witnesses: 'Dolores Dawn',
       notes: 'Damp brick alleyway with fire escapes and trash bins. Service mirrors line the backstage door.',
       isInitiallyUnlocked: false,
-      hiddenEvidenceIds: ['pawn_ticket_38', 'lipstick_cigarette_butt'],
+      hiddenEvidenceIds: ['pawn_ticket_38'],
       canvassReport: 'Found a damp lipstick-stained Turkish cigarette in the backstage ashcan, along with a 3-day-old pawnshop ticket registered to Frankie Valenti for a .38 caliber revolver.'
     }
   ],
@@ -707,10 +707,10 @@ export const HARBOR_STORY: IStory = {
       subtitle: 'Waterfront Container Crane Deck',
       status: 'Recovery Location',
       lastVisited: 'November 3, 1978',
-      witnesses: 'Derrick Operator Mac Sullivan, Tommy Ryan',
+      witnesses: 'Tommy Ryan',
       notes: 'Fog-shrouded shipping slip where the body was pulled from the water. Crane cab towers 80 feet above the bay.',
       isInitiallyUnlocked: true,
-      hiddenEvidenceIds: ['water_recovery_log', 'crane_shift_roster'],
+      hiddenEvidenceIds: ['coroner_submersion_report'],
       canvassReport: 'CSI swept the crane gantry where Tommy claimed to push the victim; zero signs of struggle or blood. Recovery logs confirm the victim\'s watch was broken during the drag down the pier.'
     },
     {
@@ -734,7 +734,7 @@ export const HARBOR_STORY: IStory = {
       witnesses: 'Sean Callahan',
       notes: 'Overlooks the shipping channel. Steel desk with customs cargo clearance stamps and encrypted Telex machine.',
       isInitiallyUnlocked: false,
-      hiddenEvidenceIds: ['contraband_smuggling_audit', 'callahan_flight_ticket'],
+      hiddenEvidenceIds: ['contraband_smuggling_audit'],
       canvassReport: 'Recovered a hidden audit detailing $500,000 in unmanifested electronics smuggled through Warehouse 9, which Higgins had flagged for federal customs seizure.'
     }
   ],
@@ -921,7 +921,7 @@ export const MANOR_STORY: IStory = {
       witnesses: 'Arthur Jenkins',
       notes: 'Lined with silver tea sets and decanters. A concealed dumbwaiter leads up to the master bedchamber.',
       isInitiallyUnlocked: true,
-      hiddenEvidenceIds: ['arsenic_pest_powder', 'jenkins_stolen_folios'],
+      hiddenEvidenceIds: [],
       canvassReport: 'Found an opened tin of white arsenic trioxide pest powder behind the crystal decanters, alongside three priceless stolen first-edition Shakespeare folios.'
     },
     {
@@ -933,7 +933,7 @@ export const MANOR_STORY: IStory = {
       witnesses: 'Roderick Ravenscroft',
       notes: 'Muddy flagstones beneath the broken library terrace window. Trellis vines torn away by a heavy climber.',
       isInitiallyUnlocked: false,
-      hiddenEvidenceIds: ['shattered_terrace_glass', 'roderick_gold_cufflink'],
+      hiddenEvidenceIds: ['roderick_gold_cufflink'],
       canvassReport: 'Recovered a heavy brass fireplace poker dropped in the mud, along with Roderick\'s monogrammed gold cufflink and muddy bootprints stamped at 11:45 PM.'
     },
     {
@@ -1142,7 +1142,7 @@ export const MIDNIGHT_LOUNGE_STORY: IStory = {
       "subtitle": "Midnight Lounge - Rear Corridor",
       "status": "Active Crime Scene",
       "lastVisited": "August 14, 2:20 AM",
-      "witnesses": "Club Doorman",
+      "witnesses": "Delilah Moretti",
       "notes": "Mahogany desk, half-full rye bottle",
       "isInitiallyUnlocked": true,
       "hiddenEvidenceIds": ["cyanide_whiskey_glass"],
@@ -1179,6 +1179,7 @@ export const MIDNIGHT_LOUNGE_STORY: IStory = {
         "Admitted arguing violently with Vincent"
       ],
       "breakdownThreshold": 75,
+      "isInitiallyUnlocked": true,
       "evidenceReactions": {},
       "isPrimeSuspect": true,
       "category": "prime_suspect"
@@ -1239,8 +1240,9 @@ export const NEON_STORY: IStory = {
       "subtitle": "Backlot of Kurogane Brokerage",
       "status": "Active Crime Scene",
       "lastVisited": "Oct 14, 2085, 03:00 AM",
-      "witnesses": "Night Watch Unit 12, Barista at 'Ramen Ghost' (hearsy)",
+      "witnesses": "Rival Data Broker Kael Vance",
       "notes": "Rain-washed concrete. A heavy bronze cybernetic arm lies in a puddle. Smell of ozone and metallic tang. No signs of entry/exit other than the main hatch.",
+      "hiddenEvidenceIds": ["bronze_cyber_arm", "alibi_log_discrepancy"],
       "unlockStage": 1
     },
     {
@@ -1249,8 +1251,9 @@ export const NEON_STORY: IStory = {
       "subtitle": "Sub-basement Level 3",
       "status": "Location of Interest",
       "lastVisited": "Pending",
-      "witnesses": "None (Biometric locks only)",
+      "witnesses": "Mira Chen",
       "notes": "High-security cold storage. Access logs required. This is where the 'Shadow Drive' was supposed to be stored before the heist.",
+      "hiddenEvidenceIds": ["remote_trigger_device", "financial_ledger_leak"],
       "unlockStage": 2
     },
     {
@@ -1259,8 +1262,9 @@ export const NEON_STORY: IStory = {
       "subtitle": "Black Market Clinic, Sector 4",
       "status": "Location of Interest",
       "lastVisited": "Pending",
-      "witnesses": "Dr. Aris Thorne (Owner), Unidentified Courier",
+      "witnesses": "Vex Riordan",
       "notes": "Sells illegal bio-enhancements and antidotes. The victim had an appointment here. Check for purchase records of toxic compounds.",
+      "hiddenEvidenceIds": ["micro_capsule_residue", "toxicology_report"],
       "unlockStage": 3
     },
     {
@@ -1269,8 +1273,9 @@ export const NEON_STORY: IStory = {
       "subtitle": "Central District, Level 50",
       "status": "Arrest Warrant Processing",
       "lastVisited": "Pending",
-      "witnesses": "Judge Elara Vance, Court Bailiff",
+      "witnesses": "None",
       "notes": "The final step. Present the compiled evidence and correct identification of the killer to secure the warrant.",
+      "hiddenEvidenceIds": [],
       "unlockStage": 4
     }
   ],
@@ -1361,6 +1366,7 @@ export const NEON_STORY: IStory = {
         "toxicology_report": "Shocked. Denies knowledge of cyanide. Points to the others, claiming Jin was involved in dirty deals with 'enhanced' chemicals."
       },
       "isPrimeSuspect": true,
+      "isInitiallyUnlocked": true,
       "category": "prime_suspect"
     },
     {
@@ -1384,6 +1390,7 @@ export const NEON_STORY: IStory = {
         "toxicology_report": "Confused. States she didn't see anything strange. Suggests checking the black market clinics."
       },
       "isPrimeSuspect": false,
+      "isInitiallyUnlocked": true,
       "category": "person_of_interest"
     },
     {
@@ -1408,15 +1415,24 @@ export const NEON_STORY: IStory = {
         "remote_trigger_device": "Pauses for 3 seconds. Claims the device was a known prototype he was testing for security purposes, not for assassination. Denies using it on Jin."
       },
       "isPrimeSuspect": false,
+      "isInitiallyUnlocked": false,
+      "leadSource": {
+        "type": "evidence_mention",
+        "sourceName": "Encrypted Financial Ledger",
+        "sourceId": "financial_ledger_leak",
+        "description": "Financial records recovered from Jin's drive reveal an astronomical $50M debt owed to silent loan shark Vex Riordan."
+      },
       "category": "person_of_interest"
     }
   ],
   "groundTruth": {
-    "killer": "kael_vance",
-    "motive": "cover_up",
-    "weapon": "bronze_cyber_arm",
-    "keyContradiction": "timeline_gap",
-    "timelineSummary": "The suspect exploited an unmonitored window to execute the crime.",
+    "killer": "vex_riordan",
+    "fallGuy": "kael_vance",
+    "motive": "debt_default_and_takeover",
+    "weapon": "micro_capsule_residue",
+    "keyContradiction": "toxicology_shows_death_before_blunt_trauma",
+    "trueFatalMechanism": "Cyanide chloride gas inhalation via neural capsule rupture",
+    "timelineSummary": "Vex Riordan installed a toxic micro-capsule in Jin's neck implant and triggered it remotely at 1:45 AM over a $50M debt default. Kael arrived at 2:15 AM to confront Jin, struck his collapsing body with the bronze cybernetic arm, and fled in terror believing he killed him.",
     "archetype": "cause_of_death_twist"
   },
   "isDefault": false,

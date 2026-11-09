@@ -40,7 +40,7 @@ export const DEFAULT_STORY: IStory = {
       subtitle: '221B River Lane - 42nd Floor Penthouse',
       status: 'Active Crime Scene',
       lastVisited: 'April 18, 2025',
-      witnesses: 'Security Guard John Smith, Janitor Maria Garcia',
+      witnesses: 'Janitor Maria Garcia, Security Tech Diana Wilkins',
       notes: 'Primary homicide scene. The victim was found slumped over his desk. Letter opener missing from desk caddy.',
       isInitiallyUnlocked: true,
       hiddenEvidenceIds: ['crime_scene_photos', 'autopsy_report', 'camera_override_log'],
