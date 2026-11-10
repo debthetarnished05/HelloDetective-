@@ -251,9 +251,16 @@ export const getSessionState = async (req: AuthRequest, res: Response) => {
       }
 
       for (const m of session.officerChatHistory) {
-        if (m.content && /julian thorne/i.test(m.content)) {
-          m.content = m.content.replace(/julian thorne/gi, 'Marcus Chen');
-          sessionDirty = true;
+        if (m.content) {
+          if (/\bthe CFO\b/i.test(m.content)) {
+            m.content = m.content.replace(/\bthe CFO\b/gi, 'Marcus Chen, the CTO');
+            m.content = m.content.replace(/\bCFO\b/g, 'CTO');
+            sessionDirty = true;
+          }
+          if (/julian thorne/i.test(m.content)) {
+            m.content = m.content.replace(/julian thorne/gi, 'Marcus Chen');
+            sessionDirty = true;
+          }
         }
       }
     }
@@ -646,9 +653,20 @@ export const chatOfficer = async (req: Request, res: Response) => {
       }));
 
     const hasMurderWeapon = unlockedEvidenceList.some((e: any) => {
-      const lower = (e.title + ' ' + (e.details || '')).toLowerCase();
+      const titleLower = (e.title || '').toLowerCase();
       const truthWeapon = (story.groundTruth?.weapon || '').toLowerCase();
-      return (truthWeapon && lower.includes(truthWeapon)) || lower.includes('murder weapon') || lower.includes('letter opener') || lower.includes('knife') || lower.includes('blade') || lower.includes('revolver');
+      const isDirectWeaponId = e.id === 'damascus_letter_opener' ||
+        e.id === 'poison_vial_dumbwaiter' ||
+        e.id === 'obsidian_dagger' ||
+        e.id === 'bloody_cargo_hook' ||
+        e.id === 'neural_disruptor' ||
+        e.id === 'arsenic_bottle' ||
+        e.id === 'cyanide_cocktail_glass' ||
+        e.id === 'alchemical_elixir';
+      return isDirectWeaponId ||
+        (truthWeapon && titleLower.includes(truthWeapon)) ||
+        titleLower.includes('recovered murder weapon') ||
+        titleLower.includes('bloody damascus');
     });
 
     const caseContext = {
@@ -703,7 +721,9 @@ export const chatOfficer = async (req: Request, res: Response) => {
       session.officerChatHistory
     );
 
-    // Correct any hallucinated suspect names (e.g., if LLM referred to "Julian Thorne, the CTO", correct to "Marcus Chen, the CTO")
+    // Correct any hallucinated suspect names/roles (e.g., if LLM referred to "Julian Thorne" or "the CFO")
+    evalResult.dialogue = evalResult.dialogue.replace(/\bthe CFO\b/gi, 'Marcus Chen, our CTO');
+    evalResult.dialogue = evalResult.dialogue.replace(/\bCFO\b/g, 'CTO');
     for (const suspect of story.suspects || []) {
       if (suspect.role && /cto|chief technology officer/i.test(suspect.role)) {
         if (/julian (thorne|blackwood)/i.test(evalResult.dialogue)) {

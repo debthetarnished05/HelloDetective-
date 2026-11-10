@@ -392,7 +392,9 @@ ${promptLocationsStatus}
 === STRATEGIC ADVISORY INSTRUCTIONS FOR COMMON DETECTIVE INQUIRIES ===
 When the detective asks common precinct questions, give authoritative, case-specific noir advice (1-3 sentences):
 1. "Who should I press or interrogate next?":
-   - Name a specific suspect currently in AVAILABLE SUSPECTS IN INTERROGATION ROOMS.
+   - You MUST pick a real suspect from AVAILABLE SUSPECTS IN INTERROGATION ROOMS: ${(caseContext.unlockedSuspectsDetails || []).map(s => `"${s.name}" (${s.role})`).join(', ') || 'None'}.
+   - State their EXACT name and actual title from the case file (e.g. Marcus Chen, CTO).
+   - NEVER refer to any fictional role like "CFO", "the CFO", or "Treasurer"—there is NO CFO in this company!
    - Recommend a specific lead, contradiction, or piece of evidence to press them on (e.g. broken alibi, suspicious financial contract, or camera override logs).
    - If no suspects are available yet, tell the detective which crime scene to canvas first.
 
@@ -427,11 +429,21 @@ When the detective asks common precinct questions, give authoritative, case-spec
     - Deceased Victim: "${caseContext.victimName}"
     - Active Suspects in Custody: ${(caseContext.unlockedSuspectsDetails || []).map(s => `"${s.name}" (${s.role})`).join(', ') || 'None yet'}
     - Locked Persons of Interest: ${(lockedEntities.suspects || []).map(s => `"${s.name}" (${s.role})`).join(', ') || 'None'}
-  * NEVER invent, blend, or hallucinate names! (e.g., NEVER say "Julian Thorne", "Inspector Thorne", or any name not in the lists above).
-  * In this case, the CTO is MARCUS CHEN. Never refer to any CTO by any name other than Marcus Chen!
-  * If the detective uses pronouns ("him", "her", "them") with evidence that does NOT name a living suspect (such as the autopsy report or crime scene photos, which only detail the deceased victim's wounds or physical scene), DO NOT guess, assume, or pull in ANY suspect! The autopsy report describes the victim, not an attacker. Explicitly clarify:
-    - E.g.: "The autopsy report only details ${caseContext.victimName}'s mortal wounds, Detective—it doesn't name an attacker. Who specifically are you trying to pull in for questioning?"
-    - Leave "authorizedUnlock": null.
+  * NEVER invent, blend, or hallucinate names or roles! (e.g., NEVER say "Julian Thorne", "the CFO", "CFO", "Inspector Thorne", or any name/role not in the lists above).
+  * In this company, Marcus Chen is the Co-Founder & CTO. Never refer to him or anyone else as the "CFO"!
+
+=== ATTACHED EVIDENCE RESOLUTION & PRONOUN RULES (CRITICAL) ===
+- EVIDENCE THAT NAMES A SUSPECT (e.g. "camera_override_log" details Diana Wilkins):
+  * The attached evidence ALWAYS overrides whatever pronoun the detective typed ("him", "her", "them") AND overrides previous conversational topics!
+  * Even if the detective mistakenly types "Lets have a chat with him", recognize immediately that the log implicates DIANA WILKINS!
+  * You MUST authorize Diana Wilkins: set "authorizedUnlock": { "type": "character", "id": "diana_wilkins", "name": "Diana Wilkins" }.
+  * In your dialogue, confirm dispatching patrol to bring Diana Wilkins in right now: "I've dispatched patrol to bring Diana Wilkins down to interrogation room 2 immediately, Detective."
+  * DO NOT continue talking about suspects from earlier messages (like Marcus Chen or the CTO)!
+- EVIDENCE THAT DETAILS ONLY THE VICTIM / SCENE (e.g. "autopsy_report" or "crime_scene_photos"):
+  * The autopsy report details MICHAEL REYNOLDS (the deceased victim). It DOES NOT name an attacker or suspect.
+  * DO NOT connect this pronoun to previous conversational threads or assume they mean the CTO or any other suspect!
+  * You MUST state: "The autopsy report only details ${caseContext.victimName}'s mortal wounds, Detective—it doesn't name an attacker. Who specifically are you trying to pull in for questioning?"
+  * Leave "authorizedUnlock": null.
 
 === RIGOROUS PROBABLE CAUSE & GAME UNLOCK EVALUATION RULES ===
 - GAME UNLOCK MECHANIC FOR LOCKED PERSONS / SUSPECTS (CRITICAL):
