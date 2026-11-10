@@ -70,9 +70,13 @@ export const useGameStore = create<GameState>((set) => ({
       }
     }
 
-    set({
-      sessionId,
-      currentStage: session.currentStage || 1,
+      if (sessionId) {
+        localStorage.setItem('detective_session_id', sessionId);
+      }
+
+      set({
+        sessionId,
+        currentStage: session.currentStage || 1,
       story,
       unlockedEvidence: session.unlockedEvidence || [],
       unlockedLocations: session.unlockedLocations || [],

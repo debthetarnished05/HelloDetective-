@@ -38,6 +38,20 @@ function App() {
   useEffect(() => {
     const initGame = async () => {
       try {
+        const savedSessionId = localStorage.getItem('detective_session_id');
+        if (savedSessionId) {
+          try {
+            const resumed = await gameApi.getSession(savedSessionId);
+            if (resumed && resumed.sessionId && resumed.session) {
+              setSessionData(resumed);
+              return;
+            }
+          } catch (resumeErr) {
+            console.warn('Saved detective session invalid or expired, starting fresh:', resumeErr);
+            localStorage.removeItem('detective_session_id');
+          }
+        }
+
         const result = await gameApi.startGame();
         setSessionData(result);
       } catch (error: any) {

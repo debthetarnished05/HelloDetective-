@@ -305,6 +305,10 @@ You MUST reply with ONLY valid JSON with exactly these keys:
       unlockedSuspects: number;
       discoveredClues: string[];
       groundTruthSummary: string;
+      unlockedEvidenceDetails?: Array<{ id: string; title: string; subtitle?: string; details?: string; location?: string }>;
+      unlockedSuspectsDetails?: Array<{ id: string; name: string; role?: string; trait?: string }>;
+      locationsStatus?: Array<{ id: string; title: string; isCanvassed: boolean }>;
+      hasMurderWeapon?: boolean;
     },
     chatHistory: { role: string; content: string }[] = []
   ): Promise<{
@@ -326,6 +330,18 @@ You MUST reply with ONLY valid JSON with exactly these keys:
       ? lockedEntities.evidence.map(e => `- Subpoena Record [ID: "${e.id}"]: "${e.title}" (${e.subtitle || 'Official record'}) | Details: ${e.details || 'Subpoena required'}`).join('\n')
       : 'None (All subpoenas already unlocked)';
 
+    const promptUnlockedSuspects = caseContext.unlockedSuspectsDetails && caseContext.unlockedSuspectsDetails.length > 0
+      ? caseContext.unlockedSuspectsDetails.map(s => `- Suspect: "${s.name}" (${s.role || 'Suspect'}) | Demeanor: ${s.trait || 'Guarded'} [In Interrogation Room]`).join('\n')
+      : 'None in interrogation rooms yet.';
+
+    const promptUnlockedEvidence = caseContext.unlockedEvidenceDetails && caseContext.unlockedEvidenceDetails.length > 0
+      ? caseContext.unlockedEvidenceDetails.map(e => `- Forensic Item: "${e.title}" (${e.subtitle || ''}) | Details: ${e.details || 'Recovered'} | Found at: ${e.location || 'Scene'}`).join('\n')
+      : 'No physical evidence recovered yet.';
+
+    const promptLocationsStatus = caseContext.locationsStatus && caseContext.locationsStatus.length > 0
+      ? caseContext.locationsStatus.map(l => `- Location: "${l.title}" [Status: ${l.isCanvassed ? 'Canvassed & Forensics Processed' : 'Not Canvassed Yet'}]`).join('\n')
+      : 'No locations accessed yet.';
+
     let attachmentContextText = '';
     if (attachments.clue) {
       attachmentContextText += `\n[ATTACHED NOTEBOOK CLUE / SUSPECT STATEMENT]:\nSpeaker: "${attachments.clue.suspectName}"\nStatement: "${attachments.clue.statement}"\n`;
@@ -346,7 +362,7 @@ You MUST reply with ONLY valid JSON with exactly these keys:
 1. ADVISOR & TACTICAL PARTNER:
    - Assist the detective with case notes, guidance, and observational insights.
    - Speak in authentic, concise noir police dialogue (1 to 3 sentences).
-   - CRITICAL COUNT RULE: Do NOT volunteer exact completion counts unless explicitly asked for a status count/tally (Internal tally: Evidence: ${caseContext.unlockedEvidence}/${caseContext.totalEvidence}, Locations: ${caseContext.canvassedLocations}/${caseContext.totalLocations}, Suspects: ${caseContext.unlockedSuspects}/${caseContext.totalSuspects}).
+   - Answer tactical inquiries clearly, grounding your advice in the actual evidence, suspects, and crime scenes below.
 
 2. PRECINCT PROBABLE CAUSE GATEKEEPER (WARRANTS, DISPATCHES, SUBPOENAS):
    - You evaluate whether the detective's message and attached lead/clue/evidence provide legitimate probable cause to dispatch patrol units, summon a new person of interest, or subpoena restricted records.
@@ -362,7 +378,57 @@ ${promptLockedSuspects}
 LOCKED SUBPOENAS / EVIDENCE:
 ${promptLockedEvidence}
 
-=== RIGOROUS PROBABLE CAUSE & ANTI-FALSE-POSITIVE EVALUATION RULES ===
+--- CURRENT ACTIVE INVESTIGATION LEADS (IN PRECINCT) ---
+AVAILABLE SUSPECTS IN INTERROGATION ROOMS:
+${promptUnlockedSuspects}
+
+PHYSICAL EVIDENCE CURRENTLY IN LOCKER:
+${promptUnlockedEvidence}
+Murder weapon recovered in locker: ${caseContext.hasMurderWeapon ? 'YES' : 'NO'}
+
+SCENES & CANVASS STATUS:
+${promptLocationsStatus}
+
+=== STRATEGIC ADVISORY INSTRUCTIONS FOR COMMON DETECTIVE INQUIRIES ===
+When the detective asks common precinct questions, give authoritative, case-specific noir advice (1-3 sentences):
+1. "Who should I press or interrogate next?":
+   - Name a specific suspect currently in AVAILABLE SUSPECTS IN INTERROGATION ROOMS.
+   - Recommend a specific lead, contradiction, or piece of evidence to press them on (e.g. broken alibi, suspicious financial contract, or camera override logs).
+   - If no suspects are available yet, tell the detective which crime scene to canvas first.
+
+2. "Review our physical forensic evidence with me":
+   - Concisely summarize the key findings from PHYSICAL EVIDENCE CURRENTLY IN LOCKER.
+   - Explicitly note whether the murder weapon has been recovered (${caseContext.hasMurderWeapon ? 'recovered' : 'still missing'}) and what physical forensic link is needed next.
+
+3. "Do we have enough to file an arrest warrant?":
+   - Give an honest, realistic precinct assessment based on whether the key elements of murder are proven:
+     * Murder weapon recovered? ${caseContext.hasMurderWeapon ? 'YES' : 'NO'}.
+     * Scenes canvassed: ${caseContext.canvassedLocations} of ${caseContext.totalLocations}.
+   - If NOT ready: State clearly and specifically what critical element is still missing before the District Attorney and Judge will sign an arrest warrant (e.g., recovering the murder weapon, dismantling the suspect's alibi with hard logs, or uncovering the true financial motive).
+   - If ready: Urge the detective to proceed to the Court / Warrant desk to submit the indictment.
+
+4. "Davis, what's our current case status & tally?":
+   - State the exact internal tally: Evidence (${caseContext.unlockedEvidence}/${caseContext.totalEvidence}), Scenes Canvassed (${caseContext.canvassedLocations}/${caseContext.totalLocations}), Suspects in Custody (${caseContext.unlockedSuspects}/${caseContext.totalSuspects}).
+   - Add a 1-sentence tactical bottom line on where the case stands.
+
+=== STRICT ANTI-SPOILER & COUNT PRIVACY RULES (CRITICAL) ===
+- NEVER reveal or volunteer total counts of suspects, locked files, or locations UNPROMPTED!
+- NEVER say "I've got six people locked in the file", "There are 4 locations", or mention how many people are in the case file!
+- ONLY provide exact numbers if the detective specifically asks for a count/tally (e.g., "what's our current case status & tally?").
+- In all other dialogue, refer naturally to "our suspects", "persons of interest", or "leads on the board", keeping the total number of characters mysterious and atmospheric.
+
+=== RIGOROUS PROBABLE CAUSE & GAME UNLOCK EVALUATION RULES ===
+- GAME UNLOCK MECHANIC FOR LOCKED PERSONS / SUSPECTS (CRITICAL):
+  * Any person listed under "CURRENTLY LOCKED ENTITIES -> LOCKED PERSONS / SUSPECTS" is physically NOT yet in the precinct interrogation room. The detective CANNOT see, access, or interrogate them until YOU authorize bringing them in.
+  * If the detective asks to question, interrogate, summon, interview, bring in, or chat with a locked person (or cites evidence/clues naming them, or names them after you asked who to pull in):
+    - You MUST authorize the unlock: Set "authorizedUnlock": { "type": "character", "id": "<EXACT_ID_FROM_LOCKED_LIST>", "name": "<EXACT_NAME_FROM_LOCKED_LIST>" }
+    - In your dialogue, confirm you are dispatching a patrol car or summons to bring them in immediately (e.g., "I've dispatched a squad car to bring Diana Wilkins in for questioning right now, Detective.").
+    - NEVER tell the detective that a locked person is "already in the queue/file/room", "just a door and a chair", or that "no warrant is needed to talk to them" without setting "authorizedUnlock"! They are completely locked out until you set this authorization.
+
+- PRONOUN & CO-REFERENCE RESOLUTION (HER / HIM / THEM / THIS PERSON / THE SUSPECT):
+  * If the detective uses pronouns or general titles like "her", "him", "them", "this person", "the tech", "the architect", "the barista" in conjunction with an attached clue or cited evidence, look at that attached clue or evidence! If the attached evidence/clue names or details a person (e.g. "camera_override_log" details Diana Wilkins's administrative credentials), resolve "her" specifically to that named person and authorize bringing them in if they are locked!
+  * If your previous message asked "Who are you trying to pull in for questioning?" and the detective replies with a person's name (e.g. "Diana wilkins"), connect this directly to their summons request and authorize the unlock!
+
 - SEMANTIC COMPREHENSION ONLY (STRICT):
   * Anatomy / Medical terminology (e.g., "forearms", "rear thorax", "punctured ventricle", "abrasions") from autopsy or medical reports are forensic biological descriptions of wounds. They NEVER refer to physical locations and must NEVER authorize unlocking an alley, sewer, storm drain, or any location (e.g. "Rear Service Alley").
   * A witness naming an individual person (e.g., "Marcus made me do it" or "I saw Marcus") only refers to that PERSON. It does NOT authorize searching a hardware lab, warehouse, or offsite facility unless the lab/facility/address itself was specifically named or described in the statement!
@@ -371,7 +437,7 @@ ${promptLockedEvidence}
   * Only authorize an unlock if the detective's transmission (message + attached clue/evidence) provides genuine probable cause or direct naming of one of the LOCKED entities above.
   * If authorized:
     - Set "authorizedUnlock": { "type": "location" | "character" | "evidence", "id": "<EXACT_ID_FROM_LOCKED_LIST>", "name": "<EXACT_NAME_FROM_LOCKED_LIST>" }
-    - In your dialogue, confirm the dispatch/summons/subpoena enthusiastically or professionally (e.g., "Squad car dispatched to the lab now," or "I've filed the summons for them.").
+    - In your dialogue, confirm the dispatch/summons/subpoena enthusiastically or professionally (e.g., "Squad car dispatched to pick them up now," or "I've filed the summons for them.").
   * If NOT authorized:
     - Set "authorizedUnlock": null
     - In your dialogue, answer naturally in character. If the detective asked to search or subpoena something without probable cause, explain firmly why the Judge or Captain won't sign off without concrete proof.
@@ -393,7 +459,11 @@ Return your response in valid JSON:
   "rejectionReason": "Short explanation if detective requested an unlock without sufficient probable cause, otherwise null"
 }`;
 
-    const historyMessages = (chatHistory || []).slice(-6).map(m => ({
+    const rawHistory = [...(chatHistory || [])];
+    if (rawHistory.length > 0 && rawHistory[rawHistory.length - 1].role === 'user' && rawHistory[rawHistory.length - 1].content === userMessage) {
+      rawHistory.pop();
+    }
+    const historyMessages = rawHistory.slice(-6).map(m => ({
       role: m.role as 'user' | 'assistant',
       content: m.content
     }));

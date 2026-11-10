@@ -107,6 +107,25 @@ export const startNewGame = async (req: AuthRequest, res: Response) => {
 
     const leadDetectiveName = req.user ? `Detective ${req.user.username}` : 'Guest Detective';
 
+    // If an authenticated detective already has an active session on this case, resume it instead of wiping progress
+    if (req.user && !req.body.forceNew) {
+      const existingSession = await GameSession.findOne({
+        userId: req.user._id,
+        storyId: story._id,
+        status: 'active'
+      }).sort({ updatedAt: -1 });
+
+      if (existingSession) {
+        const storyObj = story.toObject ? story.toObject() : { ...story };
+        storyObj.leadDetective = leadDetectiveName;
+        return res.status(200).json({
+          sessionId: existingSession._id,
+          session: existingSession,
+          story: storyObj
+        });
+      }
+    }
+
     // Determine initial unlocks for dynamic lead-web
     const initialEvidence = (story.evidence || [])
       .filter((e: any) => e.isInitiallyUnlocked !== false)
@@ -207,6 +226,32 @@ export const getSessionState = async (req: AuthRequest, res: Response) => {
         session.leadDetectiveName = leadDetectiveName;
         await session.save();
       }
+    }
+
+    // Auto-heal any suspects or locations that Officer Davis confirmed in previous chat history but failed to add to session arrays
+    let sessionDirty = false;
+    if (story && session.officerChatHistory && session.officerChatHistory.length > 0) {
+      for (const suspect of story.suspects || []) {
+        if (!session.unlockedSuspects.includes(suspect.id)) {
+          const nameRegex = new RegExp(`\\b${suspect.name.replace(/['"]+/g, '')}\\b`, 'i');
+          const firstName = suspect.name.split(' ')[0];
+          const firstNameRegex = firstName.length > 2 ? new RegExp(`\\b${firstName}\\b`, 'i') : null;
+
+          const confirmedInHistory = session.officerChatHistory.some((m: any) =>
+            m.role === 'assistant' &&
+            (nameRegex.test(m.content) || (firstNameRegex && firstNameRegex.test(m.content))) &&
+            /\b(already in|queue|room|door and a chair|file|warrant|interview|interrogat)\b/i.test(m.content)
+          );
+
+          if (confirmedInHistory) {
+            session.unlockedSuspects.push(suspect.id);
+            sessionDirty = true;
+          }
+        }
+      }
+    }
+    if (sessionDirty) {
+      await session.save();
     }
 
     const storyObj = story ? (story.toObject ? story.toObject() : { ...story }) : null;
@@ -566,6 +611,39 @@ export const chatOfficer = async (req: Request, res: Response) => {
     const lockedSuspects = (story.suspects || []).filter((s: any) => !session.unlockedSuspects.includes(s.id));
     const lockedEvidence = (story.evidence || []).filter((e: any) => !session.unlockedEvidence.includes(e.id) && e.discoveryType === 'officer_subpoena');
 
+    const unlockedEvidenceList = (story.evidence || [])
+      .filter((e: any) => session.unlockedEvidence.includes(e.id))
+      .map((e: any) => ({
+        id: e.id,
+        title: e.title,
+        subtitle: e.subtitle,
+        details: e.details,
+        location: e.location
+      }));
+
+    const unlockedSuspectsList = (story.suspects || [])
+      .filter((s: any) => session.unlockedSuspects.includes(s.id))
+      .map((s: any) => ({
+        id: s.id,
+        name: s.name,
+        role: s.role,
+        trait: s.trait
+      }));
+
+    const locationsStatusList = (story.locations || [])
+      .filter((l: any) => session.unlockedLocations.includes(l.id))
+      .map((l: any) => ({
+        id: l.id,
+        title: l.title,
+        isCanvassed: (session.canvassedLocations || []).includes(l.id)
+      }));
+
+    const hasMurderWeapon = unlockedEvidenceList.some((e: any) => {
+      const lower = (e.title + ' ' + (e.details || '')).toLowerCase();
+      const truthWeapon = (story.groundTruth?.weapon || '').toLowerCase();
+      return (truthWeapon && lower.includes(truthWeapon)) || lower.includes('murder weapon') || lower.includes('letter opener') || lower.includes('knife') || lower.includes('blade') || lower.includes('revolver');
+    });
+
     const caseContext = {
       caseTitle: story.title,
       victimName: story.victimProfile?.name || 'the victim',
@@ -576,7 +654,11 @@ export const chatOfficer = async (req: Request, res: Response) => {
       totalSuspects: (story.suspects || []).length,
       unlockedSuspects: session.unlockedSuspects.length,
       discoveredClues: (session.recordedClues || []).map((c: any) => c.statement),
-      groundTruthSummary: story.groundTruth?.timelineSummary || ''
+      groundTruthSummary: story.groundTruth?.timelineSummary || '',
+      unlockedEvidenceDetails: unlockedEvidenceList,
+      unlockedSuspectsDetails: unlockedSuspectsList,
+      locationsStatus: locationsStatusList,
+      hasMurderWeapon
     };
 
     // Save user message with supporting metadata
@@ -616,6 +698,78 @@ export const chatOfficer = async (req: Request, res: Response) => {
 
     let newlyUnlocked: { type: 'location' | 'evidence' | 'character'; id: string; name: string } | null = null;
     let isAuthorized = false;
+
+    // Safety net fallback: If AI failed to set authorizedUnlock, but user message, dialogue, or attached evidence clearly identifies a locked entity
+    if (!evalResult.authorizedUnlock || !evalResult.authorizedUnlock.id) {
+      // 1. Check locked suspects
+      for (const suspect of lockedSuspects) {
+        const fullName = suspect.name.toLowerCase();
+        const firstName = suspect.name.split(' ')[0].toLowerCase();
+        const lastName = suspect.name.split(' ').slice(-1)[0].toLowerCase();
+        const msgLower = (message || '').toLowerCase();
+        const diagLower = (evalResult.dialogue || '').toLowerCase();
+
+        const mentionsName = msgLower.includes(fullName) ||
+          (firstName.length > 2 && msgLower.includes(firstName)) ||
+          (lastName.length > 2 && msgLower.includes(lastName));
+
+        const dialogueMentionsName = diagLower.includes(fullName) ||
+          (firstName.length > 2 && diagLower.includes(firstName)) ||
+          (lastName.length > 2 && diagLower.includes(lastName));
+
+        const evidenceMentionsSuspect = activeEvidence && (
+          (activeEvidence.details && activeEvidence.details.toLowerCase().includes(fullName)) ||
+          (activeEvidence.title && activeEvidence.title.toLowerCase().includes(fullName)) ||
+          (activeEvidence.id && activeEvidence.id === 'camera_override_log' && suspect.id === 'diana_wilkins') ||
+          (suspect.leadSource && suspect.leadSource.sourceName && activeEvidence.title &&
+            activeEvidence.title.toLowerCase().includes(suspect.leadSource.sourceName.toLowerCase()))
+        );
+
+        const asksForInterrogation = /\b(chat|talk|question|interrogate|bring|summon|pull|interview|speak|examine|her|him|them)\b/i.test(msgLower);
+        const davisConfirmsAlreadyThere = dialogueMentionsName &&
+          /\b(already in|queue|room|door and a chair|file|warrant)\b/i.test(diagLower);
+
+        if (mentionsName || (evidenceMentionsSuspect && asksForInterrogation) || davisConfirmsAlreadyThere) {
+          evalResult.authorizedUnlock = {
+            type: 'character',
+            id: suspect.id,
+            name: suspect.name
+          };
+          if (davisConfirmsAlreadyThere || !diagLower.includes(firstName)) {
+            evalResult.dialogue = `I've dispatched patrol to bring ${suspect.name} into interrogation room 2 right now, Detective. They are waiting for you in the interview room.`;
+          }
+          break;
+        }
+      }
+
+      // 2. Check locked locations
+      if (!evalResult.authorizedUnlock || !evalResult.authorizedUnlock.id) {
+        for (const loc of lockedLocations) {
+          const titleLower = loc.title.toLowerCase();
+          const msgLower = (message || '').toLowerCase();
+
+          const mentionsLocation = msgLower.includes(titleLower) ||
+            (loc.id === 'marcus_offsite_lab' && /\b(lab|hardware lab|pier 9)\b/i.test(msgLower)) ||
+            (loc.id === 'storm_drain_parkade' && /\b(storm drain|rear alley|service alley|drain)\b/i.test(msgLower));
+
+          const clueMentionsLocation = activeClue && (
+            activeClue.statement.toLowerCase().includes(titleLower) ||
+            (loc.id === 'storm_drain_parkade' && /\b(storm drain|rear alley|service alley|drain)\b/i.test(activeClue.statement.toLowerCase()))
+          );
+
+          const asksToInvestigate = /\b(search|canvas|check|go to|visit|investigate|inspect|warrant)\b/i.test(msgLower);
+
+          if (mentionsLocation || (clueMentionsLocation && (asksToInvestigate || /\b(it|there|the place)\b/i.test(msgLower)))) {
+            evalResult.authorizedUnlock = {
+              type: 'location',
+              id: loc.id,
+              name: loc.title
+            };
+            break;
+          }
+        }
+      }
+    }
 
     if (evalResult.authorizedUnlock && evalResult.authorizedUnlock.id) {
       const auth = evalResult.authorizedUnlock;
