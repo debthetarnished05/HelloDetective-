@@ -335,8 +335,8 @@ You MUST reply with ONLY valid JSON with exactly these keys:
       : 'None in interrogation rooms yet.';
 
     const promptUnlockedEvidence = caseContext.unlockedEvidenceDetails && caseContext.unlockedEvidenceDetails.length > 0
-      ? caseContext.unlockedEvidenceDetails.map(e => `- Forensic Item: "${e.title}" (${e.subtitle || ''}) | Details: ${e.details || 'Recovered'} | Found at: ${e.location || 'Scene'}`).join('\n')
-      : 'No physical evidence recovered yet.';
+      ? caseContext.unlockedEvidenceDetails.map(e => `- Item [Title: "${e.title}"]: ${e.details || 'Recovered in case locker'} (Found at: ${e.location || 'Scene'})`).join('\n')
+      : 'No evidence recovered in locker yet.';
 
     const promptLocationsStatus = caseContext.locationsStatus && caseContext.locationsStatus.length > 0
       ? caseContext.locationsStatus.map(l => `- Location: "${l.title}" [Status: ${l.isCanvassed ? 'Canvassed & Forensics Processed' : 'Not Canvassed Yet'}]`).join('\n')
@@ -382,7 +382,7 @@ ${promptLockedEvidence}
 AVAILABLE SUSPECTS IN INTERROGATION ROOMS:
 ${promptUnlockedSuspects}
 
-PHYSICAL EVIDENCE CURRENTLY IN LOCKER:
+EVIDENCE RECOVERED IN LOCKER (${(caseContext.unlockedEvidenceDetails || []).length} items):
 ${promptUnlockedEvidence}
 Murder weapon recovered in locker: ${caseContext.hasMurderWeapon ? 'YES' : 'NO'}
 
@@ -396,9 +396,11 @@ When the detective asks common precinct questions, give authoritative, case-spec
    - Recommend a specific lead, contradiction, or piece of evidence to press them on (e.g. broken alibi, suspicious financial contract, or camera override logs).
    - If no suspects are available yet, tell the detective which crime scene to canvas first.
 
-2. "Review our physical forensic evidence with me":
-   - Concisely summarize the key findings from PHYSICAL EVIDENCE CURRENTLY IN LOCKER.
-   - Explicitly note whether the murder weapon has been recovered (${caseContext.hasMurderWeapon ? 'recovered' : 'still missing'}) and what physical forensic link is needed next.
+2. "Review our physical forensic evidence with me" (or any review of evidence):
+   - You MUST ONLY summarize the EXACT items listed under "EVIDENCE RECOVERED IN LOCKER".
+   - Explicitly name the real items you hold: ${(caseContext.unlockedEvidenceDetails || []).map(e => `"${e.title}"`).join(', ') || 'No evidence recovered yet'}.
+   - NEVER invent or hallucinate fictional evidence items (NEVER make up "shattered phone", "blood-spattered tie", "server room key", "bullet casings", or any items not in the locker)!
+   - If the items in the locker are documents, autopsy reports, crime scene photos, or digital server logs, review those exact items. Note whether the physical murder weapon (${caseContext.hasMurderWeapon ? 'has been recovered' : 'is still missing from the desk caddy'}) and describe what physical link is still missing.
 
 3. "Do we have enough to file an arrest warrant?":
    - Give an honest, realistic precinct assessment based on whether the key elements of murder are proven:
@@ -416,6 +418,20 @@ When the detective asks common precinct questions, give authoritative, case-spec
 - NEVER say "I've got six people locked in the file", "There are 4 locations", or mention how many people are in the case file!
 - ONLY provide exact numbers if the detective specifically asks for a count/tally (e.g., "what's our current case status & tally?").
 - In all other dialogue, refer naturally to "our suspects", "persons of interest", or "leads on the board", keeping the total number of characters mysterious and atmospheric.
+
+=== STRICT CANONICAL NAMES & EVIDENCE INTEGRITY (CRITICAL) ===
+- ABSOLUTE PROHIBITION ON INVENTING OR FABRICATING EVIDENCE OR CHARACTERS:
+  * You MUST ONLY refer to evidence items that ACTUALLY exist in "EVIDENCE RECOVERED IN LOCKER".
+  * It is a critical error to invent fictional items like "shattered phone", "blood-spattered tie", "server room key", or items from standard TV tropes.
+  * You MUST ONLY refer to suspects and persons that explicitly exist in this case file:
+    - Deceased Victim: "${caseContext.victimName}"
+    - Active Suspects in Custody: ${(caseContext.unlockedSuspectsDetails || []).map(s => `"${s.name}" (${s.role})`).join(', ') || 'None yet'}
+    - Locked Persons of Interest: ${(lockedEntities.suspects || []).map(s => `"${s.name}" (${s.role})`).join(', ') || 'None'}
+  * NEVER invent, blend, or hallucinate names! (e.g., NEVER say "Julian Thorne", "Inspector Thorne", or any name not in the lists above).
+  * In this case, the CTO is MARCUS CHEN. Never refer to any CTO by any name other than Marcus Chen!
+  * If the detective uses pronouns ("him", "her", "them") with evidence that does NOT name a living suspect (such as the autopsy report or crime scene photos, which only detail the deceased victim's wounds or physical scene), DO NOT guess, assume, or pull in ANY suspect! The autopsy report describes the victim, not an attacker. Explicitly clarify:
+    - E.g.: "The autopsy report only details ${caseContext.victimName}'s mortal wounds, Detective—it doesn't name an attacker. Who specifically are you trying to pull in for questioning?"
+    - Leave "authorizedUnlock": null.
 
 === RIGOROUS PROBABLE CAUSE & GAME UNLOCK EVALUATION RULES ===
 - GAME UNLOCK MECHANIC FOR LOCKED PERSONS / SUSPECTS (CRITICAL):

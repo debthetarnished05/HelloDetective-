@@ -249,6 +249,13 @@ export const getSessionState = async (req: AuthRequest, res: Response) => {
           }
         }
       }
+
+      for (const m of session.officerChatHistory) {
+        if (m.content && /julian thorne/i.test(m.content)) {
+          m.content = m.content.replace(/julian thorne/gi, 'Marcus Chen');
+          sessionDirty = true;
+        }
+      }
     }
     if (sessionDirty) {
       await session.save();
@@ -695,6 +702,15 @@ export const chatOfficer = async (req: Request, res: Response) => {
       caseContext,
       session.officerChatHistory
     );
+
+    // Correct any hallucinated suspect names (e.g., if LLM referred to "Julian Thorne, the CTO", correct to "Marcus Chen, the CTO")
+    for (const suspect of story.suspects || []) {
+      if (suspect.role && /cto|chief technology officer/i.test(suspect.role)) {
+        if (/julian (thorne|blackwood)/i.test(evalResult.dialogue)) {
+          evalResult.dialogue = evalResult.dialogue.replace(/julian (thorne|blackwood)/gi, suspect.name);
+        }
+      }
+    }
 
     let newlyUnlocked: { type: 'location' | 'evidence' | 'character'; id: string; name: string } | null = null;
     let isAuthorized = false;
