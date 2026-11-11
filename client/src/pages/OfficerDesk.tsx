@@ -44,9 +44,10 @@ export default function OfficerDesk() {
 
     setLoading(true);
     const query = userText.trim();
-    const clueToAttach = attachedClue;
-    const evidenceToCite = referencedEvidenceId;
-    const locationToCite = referencedLocationId;
+    const isQuickQuestion = QUICK_QUESTIONS.includes(query);
+    const clueToAttach = isQuickQuestion ? null : attachedClue;
+    const evidenceToCite = isQuickQuestion ? null : referencedEvidenceId;
+    const locationToCite = isQuickQuestion ? null : referencedLocationId;
 
     setMessage('');
     setAttachedClue(null);
@@ -346,7 +347,7 @@ export default function OfficerDesk() {
                           fontFamily: 'monospace',
                           color: '#0369a1'
                         }}>
-                          📁 <strong>Evidence Cited:</strong> {msg.referencedEvidenceId}
+                          📁 <strong>Evidence Cited:</strong> {(story?.evidence || []).find(e => e.id === msg.referencedEvidenceId)?.title || msg.referencedEvidenceId}
                         </div>
                       )}
                       {msg.referencedLocationId && (
@@ -359,7 +360,7 @@ export default function OfficerDesk() {
                           fontFamily: 'monospace',
                           color: '#6b21a8'
                         }}>
-                          📍 <strong>Scene Cited:</strong> {msg.referencedLocationId}
+                          📍 <strong>Scene Cited:</strong> {(story?.locations || []).find(l => l.id === msg.referencedLocationId)?.title || msg.referencedLocationId}
                         </div>
                       )}
                     </div>

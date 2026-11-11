@@ -178,6 +178,7 @@ export const DEFAULT_STORY: IStory = {
       location: 'Rear Service Alley Storm Drain',
       priority: 'Critical',
       isInitiallyUnlocked: false,
+      isMurderWeapon: true,
       discoveryType: 'location_canvass',
       locationId: 'storm_drain_parkade'
     },

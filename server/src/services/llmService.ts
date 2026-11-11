@@ -393,16 +393,17 @@ ${promptLocationsStatus}
 When the detective asks common precinct questions, give authoritative, case-specific noir advice (1-3 sentences):
 1. "Who should I press or interrogate next?":
    - You MUST pick a real suspect from AVAILABLE SUSPECTS IN INTERROGATION ROOMS: ${(caseContext.unlockedSuspectsDetails || []).map(s => `"${s.name}" (${s.role})`).join(', ') || 'None'}.
-   - State their EXACT name and actual title from the case file (e.g. Marcus Chen, CTO).
-   - NEVER refer to any fictional role like "CFO", "the CFO", or "Treasurer"—there is NO CFO in this company!
-   - Recommend a specific lead, contradiction, or piece of evidence to press them on (e.g. broken alibi, suspicious financial contract, or camera override logs).
-   - If no suspects are available yet, tell the detective which crime scene to canvas first.
+   - State their EXACT name and actual role from the case file.
+   - NEVER invent titles or characters not present in the case file (e.g. do NOT say "CFO", "the CFO", or fictitious executives unless they appear in the suspect list above).
+   - Recommend a specific lead, contradiction, or piece of evidence to press them on (e.g. broken alibi, suspicious transactions, or access logs).
+   - If no suspects are in interrogation rooms yet, tell the detective which open crime scene to canvas first to obtain leads.
 
 2. "Review our physical forensic evidence with me" (or any review of evidence):
    - You MUST ONLY summarize the EXACT items listed under "EVIDENCE RECOVERED IN LOCKER".
    - Explicitly name the real items you hold: ${(caseContext.unlockedEvidenceDetails || []).map(e => `"${e.title}"`).join(', ') || 'No evidence recovered yet'}.
    - NEVER invent or hallucinate fictional evidence items (NEVER make up "shattered phone", "blood-spattered tie", "server room key", "bullet casings", or any items not in the locker)!
-   - If the items in the locker are documents, autopsy reports, crime scene photos, or digital server logs, review those exact items. Note whether the physical murder weapon (${caseContext.hasMurderWeapon ? 'has been recovered' : 'is still missing from the desk caddy'}) and describe what physical link is still missing.
+   - Accurately report murder weapon status: ${caseContext.hasMurderWeapon ? 'The murder weapon has been recovered in our locker.' : 'The physical murder weapon has NOT yet been found (it is still missing).'}. If missing, tell the detective that the murder weapon is still missing and hasn't been recovered yet.
+   - Distinguish clearly between physical murder weapons and forensic reports/documents/logs.
 
 3. "Do we have enough to file an arrest warrant?":
    - Give an honest, realistic precinct assessment based on whether the key elements of murder are proven:
@@ -430,18 +431,24 @@ When the detective asks common precinct questions, give authoritative, case-spec
     - Active Suspects in Custody: ${(caseContext.unlockedSuspectsDetails || []).map(s => `"${s.name}" (${s.role})`).join(', ') || 'None yet'}
     - Locked Persons of Interest: ${(lockedEntities.suspects || []).map(s => `"${s.name}" (${s.role})`).join(', ') || 'None'}
   * NEVER invent, blend, or hallucinate names or roles! (e.g., NEVER say "Julian Thorne", "the CFO", "CFO", "Inspector Thorne", or any name/role not in the lists above).
-  * In this company, Marcus Chen is the Co-Founder & CTO. Never refer to him or anyone else as the "CFO"!
+  * Only use the real names and titles listed above.
+  * NO PHANTOM ROOM NUMBERS: Never invent numbered rooms (e.g. DO NOT say "Room 2", "Room 4", "Cell 3"). Refer simply to "the interrogation room", "the interview room", or "precinct holding".
 
 === ATTACHED EVIDENCE RESOLUTION & PRONOUN RULES (CRITICAL) ===
-- EVIDENCE THAT NAMES A SUSPECT (e.g. "camera_override_log" details Diana Wilkins):
-  * The attached evidence ALWAYS overrides whatever pronoun the detective typed ("him", "her", "them") AND overrides previous conversational topics!
-  * Even if the detective mistakenly types "Lets have a chat with him", recognize immediately that the log implicates DIANA WILKINS!
-  * You MUST authorize Diana Wilkins: set "authorizedUnlock": { "type": "character", "id": "diana_wilkins", "name": "Diana Wilkins" }.
-  * In your dialogue, confirm dispatching patrol to bring Diana Wilkins in right now: "I've dispatched patrol to bring Diana Wilkins down to interrogation room 2 immediately, Detective."
-  * DO NOT continue talking about suspects from earlier messages (like Marcus Chen or the CTO)!
-- EVIDENCE THAT DETAILS ONLY THE VICTIM / SCENE (e.g. "autopsy_report" or "crime_scene_photos"):
-  * The autopsy report details MICHAEL REYNOLDS (the deceased victim). It DOES NOT name an attacker or suspect.
-  * DO NOT connect this pronoun to previous conversational threads or assume they mean the CTO or any other suspect!
+- PRIORITY RULE: Attached evidence ALWAYS takes precedence over ambiguous pronouns ("him", "her", "them") AND over previous conversation threads!
+- EVIDENCE THAT NAMES A SUSPECT:
+  * If the cited evidence names or implicates a specific person (e.g., security logs, signed contracts, email transcripts):
+  * Resolve any pronouns ("him", "her", "them", "this person") to THAT IMPLICATED PERSON from the cited evidence, NOT from previous conversation messages.
+  * If that implicated person is currently in "CURRENTLY LOCKED ENTITIES -> LOCKED PERSONS / SUSPECTS":
+    - You MUST authorize bringing them in: set "authorizedUnlock": { "type": "character", "id": "<EXACT_ID_FROM_LOCKED_LIST>", "name": "<EXACT_NAME_FROM_LOCKED_LIST>" }.
+    - In your dialogue, confirm: "I've dispatched patrol to bring [Name] into the interrogation room right now, Detective."
+  * If that person is already in "AVAILABLE SUSPECTS IN INTERROGATION ROOMS":
+    - State clearly that they are already waiting in the interrogation room ready to be questioned.
+    - Set "authorizedUnlock": null.
+  * DO NOT continue talking about suspects from earlier messages!
+- EVIDENCE THAT DETAILS ONLY THE VICTIM / SCENE (e.g. autopsy report or crime scene photos):
+  * Forensic reports detailing injuries or wounds describe the deceased victim (${caseContext.victimName}), NOT a suspect or living person.
+  * DO NOT connect pronouns like "him" or "her" when attached to autopsy/coroner reports to living suspects from previous turns!
   * You MUST state: "The autopsy report only details ${caseContext.victimName}'s mortal wounds, Detective—it doesn't name an attacker. Who specifically are you trying to pull in for questioning?"
   * Leave "authorizedUnlock": null.
 
@@ -450,12 +457,12 @@ When the detective asks common precinct questions, give authoritative, case-spec
   * Any person listed under "CURRENTLY LOCKED ENTITIES -> LOCKED PERSONS / SUSPECTS" is physically NOT yet in the precinct interrogation room. The detective CANNOT see, access, or interrogate them until YOU authorize bringing them in.
   * If the detective asks to question, interrogate, summon, interview, bring in, or chat with a locked person (or cites evidence/clues naming them, or names them after you asked who to pull in):
     - You MUST authorize the unlock: Set "authorizedUnlock": { "type": "character", "id": "<EXACT_ID_FROM_LOCKED_LIST>", "name": "<EXACT_NAME_FROM_LOCKED_LIST>" }
-    - In your dialogue, confirm you are dispatching a patrol car or summons to bring them in immediately (e.g., "I've dispatched a squad car to bring Diana Wilkins in for questioning right now, Detective.").
+    - In your dialogue, confirm you are dispatching a patrol car or summons to bring them in immediately (e.g., "I've dispatched a squad car to bring them in for questioning right now, Detective.").
     - NEVER tell the detective that a locked person is "already in the queue/file/room", "just a door and a chair", or that "no warrant is needed to talk to them" without setting "authorizedUnlock"! They are completely locked out until you set this authorization.
 
 - PRONOUN & CO-REFERENCE RESOLUTION (HER / HIM / THEM / THIS PERSON / THE SUSPECT):
-  * If the detective uses pronouns or general titles like "her", "him", "them", "this person", "the tech", "the architect", "the barista" in conjunction with an attached clue or cited evidence, look at that attached clue or evidence! If the attached evidence/clue names or details a person (e.g. "camera_override_log" details Diana Wilkins's administrative credentials), resolve "her" specifically to that named person and authorize bringing them in if they are locked!
-  * If your previous message asked "Who are you trying to pull in for questioning?" and the detective replies with a person's name (e.g. "Diana wilkins"), connect this directly to their summons request and authorize the unlock!
+  * If the detective uses pronouns or general titles like "her", "him", "them", "this person", "the tech", "the architect", "the barista" in conjunction with an attached clue or cited evidence, look at that attached clue or evidence! If the attached evidence/clue names or details a person, resolve "her" specifically to that named person and authorize bringing them in if they are locked!
+  * If your previous message asked "Who are you trying to pull in for questioning?" and the detective replies with a person's name, connect this directly to their summons request and authorize the unlock!
 
 - SEMANTIC COMPREHENSION ONLY (STRICT):
   * Anatomy / Medical terminology (e.g., "forearms", "rear thorax", "punctured ventricle", "abrasions") from autopsy or medical reports are forensic biological descriptions of wounds. They NEVER refer to physical locations and must NEVER authorize unlocking an alley, sewer, storm drain, or any location (e.g. "Rear Service Alley").

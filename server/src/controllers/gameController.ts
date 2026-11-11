@@ -623,7 +623,13 @@ export const chatOfficer = async (req: Request, res: Response) => {
     // Match candidate target among locked entities
     const lockedLocations = (story.locations || []).filter((l: any) => !session.unlockedLocations.includes(l.id));
     const lockedSuspects = (story.suspects || []).filter((s: any) => !session.unlockedSuspects.includes(s.id));
-    const lockedEvidence = (story.evidence || []).filter((e: any) => !session.unlockedEvidence.includes(e.id) && e.discoveryType === 'officer_subpoena');
+    const lockedEvidence = (story.evidence || []).filter((e: any) =>
+      !session.unlockedEvidence.includes(e.id) &&
+      (e.discoveryType === 'officer_subpoena' ||
+       e.allowSubpoena === true ||
+       /subpoena|record|log|contract|audit|telemetry|bank|email|warrant|agreement/i.test((e.title || '') + ' ' + (e.subtitle || ''))
+      )
+    );
 
     const unlockedEvidenceList = (story.evidence || [])
       .filter((e: any) => session.unlockedEvidence.includes(e.id))
@@ -632,7 +638,8 @@ export const chatOfficer = async (req: Request, res: Response) => {
         title: e.title,
         subtitle: e.subtitle,
         details: e.details,
-        location: e.location
+        location: e.location,
+        isMurderWeapon: e.isMurderWeapon
       }));
 
     const unlockedSuspectsList = (story.suspects || [])
@@ -653,20 +660,28 @@ export const chatOfficer = async (req: Request, res: Response) => {
       }));
 
     const hasMurderWeapon = unlockedEvidenceList.some((e: any) => {
-      const titleLower = (e.title || '').toLowerCase();
       const truthWeapon = (story.groundTruth?.weapon || '').toLowerCase();
-      const isDirectWeaponId = e.id === 'damascus_letter_opener' ||
-        e.id === 'poison_vial_dumbwaiter' ||
-        e.id === 'obsidian_dagger' ||
-        e.id === 'bloody_cargo_hook' ||
-        e.id === 'neural_disruptor' ||
-        e.id === 'arsenic_bottle' ||
-        e.id === 'cyanide_cocktail_glass' ||
-        e.id === 'alchemical_elixir';
-      return isDirectWeaponId ||
-        (truthWeapon && titleLower.includes(truthWeapon)) ||
-        titleLower.includes('recovered murder weapon') ||
-        titleLower.includes('bloody damascus');
+      const titleLower = (e.title || '').toLowerCase();
+      const subtitleLower = (e.subtitle || '').toLowerCase();
+
+      if (e.isMurderWeapon === true) return true;
+      if (truthWeapon && e.id && (e.id.toLowerCase() === truthWeapon || truthWeapon.includes(e.id.toLowerCase()))) return true;
+
+      const knownWeaponIds = [
+        'damascus_letter_opener',
+        'poison_vial_dumbwaiter',
+        'obsidian_dagger',
+        'bloody_cargo_hook',
+        'neural_disruptor',
+        'arsenic_bottle',
+        'cyanide_cocktail_glass',
+        'alchemical_elixir'
+      ];
+      if (knownWeaponIds.includes(e.id)) return true;
+
+      if (subtitleLower.includes('recovered murder weapon') || titleLower.includes('recovered murder weapon')) return true;
+
+      return false;
     });
 
     const caseContext = {
@@ -691,7 +706,7 @@ export const chatOfficer = async (req: Request, res: Response) => {
 
     session.officerChatHistory.push({
       role: 'user',
-      content: message,
+      content: safeOfficerQuery,
       timestamp: new Date(),
       attachedClue: activeClue ? {
         id: activeClue.id,
@@ -721,16 +736,19 @@ export const chatOfficer = async (req: Request, res: Response) => {
       session.officerChatHistory
     );
 
-    // Correct any hallucinated suspect names/roles (e.g., if LLM referred to "Julian Thorne" or "the CFO")
-    evalResult.dialogue = evalResult.dialogue.replace(/\bthe CFO\b/gi, 'Marcus Chen, our CTO');
-    evalResult.dialogue = evalResult.dialogue.replace(/\bCFO\b/g, 'CTO');
-    for (const suspect of story.suspects || []) {
-      if (suspect.role && /cto|chief technology officer/i.test(suspect.role)) {
-        if (/julian (thorne|blackwood)/i.test(evalResult.dialogue)) {
-          evalResult.dialogue = evalResult.dialogue.replace(/julian (thorne|blackwood)/gi, suspect.name);
-        }
-      }
+    // Dynamic role/name hallucination correction (prevents LLM default fallback tropes)
+    const techSuspect = (story.suspects || []).find((s: any) => /cto|chief technology officer|tech/i.test(s.role || ''));
+    if (techSuspect) {
+      evalResult.dialogue = evalResult.dialogue.replace(/\bthe CFO\b/gi, `${techSuspect.name}, our ${techSuspect.role}`);
+      evalResult.dialogue = evalResult.dialogue.replace(/\bCFO\b/g, techSuspect.role);
+      evalResult.dialogue = evalResult.dialogue.replace(/\bjulian thorne\b/gi, techSuspect.name);
+    } else {
+      evalResult.dialogue = evalResult.dialogue.replace(/\bthe CFO\b/gi, 'our suspect');
+      evalResult.dialogue = evalResult.dialogue.replace(/\bjulian thorne\b/gi, story.victimProfile?.name || 'the suspect');
     }
+
+    // Eliminate phantom room numbers (e.g. Room 2, Room 4, Interrogation Room 2)
+    evalResult.dialogue = evalResult.dialogue.replace(/\b(?:interrogation\s+)?room\s+\d+\b/gi, 'the interrogation room');
 
     let newlyUnlocked: { type: 'location' | 'evidence' | 'character'; id: string; name: string } | null = null;
     let isAuthorized = false;
@@ -772,7 +790,7 @@ export const chatOfficer = async (req: Request, res: Response) => {
             name: suspect.name
           };
           if (davisConfirmsAlreadyThere || !diagLower.includes(firstName)) {
-            evalResult.dialogue = `I've dispatched patrol to bring ${suspect.name} into interrogation room 2 right now, Detective. They are waiting for you in the interview room.`;
+            evalResult.dialogue = `I've dispatched patrol to bring ${suspect.name} into the interrogation room right now, Detective. They are waiting for you in the interview room.`;
           }
           break;
         }
@@ -805,30 +823,78 @@ export const chatOfficer = async (req: Request, res: Response) => {
           }
         }
       }
+
+      // 3. Check locked evidence (subpoenas)
+      if (!evalResult.authorizedUnlock || !evalResult.authorizedUnlock.id) {
+        for (const ev of lockedEvidence) {
+          const titleLower = ev.title.toLowerCase();
+          const msgLower = (message || '').toLowerCase();
+          const asksForSubpoena = /\b(subpoena|warrant|pull|request|obtain|get|records|log|audit|telemetry)\b/i.test(msgLower);
+          if (asksForSubpoena && (msgLower.includes(titleLower) || (ev.subtitle && msgLower.includes(ev.subtitle.toLowerCase())))) {
+            evalResult.authorizedUnlock = {
+              type: 'evidence',
+              id: ev.id,
+              name: ev.title
+            };
+            evalResult.dialogue = `I've filed the paperwork and pulled ${ev.title}. It's logged into our evidence locker now, Detective.`;
+            break;
+          }
+        }
+      }
+    }
+
+    // Interrogation lock check: If DA locked interrogation, block character summons
+    if (session.interrogationLocked && evalResult.authorizedUnlock?.type === 'character') {
+      evalResult.authorizedUnlock = null;
+      evalResult.dialogue = `Negative, Detective. The District Attorney has locked down all interrogations while the indictment is being finalized. We can't bring in any more suspects.`;
     }
 
     if (evalResult.authorizedUnlock && evalResult.authorizedUnlock.id) {
       const auth = evalResult.authorizedUnlock;
       if (auth.type === 'location') {
-        const matched = lockedLocations.find((l: any) => l.id === auth.id);
-        if (matched && !session.unlockedLocations.includes(matched.id)) {
-          session.unlockedLocations.push(matched.id);
-          newlyUnlocked = { type: 'location', id: matched.id, name: matched.title };
+        if (session.unlockedLocations.includes(auth.id)) {
+          const loc = (story.locations || []).find((l: any) => l.id === auth.id);
           isAuthorized = true;
+          if (loc && !/already/i.test(evalResult.dialogue)) {
+            evalResult.dialogue = `${loc.title} is already an active crime scene on your board, Detective. You can head over to canvas it.`;
+          }
+        } else {
+          const matched = (story.locations || []).find((l: any) => l.id === auth.id);
+          if (matched) {
+            session.unlockedLocations.push(matched.id);
+            newlyUnlocked = { type: 'location', id: matched.id, name: matched.title };
+            isAuthorized = true;
+          }
         }
       } else if (auth.type === 'character') {
-        const matched = lockedSuspects.find((s: any) => s.id === auth.id);
-        if (matched && !session.unlockedSuspects.includes(matched.id)) {
-          session.unlockedSuspects.push(matched.id);
-          newlyUnlocked = { type: 'character', id: matched.id, name: matched.name };
+        if (session.unlockedSuspects.includes(auth.id)) {
+          const suspect = (story.suspects || []).find((s: any) => s.id === auth.id);
           isAuthorized = true;
+          if (suspect && !/already/i.test(evalResult.dialogue)) {
+            evalResult.dialogue = `${suspect.name} is already waiting in the interrogation room, Detective. You can go question them right now.`;
+          }
+        } else {
+          const matched = (story.suspects || []).find((s: any) => s.id === auth.id);
+          if (matched) {
+            session.unlockedSuspects.push(matched.id);
+            newlyUnlocked = { type: 'character', id: matched.id, name: matched.name };
+            isAuthorized = true;
+          }
         }
       } else if (auth.type === 'evidence') {
-        const matched = lockedEvidence.find((e: any) => e.id === auth.id);
-        if (matched && !session.unlockedEvidence.includes(matched.id)) {
-          session.unlockedEvidence.push(matched.id);
-          newlyUnlocked = { type: 'evidence', id: matched.id, name: matched.title };
+        if (session.unlockedEvidence.includes(auth.id)) {
+          const ev = (story.evidence || []).find((e: any) => e.id === auth.id);
           isAuthorized = true;
+          if (ev && !/already/i.test(evalResult.dialogue)) {
+            evalResult.dialogue = `${ev.title} is already logged in our evidence locker, Detective.`;
+          }
+        } else {
+          const matched = (story.evidence || []).find((e: any) => e.id === auth.id);
+          if (matched) {
+            session.unlockedEvidence.push(matched.id);
+            newlyUnlocked = { type: 'evidence', id: matched.id, name: matched.title };
+            isAuthorized = true;
+          }
         }
       }
     }

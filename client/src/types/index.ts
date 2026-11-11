@@ -62,6 +62,8 @@ export interface IEvidenceItem {
   unlockStage?: number;
   isInitiallyUnlocked?: boolean;
   discoveryType?: 'initial' | 'location_canvass' | 'officer_subpoena';
+  isMurderWeapon?: boolean;
+  allowSubpoena?: boolean;
   subpoenaSource?: string;
   locationId?: string;
   imageUrl?: string;
