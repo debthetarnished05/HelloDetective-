@@ -285,9 +285,9 @@ You MUST reply with ONLY valid JSON with exactly these keys:
   static async chatWithOfficerAdvisor(
     userMessage: string,
     attachments: {
-      clue?: { suspectName: string; statement: string; suspectId?: string } | null;
-      evidence?: { title: string; subtitle?: string; details?: string; location?: string } | null;
-      location?: { title: string; subtitle?: string; notes?: string; witnesses?: string; canvassReport?: string } | null;
+      clue?: { id?: string; suspectName: string; statement: string; suspectId?: string } | null;
+      evidence?: { id?: string; title: string; subtitle?: string; details?: string; location?: string } | null;
+      location?: { id?: string; title: string; subtitle?: string; notes?: string; witnesses?: string; canvassReport?: string } | null;
     },
     lockedEntities: {
       locations: Array<{ id: string; title: string; subtitle?: string; notes?: string }>;
@@ -347,10 +347,10 @@ You MUST reply with ONLY valid JSON with exactly these keys:
       attachmentContextText += `\n[ATTACHED NOTEBOOK CLUE / SUSPECT STATEMENT]:\nSpeaker: "${attachments.clue.suspectName}"\nStatement: "${attachments.clue.statement}"\n`;
     }
     if (attachments.evidence) {
-      attachmentContextText += `\n[CITED EVIDENCE IN LOCKER]:\nTitle: "${attachments.evidence.title}" (${attachments.evidence.subtitle || ''})\nDetails: "${attachments.evidence.details || ''}"\nFound At: "${attachments.evidence.location || ''}"\n`;
+      attachmentContextText += `\n[CITED EVIDENCE IN LOCKER]:\nID: "${attachments.evidence.id || ''}"\nTitle: "${attachments.evidence.title}" (${attachments.evidence.subtitle || ''})\nDetails: "${attachments.evidence.details || ''}"\nFound At: "${attachments.evidence.location || ''}"\n`;
     }
     if (attachments.location) {
-      attachmentContextText += `\n[CITED INVESTIGATION SCENE]:\nTitle: "${attachments.location.title}" (${attachments.location.subtitle || ''})\nForensic Findings: "${attachments.location.canvassReport || attachments.location.notes || ''}"\n`;
+      attachmentContextText += `\n[CITED INVESTIGATION SCENE]:\nID: "${attachments.location.id || ''}"\nTitle: "${attachments.location.title}" (${attachments.location.subtitle || ''})\nForensic Findings: "${attachments.location.canvassReport || attachments.location.notes || ''}"\n`;
     }
     if (!attachmentContextText) {
       attachmentContextText = 'No specific clue or evidence cited with this message.';
@@ -392,18 +392,16 @@ ${promptLocationsStatus}
 === STRATEGIC ADVISORY INSTRUCTIONS FOR COMMON DETECTIVE INQUIRIES ===
 When the detective asks common precinct questions, give authoritative, case-specific noir advice (1-3 sentences):
 1. "Who should I press or interrogate next?":
-   - You MUST pick a real suspect from AVAILABLE SUSPECTS IN INTERROGATION ROOMS: ${(caseContext.unlockedSuspectsDetails || []).map(s => `"${s.name}" (${s.role})`).join(', ') || 'None'}.
-   - State their EXACT name and actual role from the case file.
-   - NEVER invent titles or characters not present in the case file (e.g. do NOT say "CFO", "the CFO", or fictitious executives unless they appear in the suspect list above).
-   - Recommend a specific lead, contradiction, or piece of evidence to press them on (e.g. broken alibi, suspicious transactions, or access logs).
+   - State which suspects are currently available in the interrogation rooms: ${(caseContext.unlockedSuspectsDetails || []).map(s => `"${s.name}" (${s.role})`).join(', ') || 'None'}.
+   - Present balanced, objective tactical options for each suspect in custody based on known leads, without prematurely declaring guilt or accusing one as the definitive killer.
    - If no suspects are in interrogation rooms yet, tell the detective which open crime scene to canvas first to obtain leads.
 
 2. "Review our physical forensic evidence with me" (or any review of evidence):
    - You MUST ONLY summarize the EXACT items listed under "EVIDENCE RECOVERED IN LOCKER".
    - Explicitly name the real items you hold: ${(caseContext.unlockedEvidenceDetails || []).map(e => `"${e.title}"`).join(', ') || 'No evidence recovered yet'}.
    - NEVER invent or hallucinate fictional evidence items (NEVER make up "shattered phone", "blood-spattered tie", "server room key", "bullet casings", or any items not in the locker)!
-   - Accurately report murder weapon status: ${caseContext.hasMurderWeapon ? 'The murder weapon has been recovered in our locker.' : 'The physical murder weapon has NOT yet been found (it is still missing).'}. If missing, tell the detective that the murder weapon is still missing and hasn't been recovered yet.
-   - Distinguish clearly between physical murder weapons and forensic reports/documents/logs.
+   - If the locker currently holds only documents, autopsy reports, or photos, explicitly clarify: "We have no physical murder weapon or tangible forensic objects secured yet, Detective—only documentary and photographic records: [list items]."
+   - Accurately report murder weapon status: ${caseContext.hasMurderWeapon ? 'The murder weapon has been recovered in our locker.' : 'The physical murder weapon has NOT yet been found (it is still missing).'}.
 
 3. "Do we have enough to file an arrest warrant?":
    - Give an honest, realistic precinct assessment based on whether the key elements of murder are proven:
@@ -413,7 +411,8 @@ When the detective asks common precinct questions, give authoritative, case-spec
    - If ready: Urge the detective to proceed to the Court / Warrant desk to submit the indictment.
 
 4. "Davis, what's our current case status & tally?":
-   - State the exact internal tally: Evidence (${caseContext.unlockedEvidence}/${caseContext.totalEvidence}), Scenes Canvassed (${caseContext.canvassedLocations}/${caseContext.totalLocations}), Suspects in Custody (${caseContext.unlockedSuspects}/${caseContext.totalSuspects}).
+   - State internal tally: Evidence (${caseContext.unlockedEvidence}/${caseContext.totalEvidence}), Scenes Canvassed (${caseContext.canvassedLocations}/${caseContext.totalLocations}), Suspects in Custody (${caseContext.unlockedSuspects} detained).
+   - NEVER volunteer or mention the total count of hidden suspects in the case file (e.g. do NOT say "out of 6 suspects")! Only mention the number currently detained in holding.
    - Add a 1-sentence tactical bottom line on where the case stands.
 
 === STRICT ANTI-SPOILER & COUNT PRIVACY RULES (CRITICAL) ===
@@ -435,7 +434,8 @@ When the detective asks common precinct questions, give authoritative, case-spec
   * NO PHANTOM ROOM NUMBERS: Never invent numbered rooms (e.g. DO NOT say "Room 2", "Room 4", "Cell 3"). Refer simply to "the interrogation room", "the interview room", or "precinct holding".
 
 === ATTACHED EVIDENCE RESOLUTION & PRONOUN RULES (CRITICAL) ===
-- PRIORITY RULE: Attached evidence ALWAYS takes precedence over ambiguous pronouns ("him", "her", "them") AND over previous conversation threads!
+- PRIORITY RULE: Attached evidence ALWAYS takes precedence over ambiguous or imprecise pronouns ("him", "her", "them") AND over previous conversation threads!
+- Detectives frequently use imprecise pronouns ("him", "her", "them", "this guy") casually. If the attached evidence implicates a female suspect (such as Diana Wilkins), NEVER let the word "him" redirect you to a male suspect! The evidence ALWAYS determines who to bring in, not the casual pronoun.
 - EVIDENCE THAT NAMES A SUSPECT:
   * If the cited evidence names or implicates a specific person (e.g., security logs, signed contracts, email transcripts):
   * Resolve any pronouns ("him", "her", "them", "this person") to THAT IMPLICATED PERSON from the cited evidence, NOT from previous conversation messages.
@@ -503,13 +503,17 @@ Return your response in valid JSON:
       content: m.content
     }));
 
+    const userPromptContent = (attachments.clue || attachments.evidence || attachments.location)
+      ? `${attachmentContextText.trim()}\n\n[DETECTIVE TRANSMISSION]:\n"${userMessage}"`
+      : userMessage;
+
     try {
       const completion = await groq.chat.completions.create({
         model: MODEL_NAME,
         messages: [
           { role: 'system', content: systemPrompt },
           ...historyMessages,
-          { role: 'user', content: userMessage }
+          { role: 'user', content: userPromptContent }
         ],
         response_format: { type: 'json_object' },
         temperature: 0.5,
@@ -537,9 +541,9 @@ Return your response in valid JSON:
         const fallbackCompletion = await groq.chat.completions.create({
           model: MODEL_NAME,
           messages: [
-            { role: 'system', content: `You are Officer Davis, a gritty noir desk officer assisting the detective in "${caseContext.caseTitle}". Advise concisely (1-2 sentences). Internal tally: Evidence: ${caseContext.unlockedEvidence}/${caseContext.totalEvidence}, Locations: ${caseContext.canvassedLocations}/${caseContext.totalLocations}, Suspects: ${caseContext.unlockedSuspects}/${caseContext.totalSuspects}. Only reveal exact tally numbers if explicitly asked for a status count/tally. Do NOT output JSON.` },
+            { role: 'system', content: `You are Officer Davis, a gritty noir desk officer assisting the detective in "${caseContext.caseTitle}". Advise concisely (1-2 sentences). Internal tally: Evidence: ${caseContext.unlockedEvidence}/${caseContext.totalEvidence}, Locations: ${caseContext.canvassedLocations}/${caseContext.totalLocations}, Suspects: ${caseContext.unlockedSuspects} in custody. Never volunteer total hidden suspect counts. Do NOT output JSON.` },
             ...historyMessages,
-            { role: 'user', content: userMessage }
+            { role: 'user', content: userPromptContent }
           ],
           temperature: 0.6,
           max_tokens: 250

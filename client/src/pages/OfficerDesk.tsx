@@ -14,6 +14,7 @@ export default function OfficerDesk() {
     officerChatHistory,
     setOfficerChatHistory,
     setUnlockedEntities,
+    setClosingState,
     caseClosingTriggered,
     remainingClosingQuestions,
     interrogationLocked
@@ -89,6 +90,13 @@ export default function OfficerDesk() {
           locations: result.unlockedLocations,
           suspects: result.unlockedSuspects,
           evidence: result.unlockedEvidence
+        });
+      }
+
+      if (result.caseClosingTriggered !== undefined) {
+        setClosingState({
+          caseClosingTriggered: result.caseClosingTriggered,
+          remainingClosingQuestions: result.remainingClosingQuestions
         });
       }
 
