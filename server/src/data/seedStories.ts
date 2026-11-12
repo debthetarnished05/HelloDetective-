@@ -1145,7 +1145,7 @@ export const MIDNIGHT_LOUNGE_STORY: IStory = {
       "witnesses": "Delilah Moretti",
       "notes": "Mahogany desk, half-full rye bottle",
       "isInitiallyUnlocked": true,
-      "hiddenEvidenceIds": ["cyanide_whiskey_glass"],
+      "hiddenEvidenceIds": ["cyanide_whiskey_glass", "stage_break_window"],
       "canvassReport": "Forensics canvassed the VIP booth and secured the poisoned whiskey glass.",
       "unlockStage": 1
     }
@@ -1162,6 +1162,18 @@ export const MIDNIGHT_LOUNGE_STORY: IStory = {
       "location": "VIP Backroom Desk",
       "priority": "Critical",
       "unlockStage": 1
+    },
+    {
+      "id": "stage_break_window",
+      "isInitiallyUnlocked": false,
+      "discoveryType": "location_canvass",
+      "title": "Stage Cue and Backroom Entry Log",
+      "subtitle": "Performance timeline contradiction",
+      "details": "The bandleader's cue sheet places Delilah on stage throughout the extended brass solo, while the VIP backroom door log records an entry during that same window. Her stage alibi cannot cover the time the poisoned drink was prepared.",
+      "date": "Aug 14, 2:30 AM",
+      "location": "VIP Backroom",
+      "priority": "High",
+      "locationId": "vip_backroom"
     }
   ],
   "suspects": [
@@ -1430,7 +1442,7 @@ export const NEON_STORY: IStory = {
     "fallGuy": "kael_vance",
     "motive": "debt_default_and_takeover",
     "weapon": "micro_capsule_residue",
-    "keyContradiction": "toxicology_shows_death_before_blunt_trauma",
+    "keyContradiction": "toxicology_report",
     "trueFatalMechanism": "Cyanide chloride gas inhalation via neural capsule rupture",
     "timelineSummary": "Vex Riordan installed a toxic micro-capsule in Jin's neck implant and triggered it remotely at 1:45 AM over a $50M debt default. Kael arrived at 2:15 AM to confront Jin, struck his collapsing body with the bronze cybernetic arm, and fled in terror believing he killed him.",
     "archetype": "cause_of_death_twist"

@@ -16,6 +16,7 @@ import {
   ALCHEMISTS_PACT_STORY
 } from '../data/seedStories.js';
 import { LLMService } from '../services/llmService.js';
+import { scoreWarrant } from '../services/warrantScoring.js';
 import { IStory, ISuspectRuntimeState } from '../types/index.js';
 import { createGuestSessionToken, hashGuestSessionToken, matchesGuestSessionToken } from '../utils/guestSession.js';
 import { randomUUID } from 'node:crypto';
@@ -1182,14 +1183,11 @@ export const submitWarrant = async (req: AuthRequest, res: Response) => {
 
     session.warrantAttemptsCount = (session.warrantAttemptsCount || 0) + 1;
 
-    const verdict = await LLMService.evaluateWarrant(
-      { suspect, motive, weapon, keyContradiction },
-      story.groundTruth,
-      story.title,
-      story
-    );
+    const warrant = { suspect, motive, weapon, keyContradiction };
+    const verdict = scoreWarrant(warrant, story.groundTruth, story as unknown as IStory);
+    const epilogue = await LLMService.generateWarrantEpilogue(warrant, verdict, story as unknown as IStory);
 
-    const isConvicted = verdict.outcome === 'perfect' || verdict.outcome === 'guilty';
+    const isConvicted = verdict.outcome === 'perfect';
     session.status = isConvicted ? 'solved' : 'active';
     session.verdict = {
       suspect,
@@ -1197,8 +1195,9 @@ export const submitWarrant = async (req: AuthRequest, res: Response) => {
       weapon,
       keyContradiction,
       outcome: isConvicted ? 'perfect' : verdict.outcome,
-      epilogue: verdict.epilogue,
-      score: verdict.score
+      epilogue,
+      score: verdict.score,
+      criteria: verdict.criteria
     };
 
     await session.save();
@@ -1304,7 +1303,8 @@ export const submitWarrant = async (req: AuthRequest, res: Response) => {
       outcome: verdict.outcome,
       score: verdict.score,
       verdictTitle: verdict.verdictTitle,
-      epilogue: verdict.epilogue,
+      epilogue,
+      criteria: verdict.criteria,
       userRank,
       newBadges: newlyUnlockedBadges,
       userStats

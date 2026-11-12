@@ -32,6 +32,12 @@ export interface IGameSession extends Document {
     outcome: string;
     epilogue: string;
     score: number;
+    criteria?: {
+      suspect: boolean;
+      motive: boolean;
+      weapon: boolean;
+      contradiction: boolean;
+    };
   };
 }
 
@@ -113,7 +119,13 @@ const GameSessionSchema = new Schema<IGameSession>({
     keyContradiction: String,
     outcome: String,
     epilogue: String,
-    score: Number
+    score: Number,
+    criteria: {
+      suspect: Boolean,
+      motive: Boolean,
+      weapon: Boolean,
+      contradiction: Boolean
+    }
   }
 }, {
   timestamps: true

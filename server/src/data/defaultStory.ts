@@ -375,7 +375,7 @@ export const DEFAULT_STORY: IStory = {
     killer: 'marcus_chen',
     motive: 'patent_theft_and_coverup',
     weapon: 'damascus_letter_opener',
-    keyContradiction: 'coffee_shop_alibi_vs_parkade_log',
+    keyContradiction: 'parkade_security_log',
     timelineSummary: 'Marcus met Aegis Global to sell TechVision neural patents for $14M. Michael discovered the betrayal and threatened criminal prosecution. Marcus staged an alibi at Riverside Brews, drove his Audi to the parkade at 10:48 PM, had Diana disable the cameras, stabbed Michael with the desk letter opener during an argument, dropped the weapon in the rear alley storm drain, and fled at 11:22 PM.',
     archetype: 'multi_crime_convergence',
     fallGuy: 'diana_wilkins',

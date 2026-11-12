@@ -1,6 +1,8 @@
 import Groq from 'groq-sdk';
 import dotenv from 'dotenv';
-import { ISuspectRuntimeState, ISuspectItem, IStageDefinition, IGroundTruth, IStory, IEvidenceItem, MysteryArchetype } from '../types/index.js';
+import { ISuspectRuntimeState, ISuspectItem, IStageDefinition, IStory, IEvidenceItem, MysteryArchetype } from '../types/index.js';
+import { IWarrantScore, IWarrantSubmission } from './warrantScoring.js';
+import { validateGeneratedStory } from './storyValidation.js';
 
 dotenv.config();
 
@@ -585,125 +587,46 @@ Return your response in valid JSON:
     }
   }
 
-  // 3. The AI Judge (Warrant Evaluation & Final Epilogue)
-  static async evaluateWarrant(
-    warrant: { suspect: string; motive: string; weapon: string; keyContradiction: string },
-    groundTruth: IGroundTruth,
-    storyTitle: string,
-    storyContext?: any
-  ) {
-    const groq = getGroqClient();
-
-    const archetype = groundTruth.archetype || 'classic_procedural';
-    const fallGuy = groundTruth.fallGuy;
-    const redHerringCrime = groundTruth.redHerringCrime;
-    const trueFatalMechanism = groundTruth.trueFatalMechanism;
-
-    const suspectsList = storyContext?.suspects || [];
-    const evidenceList = storyContext?.evidence || [];
-
-    const accusedSuspectObj = suspectsList.find((s: any) => s.id === warrant.suspect);
-    const accusedSuspectName = accusedSuspectObj?.name || warrant.suspect;
-
-    const accusedWeaponObj = evidenceList.find((e: any) => e.id === warrant.weapon);
-    const accusedWeaponTitle = accusedWeaponObj?.title || warrant.weapon;
-
-    const killerIds = (groundTruth.killer || '')
-      .split(',')
-      .map((k: string) => k.trim())
-      .filter(Boolean);
-
-    const trueKillerNames = killerIds
-      .map((kid: string) => {
-        const found = suspectsList.find((s: any) => s.id === kid);
-        return found?.name || kid;
-      })
-      .join(' and ');
-
-    const trueWeaponObj = evidenceList.find((e: any) => e.id === groundTruth.weapon);
-    const trueWeaponTitle = trueWeaponObj?.title || groundTruth.weapon;
-
-    const systemPrompt = `You are the Presiding Superior Court Judge and District Attorney delivering the grand judicial epilogue for the case: "${storyTitle}".
-The detective has submitted an official Arrest Warrant to close the case.
-
-MATCHING CRITERIA:
-- The detective submitted: Accused "${accusedSuspectName}" (ID: "${warrant.suspect}").
-- True Killer(s) / Conspirators: "${trueKillerNames}" (IDs: [${killerIds.map(k => `"${k}"`).join(', ')}]).
-- If this case involves joint conspirators or multiple culprits, the detective naming ANY of the true conspirators constitutes identifying the correct perpetrator!
-- If the murder weapon/method ("${accusedWeaponTitle}" / ID: "${warrant.weapon}") aligns with the True Weapon ("${trueWeaponTitle}" / ID: "${groundTruth.weapon}"), the physical charge is accurate.
-- IMPORTANT: In the written epilogue narrative, use character real names ("${accusedSuspectName}", "${trueKillerNames}") and real evidence titles, NEVER raw database slugs!
-
-DETECTIVE'S SUBMITTED WARRANT:
-- Arrested Suspect: "${accusedSuspectName}"
-- Stated Motive: "${warrant.motive}"
-- Murder Weapon / Opportunity: "${accusedWeaponTitle}"
-- Key Contradiction That Broke The Case: "${warrant.keyContradiction}"
-
-ACTUAL GROUND TRUTH:
-- True Killer(s): "${trueKillerNames}" (IDs: [${killerIds.map(k => `"${k}"`).join(', ')}])
-- True Motive: "${groundTruth.motive}"
-- True Weapon: "${trueWeaponTitle}" (ID: "${groundTruth.weapon}")
-- True Contradiction: "${groundTruth.keyContradiction}"
-- Full Summary: "${groundTruth.timelineSummary}"
-- Case Archetype: "${archetype}"
-${fallGuy ? `- Intended Fall Guy / Red Herring Suspect: "${fallGuy}"` : ''}
-${redHerringCrime ? `- Secondary Crime Committed by Fall Guy (NOT Murder): "${redHerringCrime}"` : ''}
-${trueFatalMechanism ? `- Actual Medical/Toxicological Fatal Mechanism: "${trueFatalMechanism}"` : ''}
-
-=== JUDICIAL OUTCOME EVALUATION RULES ===
-1. If the detective named ANY of the True Killers ([${killerIds.map(k => `"${k}"`).join(', ')}]) and correctly identified the murder weapon/method:
-   - "outcome": "perfect"
-   - "score": 95 - 100
-   - "verdictTitle": "GUILTY BEYOND REASONABLE DOUBT"
-   - Epilogue: A sensational, triumphant trial where the true conspiracy is exposed and the killers break under irrefutable evidence.
-
-2. If the detective fell for the Archetype's specific trap:
-   - For "multi_crime_convergence" if detective arrested "${fallGuy}": The defendant was only guilty of ${redHerringCrime}. Forensic timeline proves the victim died before/after. The suspect is convicted only of the lesser crime, while the real killer walks free. ("outcome": "wrong_suspect", "score": 35, "verdictTitle": "WRONGFUL ARREST - LESSER CRIME ONLY")
-   - For "deliberate_frame_job" if detective arrested "${fallGuy}": The defense easily exposes that evidence was planted and security was tampered with. The real killer framed them and escaped! ("outcome": "wrong_suspect", "score": 30, "verdictTitle": "FRAME JOB COLLAPSE - KILLER ESCAPED")
-   - For "cause_of_death_twist" if detective arrested "${fallGuy}": The suspect hit the victim, but toxicology proves the victim was already dead from ${trueFatalMechanism}. Murder charges are dismissed for assault! ("outcome": "wrong_suspect", "score": 40, "verdictTitle": "CAUSE OF DEATH FATAL FLAW - ACQUITTAL")
-   - For "false_confession" if detective arrested "${fallGuy}": The coerced confession contradicted physical forensics and is thrown out by the judge, leading to a mistrial. ("outcome": "wrong_suspect", "score": 30, "verdictTitle": "COERCED CONFESSION SUPPRESSED - MISTRIAL")
-   - For any other innocent person: "outcome": "wrong_suspect", "score": 25, "verdictTitle": "WRONGFUL ARREST - KILLER AT LARGE".
-
-3. If the detective arrested the right killer, but lacked the weapon or core contradiction:
-   - "outcome": "weak_case"
-   - "score": 50 - 65
-   - "verdictTitle": "ACQUITTED ON REASONABLE DOUBT"
-   - Epilogue: High-priced defense attorneys exploit procedural gaps and reasonable doubt. The killer is acquitted or sentenced only to a minor infraction.
-
-Respond with ONLY valid JSON:
-{
-  "outcome": "perfect" | "wrong_suspect" | "weak_case",
-  "score": 95,
-  "verdictTitle": "Verdict Headline",
-  "epilogue": "A gripping 2-3 paragraph noir courtroom narrative detailing the trial, jury verdict, and aftermath."
-}`;
-
-    const completion = await groq.chat.completions.create({
-      model: MODEL_NAME,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Please review the compiled warrant and render your judgment.` }
-      ],
-      response_format: { type: 'json_object' },
-      temperature: 0.6,
-      max_tokens: 1200
-    });
+  // 3. Generate narrative only; outcome and score are computed by warrantScoring.
+  static async generateWarrantEpilogue(
+    warrant: IWarrantSubmission,
+    result: IWarrantScore,
+    story: IStory
+  ): Promise<string> {
+    const accused = story.suspects.find(suspect => suspect.id === warrant.suspect)?.name || 'the accused';
+    const killers = (story.groundTruth.killer || '').split(',').map(id => id.trim()).filter(Boolean)
+      .map(id => story.suspects.find(suspect => suspect.id === id)?.name || id).join(' and ');
+    const weapon = story.evidence.find(item => item.id === warrant.weapon)?.title || 'the selected evidence';
+    const trueWeapon = story.evidence.find(item => item.id === story.groundTruth.weapon)?.title || 'the decisive evidence';
+    const checks = [
+      `suspect ${result.criteria.suspect ? 'correct' : 'incorrect'}`,
+      `motive ${result.criteria.motive ? 'supported' : 'unsupported'}`,
+      `weapon ${result.criteria.weapon ? 'matched' : 'did not match'}`,
+      `contradiction ${result.criteria.contradiction ? 'supported' : 'unsupported'}`
+    ].join(', ');
+    const fallback = result.outcome === 'perfect'
+      ? `${accused} was convicted after the jury reviewed ${weapon} and the evidence establishing the true murder weapon, ${trueWeapon}. The case file showed a supported motive and a contradiction that broke the killer's account. The verdict closed the investigation with all four warrant elements established.`
+      : result.outcome === 'wrong_suspect'
+        ? `The court rejected the murder charge against ${accused}. The evidence did not identify the true perpetrator, ${killers || 'the killer'}, and the submitted warrant established only: ${checks}. The investigation remains unresolved.`
+        : `The court found the evidence against ${accused} insufficient for conviction. The jury reviewed ${weapon}, but the submitted warrant established only: ${checks}. The prosecution could not close the remaining gaps beyond reasonable doubt.`;
 
     try {
-      const parsed = JSON.parse(cleanJsonString(completion.choices[0]?.message?.content || '{}'));
-      return {
-        outcome: parsed.outcome || 'weak_case',
-        score: typeof parsed.score === 'number' ? parsed.score : 50,
-        verdictTitle: parsed.verdictTitle || 'CASE CLOSED',
-        epilogue: parsed.epilogue || 'The courtroom was packed in silence as the judge banged the gavel...'
-      };
-    } catch (e) {
-      return {
-        outcome: 'weak_case',
-        score: 40,
-        verdictTitle: 'MISTRIAL',
-        epilogue: 'The evidence presented failed to withstand rigorous scrutiny by the defense team.'
-      };
+      const groq = getGroqClient();
+      const completion = await groq.chat.completions.create({
+        model: MODEL_NAME,
+        messages: [
+          {
+            role: 'system',
+            content: `Write a concise, vivid 2-paragraph noir courtroom epilogue for "${story.title}". The verdict is fixed: ${result.verdictTitle}; score ${result.score}/100; outcome ${result.outcome}. These values are authoritative and must not be changed or contradicted. Use real character and evidence names, not database IDs. The submitted warrant checks are: ${checks}. Ground truth summary: ${story.groundTruth.timelineSummary}.`
+          },
+          { role: 'user', content: `The detective accused ${accused}, named motive "${warrant.motive}", selected "${weapon}", and cited "${warrant.keyContradiction}". Write the court's epilogue consistent with the fixed verdict.` }
+        ],
+        temperature: 0.5,
+        max_tokens: 700
+      });
+      return completion.choices[0]?.message?.content?.trim() || fallback;
+    } catch {
+      return fallback;
     }
   }
 
@@ -825,10 +748,10 @@ REQUIRED JSON STRUCTURE (Must match exactly):
     }
   ],
   "groundTruth": {
-    "killer": "suspect_slug",
-    "motive": "motive_slug_or_short_phrase",
-    "weapon": "weapon_slug_or_short_phrase",
-    "keyContradiction": "contradiction_slug_or_short_phrase",
+    "killer": "one or more suspect IDs, comma-separated for joint killers",
+    "motive": "a concise motive description",
+    "weapon": "the exact ID of the evidence item that establishes the murder weapon",
+    "keyContradiction": "the exact ID of the evidence item that establishes the decisive contradiction",
     "timelineSummary": "Complete objective summary of who did what, when, how, and why.",
     "archetype": "${archetype}",
     "fallGuy": "slug_of_fall_guy_or_empty_if_none",
@@ -870,27 +793,10 @@ Return ONLY valid JSON.`;
       parsed.groundTruth = parsed.ground_truth;
     }
 
-    const firstSuspectId = parsed.suspects?.[0]?.id || 'suspect_1';
-    const firstEvidenceId = parsed.evidence?.[0]?.id || 'evidence_1';
-
-    // Normalize groundTruth
     if (!parsed.groundTruth || typeof parsed.groundTruth !== 'object') {
-      parsed.groundTruth = {
-        killer: firstSuspectId,
-        motive: 'cover_up',
-        weapon: firstEvidenceId,
-        keyContradiction: 'timeline_gap',
-        timelineSummary: 'The suspect exploited an unmonitored window to execute the crime.',
-        archetype
-      };
-    } else {
-      parsed.groundTruth.archetype = archetype;
-      if (!parsed.groundTruth.killer) parsed.groundTruth.killer = firstSuspectId;
-      if (!parsed.groundTruth.motive) parsed.groundTruth.motive = 'Undetermined motive';
-      if (!parsed.groundTruth.weapon) parsed.groundTruth.weapon = firstEvidenceId;
-      if (!parsed.groundTruth.keyContradiction) parsed.groundTruth.keyContradiction = 'Forensic contradiction';
-      if (!parsed.groundTruth.timelineSummary) parsed.groundTruth.timelineSummary = 'Timeline reconstruction pending.';
+      throw new Error('Generated case is missing its ground truth.');
     }
+    parsed.groundTruth.archetype = archetype;
 
     // Ensure victimProfile
     if (!parsed.victimProfile || typeof parsed.victimProfile !== 'object') {
@@ -1010,7 +916,8 @@ Return ONLY valid JSON.`;
           location: e.location || 'Crime Scene',
           priority: priorityMap[pKey] || 'Medium',
           isInitiallyUnlocked: typeof e.isInitiallyUnlocked === 'boolean' ? e.isInitiallyUnlocked : idx === 0,
-          locationId: e.locationId || (parsed.locations?.[0]?.id || 'location_1')
+          locationId: e.locationId || (parsed.locations?.[0]?.id || 'location_1'),
+          allowSubpoena: e.allowSubpoena === true
         };
       });
       if (!parsed.evidence.some((e: any) => e.isInitiallyUnlocked)) {
@@ -1020,6 +927,11 @@ Return ONLY valid JSON.`;
 
     if (parsed.groundTruth?.archetype) {
       parsed.archetype = parsed.groundTruth.archetype;
+    }
+
+    validateGeneratedStory(parsed as IStory);
+    for (const evidence of parsed.evidence) {
+      evidence.isMurderWeapon = evidence.id === parsed.groundTruth.weapon;
     }
 
     return parsed as IStory;

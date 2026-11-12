@@ -17,6 +17,7 @@ export default function Warrant() {
     score: number;
     verdictTitle: string;
     epilogue: string;
+    criteria?: { suspect: boolean; motive: boolean; weapon: boolean; contradiction: boolean };
     userRank?: any;
     newBadges?: string[];
     userStats?: any;
@@ -81,6 +82,30 @@ export default function Warrant() {
               Supreme Court Judicial Epilogue
             </h2>
             </div>
+
+            {verdict.criteria && (
+              <div style={{
+                background: '#f7f3e8',
+                border: '1px solid #c8b98a',
+                borderRadius: '6px',
+                padding: '12px 16px',
+                marginBottom: '18px',
+                color: '#3e3423',
+                fontFamily: 'monospace'
+              }}>
+                <strong>WARRANT REVIEW</strong>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '6px', marginTop: '8px' }}>
+                  {([
+                    ['Suspect', verdict.criteria.suspect],
+                    ['Motive', verdict.criteria.motive],
+                    ['Weapon evidence', verdict.criteria.weapon],
+                    ['Contradiction', verdict.criteria.contradiction]
+                  ] as [string, boolean][]).map(([label, met]) => (
+                    <span key={label}>{met ? '✓' : '✗'} {label}: {met ? 'established' : 'not established'}</span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Rank / Badge Commendations Banner */}
             {verdict.userRank && (

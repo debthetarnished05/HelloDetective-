@@ -62,6 +62,8 @@ const EvidenceItemSchema = new Schema({
   location: { type: String, default: 'Crime Scene' },
   priority: { type: String, enum: ['Low', 'Medium', 'High', 'Critical'], default: 'Medium' },
   isInitiallyUnlocked: { type: Boolean, default: false },
+  isMurderWeapon: { type: Boolean, default: false },
+  allowSubpoena: { type: Boolean, default: false },
   discoveryType: { type: String, enum: ['initial', 'location_canvass', 'officer_subpoena'], default: 'location_canvass' },
   subpoenaSource: { type: String },
   locationId: { type: String },
@@ -145,6 +147,10 @@ const StorySchema = new Schema<IStoryDocument>({
 
 // Auto-sync archetype and trope before saving
 StorySchema.pre('save', function () {
+  for (const evidence of this.evidence || []) {
+    evidence.isMurderWeapon = evidence.id === this.groundTruth?.weapon;
+  }
+
   if (this.groundTruth?.archetype && !this.archetype) {
     this.archetype = this.groundTruth.archetype as any;
   }

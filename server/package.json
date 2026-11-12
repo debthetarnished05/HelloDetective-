@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
+    "test": "npm run build && node --test dist/services/core.test.js",
     "start": "node dist/server.js"
   },
   "keywords": [],
