@@ -128,7 +128,8 @@ const GameSessionSchema = new Schema<IGameSession>({
     }
   }
 }, {
-  timestamps: true
+  timestamps: true,
+  optimisticConcurrency: true
 });
 
 export default mongoose.model<IGameSession>('GameSession', GameSessionSchema);

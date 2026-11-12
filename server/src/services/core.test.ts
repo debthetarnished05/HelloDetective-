@@ -3,6 +3,12 @@ import test from 'node:test';
 import type { IStory } from '../types/index.js';
 import { scoreWarrant } from './warrantScoring.js';
 import { validateGeneratedStory } from './storyValidation.js';
+import { isSessionVersionConflict, trimSessionHistories } from './sessionSafeguards.js';
+import { canAccessGameSession } from './sessionAuthorization.js';
+import { toPlayerSession, toPlayerStory } from './playerProjection.js';
+import { createGuestSessionToken, hashGuestSessionToken } from '../utils/guestSession.js';
+import GameSession from '../models/GameSession.js';
+import Story from '../models/StoryData.js';
 
 function validGeneratedStory(): IStory {
   return {
@@ -98,4 +104,103 @@ test('rejects duplicate entity IDs and invalid initial unlock counts', () => {
   tooManyInitial.evidence[1].isInitiallyUnlocked = true;
   tooManyInitial.evidence[2].isInitiallyUnlocked = true;
   assert.throws(() => validateGeneratedStory(tooManyInitial), /initial evidence items/);
+});
+
+test('trims each saved session history to its most recent entries', () => {
+  const session = {
+    officerChatHistory: Array.from({ length: 105 }, (_, index) => `officer-${index}`),
+    recordedClues: Array.from({ length: 205 }, (_, index) => `clue-${index}`),
+    suspects: new Map([['curator', {
+      chatHistory: Array.from({ length: 105 }, (_, index) => `chat-${index}`),
+      revealedFacts: Array.from({ length: 105 }, (_, index) => `fact-${index}`)
+    }]])
+  };
+
+  assert.equal(trimSessionHistories(session), true);
+  assert.equal(session.officerChatHistory.length, 100);
+  assert.equal(session.officerChatHistory[0], 'officer-5');
+  assert.equal(session.recordedClues.length, 200);
+  assert.equal(session.recordedClues[0], 'clue-5');
+  assert.equal(session.suspects.get('curator')?.chatHistory[0], 'chat-5');
+  assert.equal(session.suspects.get('curator')?.revealedFacts[0], 'fact-5');
+  assert.equal(trimSessionHistories(session), false);
+});
+
+test('recognizes Mongoose optimistic concurrency conflicts', () => {
+  const conflict = new Error('stale document version');
+  conflict.name = 'VersionError';
+  assert.equal(isSessionVersionConflict(conflict), true);
+  assert.equal(isSessionVersionConflict(new Error('unrelated')), false);
+});
+
+test('authorizes only the owning account or the matching guest capability', () => {
+  const guestToken = createGuestSessionToken();
+  const guestSession = { guestAccessTokenHash: hashGuestSessionToken(guestToken) };
+  assert.equal(canAccessGameSession(guestSession, { guestAccessToken: guestToken }), true);
+  assert.equal(canAccessGameSession(guestSession, { guestAccessToken: 'wrong-token' }), false);
+  assert.equal(canAccessGameSession(guestSession, { userId: 'account-1', guestAccessToken: guestToken }), false);
+
+  const accountSession = { userId: 'account-1', guestAccessTokenHash: undefined };
+  assert.equal(canAccessGameSession(accountSession, { userId: 'account-1' }), true);
+  assert.equal(canAccessGameSession(accountSession, { userId: 'account-2' }), false);
+  assert.equal(canAccessGameSession(accountSession, {}), false);
+});
+
+test('projects only unlocked session state and strips story solutions and hidden fields', () => {
+  const session = {
+    _id: 'session-1',
+    storyId: 'story-1',
+    unlockedSuspects: ['curator'],
+    unlockedEvidence: ['vial'],
+    unlockedLocations: ['gallery'],
+    canvassedLocations: [],
+    suspects: new Map([
+      ['curator', { trustScore: 55 }],
+      ['guard', { trustScore: 15 }]
+    ]),
+    status: 'active',
+    groundTruth: { killer: 'hidden' }
+  };
+  const playerSession = toPlayerSession(session);
+  assert.deepEqual(Object.keys(playerSession.suspects as object), ['curator']);
+  assert.equal('groundTruth' in playerSession, false);
+
+  const story = validGeneratedStory();
+  story.archetype = 'classic_procedural';
+  story.trope = 'hidden trope';
+  story.locations[0].canvassReport = 'Hidden until canvassed';
+  story.evidence[0].isMurderWeapon = true;
+  story.evidence[0].allowSubpoena = true;
+  story.evidence[0].discoveryType = 'initial';
+  story.suspects[0].privateKnowledge = 'Hidden suspect knowledge';
+  story.suspects[0].secrets = ['Hidden secret'];
+  const projected = toPlayerStory(story, {
+    unlockedEvidence: ['vial'],
+    unlockedLocations: ['gallery'],
+    canvassedLocations: [],
+    unlockedSuspects: ['curator']
+  });
+
+  assert.equal('groundTruth' in projected, false);
+  assert.equal('archetype' in projected, false);
+  assert.equal(projected.locations.length, 1);
+  assert.equal('canvassReport' in projected.locations[0], false);
+  assert.equal(projected.evidence.length, 1);
+  assert.equal('isMurderWeapon' in projected.evidence[0], false);
+  assert.equal('allowSubpoena' in projected.evidence[0], false);
+  assert.equal('locationId' in projected.evidence[0], false);
+  assert.equal(projected.suspects.length, 1);
+  assert.equal('privateKnowledge' in projected.suspects[0], false);
+  assert.equal('secrets' in projected.suspects[0], false);
+  assert.equal(story.evidence[0].isMurderWeapon, true);
+});
+
+test('persists evidence security flags and enables optimistic concurrency on game sessions', () => {
+  const data = validGeneratedStory();
+  data.evidence[0].isMurderWeapon = true;
+  data.evidence[0].allowSubpoena = true;
+  const storyDocument = new Story(data);
+  assert.equal(storyDocument.evidence[0]?.isMurderWeapon, true);
+  assert.equal(storyDocument.evidence[0]?.allowSubpoena, true);
+  assert.equal(GameSession.schema.options.optimisticConcurrency, true);
 });

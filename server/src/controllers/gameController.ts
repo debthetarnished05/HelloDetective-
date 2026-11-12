@@ -17,13 +17,12 @@ import {
 } from '../data/seedStories.js';
 import { LLMService } from '../services/llmService.js';
 import { scoreWarrant } from '../services/warrantScoring.js';
+import { isSessionVersionConflict, trimSessionHistories } from '../services/sessionSafeguards.js';
+import { canAccessGameSession } from '../services/sessionAuthorization.js';
+import { toPlayerSession, toPlayerStory } from '../services/playerProjection.js';
 import { IStory, ISuspectRuntimeState } from '../types/index.js';
-import { createGuestSessionToken, hashGuestSessionToken, matchesGuestSessionToken } from '../utils/guestSession.js';
+import { createGuestSessionToken, hashGuestSessionToken } from '../utils/guestSession.js';
 import { randomUUID } from 'node:crypto';
-
-function sameId(left: unknown, right: unknown): boolean {
-  return String(left ?? '') === String(right ?? '');
-}
 
 function normalizedText(value: unknown): string {
   return String(value ?? '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
@@ -59,110 +58,21 @@ function supportingAttachmentText(attachments: {
   ].filter(Boolean).join(' ');
 }
 
-function ownsSession(req: AuthRequest, res: Response, session: any): boolean {
-  if (!session.userId) {
-    const guestToken = req.get('X-Guest-Session-Token') || '';
-    if (req.user || !matchesGuestSessionToken(guestToken, session.guestAccessTokenHash)) {
-      res.status(404).json({ error: 'Session not found' });
-      return false;
-    }
-    return true;
-  }
+function respondToSessionVersionConflict(error: unknown, res: Response): boolean {
+  if (!isSessionVersionConflict(error)) return false;
+  res.status(409).json({ error: 'This case changed while your request was processing. Reload the case and retry.' });
+  return true;
+}
 
-  if (!req.user || !sameId(session.userId, req.user._id)) {
+function ownsSession(req: AuthRequest, res: Response, session: any): boolean {
+  if (!canAccessGameSession(session, {
+    userId: req.user?._id,
+    guestAccessToken: req.get('X-Guest-Session-Token') || ''
+  })) {
     res.status(404).json({ error: 'Session not found' });
     return false;
   }
   return true;
-}
-
-function toPlayerSession(session: any): Record<string, unknown> {
-  const unlockedSuspects = session.unlockedSuspects || [];
-  const states: Record<string, unknown> = {};
-  const storedStates = session.suspects as Map<string, any> | Record<string, any> | undefined;
-  const suspectStates: Array<[string, any]> = storedStates instanceof Map
-    ? Array.from(storedStates.entries())
-    : Object.entries(storedStates || {});
-
-  for (const [id, state] of suspectStates) {
-    if (unlockedSuspects.includes(id)) states[id] = state;
-  }
-
-  return {
-    _id: session._id,
-    storyId: session.storyId,
-    isGuest: session.isGuest,
-    leadDetectiveName: session.leadDetectiveName,
-    currentStage: session.currentStage,
-    unlockedEvidence: session.unlockedEvidence || [],
-    unlockedLocations: session.unlockedLocations || [],
-    canvassedLocations: session.canvassedLocations || [],
-    unlockedSuspects,
-    caseClosingTriggered: session.caseClosingTriggered,
-    remainingClosingQuestions: session.remainingClosingQuestions,
-    interrogationLocked: session.interrogationLocked,
-    closingNotificationSent: session.closingNotificationSent,
-    suspects: states,
-    officerChatHistory: session.officerChatHistory || [],
-    notes: session.notes || '',
-    recordedClues: session.recordedClues || [],
-    status: session.status,
-    verdict: session.status === 'solved' ? session.verdict : undefined
-  };
-}
-
-function toPlayerStory(story: any, session?: any, includeSolution = false): any {
-  const result = story.toObject ? story.toObject() : { ...story };
-  if (!includeSolution) {
-    delete result.groundTruth;
-    delete result.archetype;
-    delete result.trope;
-    delete result.stages;
-  }
-
-  if (!session) {
-    result.locations = [];
-    result.evidence = [];
-    result.suspects = [];
-    return result;
-  }
-
-  const unlockedEvidence = new Set(session.unlockedEvidence || []);
-  const unlockedLocations = new Set(session.unlockedLocations || []);
-  const canvassedLocations = new Set(session.canvassedLocations || []);
-  const unlockedSuspects = new Set(session.unlockedSuspects || []);
-
-  result.locations = (result.locations || [])
-    .filter((location: any) => unlockedLocations.has(location.id))
-    .map((location: any) => {
-      if (!canvassedLocations.has(location.id)) {
-        delete location.canvassReport;
-        delete location.hiddenEvidenceIds;
-      }
-      return location;
-    });
-  result.evidence = (result.evidence || []).filter((evidence: any) => unlockedEvidence.has(evidence.id));
-  result.evidence = result.evidence.map((evidence: any) => {
-    delete evidence.isMurderWeapon;
-    delete evidence.allowSubpoena;
-    delete evidence.subpoenaSource;
-    delete evidence.locationId;
-    delete evidence.discoveryType;
-    return evidence;
-  });
-  result.suspects = (result.suspects || []).filter((suspect: any) => unlockedSuspects.has(suspect.id)).map((suspect: any) => {
-      delete suspect.privateKnowledge;
-      delete suspect.secrets;
-      delete suspect.evidenceReactions;
-      delete suspect.dynamicUnlocks;
-      delete suspect.isPrimeSuspect;
-      delete suspect.category;
-      delete suspect.motive;
-      return suspect;
-    });
-
-  if (!includeSolution) delete result.groundTruth;
-  return result;
 }
 
 export async function seedDefaultStories() {
@@ -423,6 +333,7 @@ export const getSessionState = async (req: AuthRequest, res: Response) => {
         }
       }
     }
+    if (trimSessionHistories(session)) sessionDirty = true;
     if (sessionDirty) {
       await session.save();
     }
@@ -436,6 +347,7 @@ export const getSessionState = async (req: AuthRequest, res: Response) => {
       story: storyObj
     });
   } catch (error: any) {
+    if (respondToSessionVersionConflict(error, res)) return;
     console.error('getSessionState error:', error);
     res.status(500).json({ error: error.message || 'Failed to get session state' });
   }
@@ -700,6 +612,7 @@ export const chatSuspect = async (req: AuthRequest, res: Response) => {
 
     session.suspects.set(suspectId, suspectState);
     session.markModified('suspects');
+    trimSessionHistories(session);
 
     // Check if case closing countdown triggers
     checkAndTriggerClosing(session, story);
@@ -730,6 +643,7 @@ export const chatSuspect = async (req: AuthRequest, res: Response) => {
       interrogationLocked: session.interrogationLocked
     });
   } catch (error: any) {
+    if (respondToSessionVersionConflict(error, res)) return;
     console.error('chatSuspect error:', error);
     res.status(500).json({ error: error.message || 'Failed to interrogate suspect' });
   }
@@ -780,6 +694,7 @@ export const canvassLocation = async (req: AuthRequest, res: Response) => {
     }
 
     checkAndTriggerClosing(session, story);
+    trimSessionHistories(session);
 
     await session.save();
 
@@ -799,6 +714,7 @@ export const canvassLocation = async (req: AuthRequest, res: Response) => {
       remainingClosingQuestions: session.remainingClosingQuestions
     });
   } catch (error: any) {
+    if (respondToSessionVersionConflict(error, res)) return;
     console.error('canvassLocation error:', error);
     res.status(500).json({ error: error.message || 'Failed to canvass location' });
   }
@@ -948,6 +864,7 @@ export const chatOfficer = async (req: AuthRequest, res: Response) => {
       referencedEvidenceId: activeEvidence ? activeEvidence.id : null,
       referencedLocationId: activeLocation ? activeLocation.id : null
     });
+    trimSessionHistories(session);
 
     // Officer Davis AI evaluates probable cause and semantic relevance directly
     const evalResult = await LLMService.chatWithOfficerAdvisor(
@@ -1126,6 +1043,7 @@ export const chatOfficer = async (req: AuthRequest, res: Response) => {
     });
 
     checkAndTriggerClosing(session, story);
+    trimSessionHistories(session);
 
     await session.save();
 
@@ -1141,6 +1059,7 @@ export const chatOfficer = async (req: AuthRequest, res: Response) => {
       remainingClosingQuestions: session.remainingClosingQuestions
     });
   } catch (error: any) {
+    if (respondToSessionVersionConflict(error, res)) return;
     console.error('chatOfficer error:', error);
     res.status(500).json({ error: error.message || 'Failed to consult Officer Davis' });
   }
@@ -1310,6 +1229,7 @@ export const submitWarrant = async (req: AuthRequest, res: Response) => {
       userStats
     });
   } catch (error: any) {
+    if (respondToSessionVersionConflict(error, res)) return;
     console.error('submitWarrant error:', error);
     res.status(500).json({ error: error.message || 'Failed to submit warrant' });
   }
@@ -1325,6 +1245,7 @@ export const saveNotes = async (req: AuthRequest, res: Response) => {
     await session.save();
     res.status(200).json({ notes: session.notes });
   } catch (error: any) {
+    if (respondToSessionVersionConflict(error, res)) return;
     res.status(500).json({ error: error.message || 'Failed to save notes' });
   }
 };
@@ -1368,6 +1289,7 @@ export const recordClue = async (req: AuthRequest, res: Response) => {
     };
 
     session.recordedClues.push(newClue);
+    trimSessionHistories(session);
     await session.save();
 
     // Increment user clues stat if authenticated
@@ -1377,6 +1299,7 @@ export const recordClue = async (req: AuthRequest, res: Response) => {
 
     res.status(200).json({ clues: session.recordedClues });
   } catch (error: any) {
+    if (respondToSessionVersionConflict(error, res)) return;
     res.status(500).json({ error: error.message || 'Failed to record clue' });
   }
 };
