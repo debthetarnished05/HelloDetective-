@@ -21,7 +21,8 @@ interface GameState {
   draggedEvidenceId: string | null;
 
   // Actions
-  setSessionData: (payload: { sessionId: string; session: any; story: IStory }) => void;
+  setSessionData: (payload: { sessionId: string; session: any; story: IStory; guestAccessToken?: string }) => void;
+  setStory: (story: IStory) => void;
   updateSuspectState: (suspectId: string, updates: Partial<ISuspectRuntimeState>) => void;
   addSuspectChatMessage: (suspectId: string, message: IChatMessage) => void;
   advanceStage: (newStage: number, newEvidence?: string[], newLocations?: string[]) => void;
@@ -55,7 +56,7 @@ export const useGameStore = create<GameState>((set) => ({
   activeSuspectId: null,
   draggedEvidenceId: null,
 
-  setSessionData: ({ sessionId, session, story }) => {
+  setSessionData: ({ sessionId, session, story, guestAccessToken }) => {
     // Convert suspects map/object to record
     const states: Record<string, ISuspectRuntimeState> = {};
     if (session.suspects) {
@@ -72,6 +73,11 @@ export const useGameStore = create<GameState>((set) => ({
 
       if (sessionId) {
         localStorage.setItem('detective_session_id', sessionId);
+      }
+      if (guestAccessToken) {
+        localStorage.setItem('detective_guest_session_token', guestAccessToken);
+      } else if (!session.isGuest) {
+        localStorage.removeItem('detective_guest_session_token');
       }
 
       set({
@@ -92,6 +98,8 @@ export const useGameStore = create<GameState>((set) => ({
       isLoading: false
     });
   },
+
+  setStory: (story) => set({ story }),
 
   updateSuspectState: (suspectId, updates) =>
     set((state) => {

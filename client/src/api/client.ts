@@ -44,6 +44,10 @@ apiClient.interceptors.request.use((config) => {
   if (accessToken && config.headers) {
     config.headers.Authorization = `Bearer ${accessToken}`;
   }
+  const guestSessionToken = localStorage.getItem('detective_guest_session_token');
+  if (guestSessionToken && config.headers) {
+    config.headers['X-Guest-Session-Token'] = guestSessionToken;
+  }
   return config;
 });
 

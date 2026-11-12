@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { gameApi } from '../api/client';
-import type { ILocationItem, IEvidenceItem } from '../types/index';
+import type { ILocationItem, IEvidenceItem, IStory } from '../types/index';
 import MobileCarousel from '../components/MobileCarousel';
 
 export default function Locations() {
-  const { story, unlockedLocations, canvassedLocations, sessionId, markLocationCanvassed, setClosingState } = useGameStore();
+  const { story, unlockedLocations, canvassedLocations, sessionId, markLocationCanvassed, setClosingState, setStory } = useGameStore();
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
 
   const allLocations = story?.locations || [];
@@ -86,8 +86,9 @@ export default function Locations() {
           location={selectedLocation}
           sessionId={sessionId}
           isCanvassed={canvassedLocations.includes(selectedLocation.id)}
-          onCanvassed={(locationId, newlyFoundEvidence, caseClosingTriggered, remainingClosingQuestions) => {
+          onCanvassed={(locationId, newlyFoundEvidence, caseClosingTriggered, remainingClosingQuestions, updatedStory) => {
             markLocationCanvassed(locationId, newlyFoundEvidence.map(e => e.id));
+            if (updatedStory) setStory(updatedStory);
             if (caseClosingTriggered !== undefined) {
               setClosingState({ caseClosingTriggered, remainingClosingQuestions });
             }
@@ -109,7 +110,7 @@ function LocationDetailModal({
   location: ILocationItem;
   sessionId: string;
   isCanvassed: boolean;
-  onCanvassed: (locationId: string, newlyFoundEvidence: IEvidenceItem[], caseClosingTriggered?: boolean, remainingClosingQuestions?: number) => void;
+  onCanvassed: (locationId: string, newlyFoundEvidence: IEvidenceItem[], caseClosingTriggered?: boolean, remainingClosingQuestions?: number, updatedStory?: IStory) => void;
   onClose: () => void;
 }) {
   const [canvassing, setCanvassing] = useState(false);
@@ -128,7 +129,8 @@ function LocationDetailModal({
         location.id,
         response.newlyFoundEvidence || [],
         response.caseClosingTriggered,
-        response.remainingClosingQuestions
+        response.remainingClosingQuestions,
+        response.story
       );
     } catch (err) {
       console.error('Failed to canvass location:', err);

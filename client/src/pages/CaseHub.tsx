@@ -101,7 +101,7 @@ export default function CaseHub() {
                 {suspect.name} ({suspect.role})
               </h3>
               <ul style={styles.list}>
-                <li><strong>Motive:</strong> {suspect.motive}</li>
+                <li><strong>Motive:</strong> Under investigation</li>
                 <li><strong>Alibi:</strong> {suspect.alibi}</li>
                 <li><strong>Notes:</strong> {suspect.trait}</li>
               </ul>

@@ -13,6 +13,7 @@ export default function OfficerDesk() {
     recordedClues,
     officerChatHistory,
     setOfficerChatHistory,
+    setStory,
     setUnlockedEntities,
     setClosingState,
     caseClosingTriggered,
@@ -84,6 +85,8 @@ export default function OfficerDesk() {
         referencedEvidenceId: evidenceToCite,
         referencedLocationId: locationToCite
       });
+
+      if (result.story) setStory(result.story);
 
       if (result.unlockedLocations || result.unlockedSuspects || result.unlockedEvidence) {
         setUnlockedEntities({

@@ -4,6 +4,21 @@ import User, { calculateDetectiveRank } from '../models/User.js';
 import GameSession from '../models/GameSession.js';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/token.js';
 import { AuthRequest } from '../middleware/authMiddleware.js';
+import { matchesGuestSessionToken } from '../utils/guestSession.js';
+
+async function migrateGuestSession(req: Request, guestSessionId: string | undefined, user: any): Promise<void> {
+  if (!guestSessionId) return;
+  const token = req.get('X-Guest-Session-Token') || '';
+  const session = await GameSession.findOne({ _id: guestSessionId, isGuest: true, userId: null })
+    .select('+guestAccessTokenHash');
+  if (!session || !matchesGuestSessionToken(token, session.guestAccessTokenHash)) return;
+
+  session.userId = user._id;
+  session.isGuest = false;
+  session.leadDetectiveName = `Detective ${user.username}`;
+  session.guestAccessTokenHash = undefined;
+  await session.save();
+}
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -62,14 +77,7 @@ export const register = async (req: Request, res: Response) => {
     // Seamless Guest Session Migration:
     if (guestSessionId) {
       try {
-        await GameSession.updateMany(
-          { _id: guestSessionId, isGuest: true },
-          {
-            userId: newUser._id,
-            isGuest: false,
-            leadDetectiveName: `Detective ${newUser.username}`
-          }
-        );
+        await migrateGuestSession(req, guestSessionId, newUser);
       } catch (migrateErr) {
         console.error('Failed to migrate guest session on register:', migrateErr);
       }
@@ -132,14 +140,7 @@ export const login = async (req: Request, res: Response) => {
     // Seamless Guest Session Migration:
     if (guestSessionId) {
       try {
-        await GameSession.updateMany(
-          { _id: guestSessionId, isGuest: true },
-          {
-            userId: user._id,
-            isGuest: false,
-            leadDetectiveName: `Detective ${user.username}`
-          }
-        );
+        await migrateGuestSession(req, guestSessionId, user);
       } catch (migrateErr) {
         console.error('Failed to migrate guest session on login:', migrateErr);
       }

@@ -5,6 +5,7 @@ export interface IGameSession extends Document {
   storyId: Types.ObjectId;
   userId?: Types.ObjectId;
   isGuest: boolean;
+  guestAccessTokenHash?: string;
   leadDetectiveName: string;
   evidencePresentedCount: number;
   warrantAttemptsCount: number;
@@ -82,6 +83,7 @@ const GameSessionSchema = new Schema<IGameSession>({
   storyId: { type: Schema.Types.ObjectId, ref: 'Story', required: true },
   userId: { type: Schema.Types.ObjectId, ref: 'User', default: null },
   isGuest: { type: Boolean, default: true },
+  guestAccessTokenHash: { type: String, select: false },
   leadDetectiveName: { type: String, default: 'Guest Detective' },
   evidencePresentedCount: { type: Number, default: 0 },
   warrantAttemptsCount: { type: Number, default: 0 },

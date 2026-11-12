@@ -327,7 +327,6 @@ You MUST reply with ONLY valid JSON with exactly these keys:
       totalSuspects: number;
       unlockedSuspects: number;
       discoveredClues: string[];
-      groundTruthSummary: string;
       unlockedEvidenceDetails?: Array<{ id: string; title: string; subtitle?: string; details?: string; location?: string }>;
       unlockedSuspectsDetails?: Array<{ id: string; name: string; role?: string; trait?: string }>;
       locationsStatus?: Array<{ id: string; title: string; isCanvassed: boolean }>;

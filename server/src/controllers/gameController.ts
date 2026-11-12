@@ -17,6 +17,117 @@ import {
 } from '../data/seedStories.js';
 import { LLMService } from '../services/llmService.js';
 import { IStory, ISuspectRuntimeState } from '../types/index.js';
+import { createGuestSessionToken, hashGuestSessionToken, matchesGuestSessionToken } from '../utils/guestSession.js';
+
+function sameId(left: unknown, right: unknown): boolean {
+  return String(left ?? '') === String(right ?? '');
+}
+
+function ownsSession(req: AuthRequest, res: Response, session: any): boolean {
+  if (!session.userId) {
+    const guestToken = req.get('X-Guest-Session-Token') || '';
+    if (req.user || !matchesGuestSessionToken(guestToken, session.guestAccessTokenHash)) {
+      res.status(404).json({ error: 'Session not found' });
+      return false;
+    }
+    return true;
+  }
+
+  if (!req.user || !sameId(session.userId, req.user._id)) {
+    res.status(404).json({ error: 'Session not found' });
+    return false;
+  }
+  return true;
+}
+
+function toPlayerSession(session: any): Record<string, unknown> {
+  const unlockedSuspects = session.unlockedSuspects || [];
+  const states: Record<string, unknown> = {};
+  const storedStates = session.suspects as Map<string, any> | Record<string, any> | undefined;
+  const suspectStates: Array<[string, any]> = storedStates instanceof Map
+    ? Array.from(storedStates.entries())
+    : Object.entries(storedStates || {});
+
+  for (const [id, state] of suspectStates) {
+    if (unlockedSuspects.includes(id)) states[id] = state;
+  }
+
+  return {
+    _id: session._id,
+    storyId: session.storyId,
+    isGuest: session.isGuest,
+    leadDetectiveName: session.leadDetectiveName,
+    currentStage: session.currentStage,
+    unlockedEvidence: session.unlockedEvidence || [],
+    unlockedLocations: session.unlockedLocations || [],
+    canvassedLocations: session.canvassedLocations || [],
+    unlockedSuspects,
+    caseClosingTriggered: session.caseClosingTriggered,
+    remainingClosingQuestions: session.remainingClosingQuestions,
+    interrogationLocked: session.interrogationLocked,
+    closingNotificationSent: session.closingNotificationSent,
+    suspects: states,
+    officerChatHistory: session.officerChatHistory || [],
+    notes: session.notes || '',
+    recordedClues: session.recordedClues || [],
+    status: session.status,
+    verdict: session.status === 'solved' ? session.verdict : undefined
+  };
+}
+
+function toPlayerStory(story: any, session?: any, includeSolution = false): any {
+  const result = story.toObject ? story.toObject() : { ...story };
+  if (!includeSolution) {
+    delete result.groundTruth;
+    delete result.archetype;
+    delete result.trope;
+    delete result.stages;
+  }
+
+  if (!session) {
+    result.locations = [];
+    result.evidence = [];
+    result.suspects = [];
+    return result;
+  }
+
+  const unlockedEvidence = new Set(session.unlockedEvidence || []);
+  const unlockedLocations = new Set(session.unlockedLocations || []);
+  const canvassedLocations = new Set(session.canvassedLocations || []);
+  const unlockedSuspects = new Set(session.unlockedSuspects || []);
+
+  result.locations = (result.locations || [])
+    .filter((location: any) => unlockedLocations.has(location.id))
+    .map((location: any) => {
+      if (!canvassedLocations.has(location.id)) {
+        delete location.canvassReport;
+        delete location.hiddenEvidenceIds;
+      }
+      return location;
+    });
+  result.evidence = (result.evidence || []).filter((evidence: any) => unlockedEvidence.has(evidence.id));
+  result.evidence = result.evidence.map((evidence: any) => {
+    delete evidence.isMurderWeapon;
+    delete evidence.allowSubpoena;
+    delete evidence.subpoenaSource;
+    delete evidence.locationId;
+    delete evidence.discoveryType;
+    return evidence;
+  });
+  result.suspects = (result.suspects || []).filter((suspect: any) => unlockedSuspects.has(suspect.id)).map((suspect: any) => {
+      delete suspect.privateKnowledge;
+      delete suspect.secrets;
+      delete suspect.evidenceReactions;
+      delete suspect.dynamicUnlocks;
+      delete suspect.isPrimeSuspect;
+      delete suspect.category;
+      delete suspect.motive;
+      return suspect;
+    });
+
+  if (!includeSolution) delete result.groundTruth;
+  return result;
+}
 
 export async function seedDefaultStories() {
   // 1. Ensure DEFAULT_STORY (Silicon Alibi)
@@ -120,8 +231,8 @@ export const startNewGame = async (req: AuthRequest, res: Response) => {
         storyObj.leadDetective = leadDetectiveName;
         return res.status(200).json({
           sessionId: existingSession._id,
-          session: existingSession,
-          story: storyObj
+          session: toPlayerSession(existingSession),
+          story: toPlayerStory(storyObj, existingSession)
         });
       }
     }
@@ -161,9 +272,11 @@ export const startNewGame = async (req: AuthRequest, res: Response) => {
       });
     }
 
+    const guestAccessToken = req.user ? undefined : createGuestSessionToken();
     const session = new GameSession({
       userId: req.user ? req.user._id : undefined,
       isGuest: !req.user,
+      guestAccessTokenHash: guestAccessToken ? hashGuestSessionToken(guestAccessToken) : undefined,
       leadDetectiveName,
       storyId: story._id,
       unlockedEvidence: initialEvidence,
@@ -197,8 +310,9 @@ export const startNewGame = async (req: AuthRequest, res: Response) => {
 
     res.status(200).json({
       sessionId: session._id,
-      session,
-      story: storyObj
+      guestAccessToken,
+      session: toPlayerSession(session),
+      story: toPlayerStory(storyObj, session)
     });
   } catch (error: any) {
     console.error('startNewGame error:', error);
@@ -209,8 +323,9 @@ export const startNewGame = async (req: AuthRequest, res: Response) => {
 export const getSessionState = async (req: AuthRequest, res: Response) => {
   try {
     const { sessionId } = req.params;
-    const session = await GameSession.findById(sessionId);
+    const session = await GameSession.findById(sessionId).select('+guestAccessTokenHash');
     if (!session) return res.status(404).json({ error: 'Session not found' });
+    if (!ownsSession(req, res, session)) return;
 
     let story = await Story.findById(session.storyId);
     if (!story) {
@@ -218,15 +333,7 @@ export const getSessionState = async (req: AuthRequest, res: Response) => {
     }
 
     let leadDetectiveName = session.leadDetectiveName || 'Guest Detective';
-    if (req.user) {
-      leadDetectiveName = `Detective ${req.user.username}`;
-      if (session.isGuest || !session.userId) {
-        session.userId = req.user._id;
-        session.isGuest = false;
-        session.leadDetectiveName = leadDetectiveName;
-        await session.save();
-      }
-    }
+    if (req.user) leadDetectiveName = `Detective ${req.user.username}`;
 
     // Auto-heal any suspects or locations that Officer Davis confirmed in previous chat history but failed to add to session arrays
     let sessionDirty = false;
@@ -239,7 +346,6 @@ export const getSessionState = async (req: AuthRequest, res: Response) => {
 
           const confirmedInHistory = session.officerChatHistory.some((m: any) =>
             m.role === 'assistant' && (
-              m.isApproved === true ||
               (m.unlockedEntity && m.unlockedEntity.id === suspect.id) ||
               ((nameRegex.test(m.content) || (firstNameRegex && firstNameRegex.test(m.content))) &&
                 /\b(dispatched (patrol|a squad|units)|waiting in (the )?(interrogation|interview) room|bringing them in)\b/i.test(m.content) &&
@@ -285,14 +391,12 @@ export const getSessionState = async (req: AuthRequest, res: Response) => {
       await session.save();
     }
 
-    const storyObj = story ? (story.toObject ? story.toObject() : { ...story }) : null;
-    if (storyObj) {
-      storyObj.leadDetective = leadDetectiveName;
-    }
+    const storyObj = story ? toPlayerStory(story, session) : null;
+    if (storyObj) storyObj.leadDetective = leadDetectiveName;
 
     res.status(200).json({
       sessionId: session._id,
-      session,
+      session: toPlayerSession(session),
       story: storyObj
     });
   } catch (error: any) {
@@ -325,12 +429,13 @@ function checkAndTriggerClosing(session: any, story: any): boolean {
   return false;
 }
 
-export const chatSuspect = async (req: Request, res: Response) => {
+export const chatSuspect = async (req: AuthRequest, res: Response) => {
   try {
     const { sessionId, suspectId, message, presentedEvidenceId } = req.body;
 
-    const session = await GameSession.findById(sessionId);
+    const session = await GameSession.findById(sessionId).select('+guestAccessTokenHash');
     if (!session) return res.status(404).json({ error: 'Session not found' });
+    if (!ownsSession(req, res, session)) return;
 
     const story = await Story.findById(session.storyId);
     if (!story) return res.status(404).json({ error: 'Story not found' });
@@ -348,6 +453,9 @@ export const chatSuspect = async (req: Request, res: Response) => {
 
     const suspectProfile = story.suspects.find((s: any) => s.id === suspectId);
     if (!suspectProfile) return res.status(404).json({ error: `Suspect ${suspectId} not found in story` });
+    if (!session.unlockedSuspects.includes(suspectId)) {
+      return res.status(403).json({ error: 'That person has not been cleared for interrogation.' });
+    }
 
     // Ensure suspect runtime state exists
     let suspectState = session.suspects.get(suspectId);
@@ -365,6 +473,9 @@ export const chatSuspect = async (req: Request, res: Response) => {
     // Find presented evidence object if any
     let presentedEvidence = null;
     if (presentedEvidenceId) {
+      if (!session.unlockedEvidence.includes(presentedEvidenceId)) {
+        return res.status(403).json({ error: 'That evidence has not been entered into the case locker.' });
+      }
       presentedEvidence = story.evidence.find((e: any) => e.id === presentedEvidenceId) || null;
     }
 
@@ -581,11 +692,12 @@ export const chatSuspect = async (req: Request, res: Response) => {
   }
 };
 
-export const canvassLocation = async (req: Request, res: Response) => {
+export const canvassLocation = async (req: AuthRequest, res: Response) => {
   try {
     const { sessionId, locationId } = req.body;
-    const session = await GameSession.findById(sessionId);
+    const session = await GameSession.findById(sessionId).select('+guestAccessTokenHash');
     if (!session) return res.status(404).json({ error: 'Session not found' });
+    if (!ownsSession(req, res, session)) return;
 
     const story = await Story.findById(session.storyId);
     if (!story) return res.status(404).json({ error: 'Story not found' });
@@ -594,6 +706,9 @@ export const canvassLocation = async (req: Request, res: Response) => {
 
     const location = (story.locations || []).find((l: any) => l.id === locationId);
     if (!location) return res.status(404).json({ error: 'Location not found' });
+    if (!session.unlockedLocations.includes(locationId)) {
+      return res.status(403).json({ error: 'That location has not been cleared for canvassing.' });
+    }
 
     if (!session.canvassedLocations.includes(locationId)) {
       session.canvassedLocations.push(locationId);
@@ -622,12 +737,18 @@ export const canvassLocation = async (req: Request, res: Response) => {
 
     await session.save();
 
+    const playerStory = toPlayerStory(story, session);
+    const newlyFoundIds = new Set(newlyFoundEvidence.map(evidence => evidence.id));
+    const safeNewEvidence = playerStory.evidence.filter((evidence: any) => newlyFoundIds.has(evidence.id));
+    const playerLocation = playerStory.locations.find((item: any) => item.id === locationId);
+
     res.status(200).json({
-      location,
+      location: playerLocation,
       canvassReport: location.canvassReport || `CSI forensic canvass of ${location.title} completed.`,
+      story: playerStory,
       canvassedLocations: session.canvassedLocations,
       unlockedEvidence: session.unlockedEvidence,
-      newlyFoundEvidence,
+      newlyFoundEvidence: safeNewEvidence,
       caseClosingTriggered: session.caseClosingTriggered,
       remainingClosingQuestions: session.remainingClosingQuestions
     });
@@ -637,7 +758,7 @@ export const canvassLocation = async (req: Request, res: Response) => {
   }
 };
 
-export const chatOfficer = async (req: Request, res: Response) => {
+export const chatOfficer = async (req: AuthRequest, res: Response) => {
   try {
     const {
       sessionId,
@@ -648,8 +769,9 @@ export const chatOfficer = async (req: Request, res: Response) => {
       referencedLocationId
     } = req.body;
 
-    const session = await GameSession.findById(sessionId);
+    const session = await GameSession.findById(sessionId).select('+guestAccessTokenHash');
     if (!session) return res.status(404).json({ error: 'Session not found' });
+    if (!ownsSession(req, res, session)) return;
 
     const story = await Story.findById(session.storyId);
     if (!story) return res.status(404).json({ error: 'Story not found' });
@@ -660,10 +782,10 @@ export const chatOfficer = async (req: Request, res: Response) => {
     if (!session.canvassedLocations) session.canvassedLocations = [];
 
     // Resolve attached clue if only ID was provided
-    let activeClue = attachedClue || null;
-    if (!activeClue && attachedClueId) {
-      activeClue = (session.recordedClues || []).find((c: any) => c.id === attachedClueId) || null;
-    }
+    const requestedClueId = attachedClueId || attachedClue?.id;
+    const activeClue = requestedClueId
+      ? (session.recordedClues || []).find((c: any) => c.id === requestedClueId) || null
+      : null;
 
     // Resolve referenced evidence if unlocked
     let activeEvidence = null;
@@ -751,7 +873,6 @@ export const chatOfficer = async (req: Request, res: Response) => {
       totalSuspects: (story.suspects || []).length,
       unlockedSuspects: session.unlockedSuspects.length,
       discoveredClues: (session.recordedClues || []).map((c: any) => c.statement),
-      groundTruthSummary: story.groundTruth?.timelineSummary || '',
       unlockedEvidenceDetails: unlockedEvidenceList,
       unlockedSuspectsDetails: unlockedSuspectsList,
       locationsStatus: locationsStatusList,
@@ -984,6 +1105,7 @@ export const chatOfficer = async (req: Request, res: Response) => {
     res.status(200).json({
       dialogue: evalResult.dialogue,
       officerChatHistory: session.officerChatHistory,
+      story: toPlayerStory(story, session),
       newlyUnlocked,
       unlockedLocations: session.unlockedLocations,
       unlockedEvidence: session.unlockedEvidence,
@@ -997,7 +1119,7 @@ export const chatOfficer = async (req: Request, res: Response) => {
   }
 };
 
-export const submitDeduction = async (req: Request, res: Response) => {
+export const submitDeduction = async (req: AuthRequest, res: Response) => {
   const { sessionId, deduction, message } = req.body;
   req.body.message = deduction || message;
   return chatOfficer(req, res);
@@ -1006,8 +1128,9 @@ export const submitDeduction = async (req: Request, res: Response) => {
 export const submitWarrant = async (req: AuthRequest, res: Response) => {
   try {
     const { sessionId, suspect, motive, weapon, keyContradiction } = req.body;
-    const session = await GameSession.findById(sessionId);
+    const session = await GameSession.findById(sessionId).select('+guestAccessTokenHash');
     if (!session) return res.status(404).json({ error: 'Session not found' });
+    if (!ownsSession(req, res, session)) return;
 
     const story = await Story.findById(session.storyId);
     if (!story) return res.status(404).json({ error: 'Story not found' });
@@ -1147,22 +1270,26 @@ export const submitWarrant = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const saveNotes = async (req: Request, res: Response) => {
+export const saveNotes = async (req: AuthRequest, res: Response) => {
   try {
     const { sessionId, notes } = req.body;
-    const session = await GameSession.findByIdAndUpdate(sessionId, { notes }, { new: true });
+    const session = await GameSession.findById(sessionId).select('+guestAccessTokenHash');
     if (!session) return res.status(404).json({ error: 'Session not found' });
+    if (!ownsSession(req, res, session)) return;
+    session.notes = notes;
+    await session.save();
     res.status(200).json({ notes: session.notes });
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Failed to save notes' });
   }
 };
 
-export const recordClue = async (req: Request, res: Response) => {
+export const recordClue = async (req: AuthRequest, res: Response) => {
   try {
     const { sessionId, suspectId, suspectName, statement } = req.body;
-    const session = await GameSession.findById(sessionId);
+    const session = await GameSession.findById(sessionId).select('+guestAccessTokenHash');
     if (!session) return res.status(404).json({ error: 'Session not found' });
+    if (!ownsSession(req, res, session)) return;
 
     const newClue = {
       id: `clue_${Date.now()}`,
@@ -1193,8 +1320,10 @@ export const listStories = async (req: AuthRequest, res: Response) => {
     await seedDefaultStories();
     const storiesDocs = await Story.find();
     const leadDetectiveName = req.user ? `Detective ${req.user.username}` : 'Guest Detective';
+    const solvedIds = new Set((req.user?.casesSolved || []).map(id => String(id)));
     const stories = storiesDocs.map(doc => {
-      const obj = doc.toObject();
+      const includeSolution = solvedIds.has(String(doc._id));
+      const obj = toPlayerStory(doc, undefined, includeSolution);
       obj.leadDetective = leadDetectiveName;
       return obj;
     });
@@ -1210,7 +1339,8 @@ export const getStoryById = async (req: AuthRequest, res: Response) => {
     const story = await Story.findById(storyId);
     if (!story) return res.status(404).json({ error: 'Story not found' });
     const leadDetectiveName = req.user ? `Detective ${req.user.username}` : 'Guest Detective';
-    const storyObj = story.toObject();
+    const includeSolution = Boolean(req.user?.casesSolved?.some(id => String(id) === String(story._id)));
+    const storyObj = toPlayerStory(story, undefined, includeSolution);
     storyObj.leadDetective = leadDetectiveName;
     res.status(200).json({ story: storyObj });
   } catch (error: any) {
@@ -1223,7 +1353,7 @@ export const createStory = async (req: Request, res: Response) => {
     const storyData = req.body;
     const newStory = new Story(storyData);
     await newStory.save();
-    res.status(201).json({ story: newStory });
+    res.status(201).json({ story: toPlayerStory(newStory) });
   } catch (error: any) {
     res.status(400).json({ error: error.message || 'Failed to create story' });
   }
@@ -1235,7 +1365,7 @@ export const generateAiStory = async (req: Request, res: Response) => {
     const generated = await LLMService.generateCompleteStory(promptTheme, archetype);
     const story = new Story(generated);
     await story.save();
-    res.status(201).json({ story });
+    res.status(201).json({ story: toPlayerStory(story) });
   } catch (error: any) {
     console.error('generateAiStory error:', error);
     res.status(500).json({ error: error.message || 'Failed to generate AI story' });

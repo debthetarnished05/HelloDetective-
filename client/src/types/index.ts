@@ -135,7 +135,7 @@ export interface IStory {
   evidence: IEvidenceItem[];
   suspects: ISuspectItem[];
   stages?: IStageDefinition[];
-  groundTruth: IGroundTruth;
+  groundTruth?: IGroundTruth;
   isDefault?: boolean;
 }
 
