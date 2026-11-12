@@ -44,8 +44,8 @@ export default function AuthModal() {
       setErrorMsg('All fields are mandatory for Department badge issuance.');
       return;
     }
-    if (regPassword.length < 6) {
-      setErrorMsg('Security key must contain at least 6 characters.');
+    if (regPassword.length < 12 || new TextEncoder().encode(regPassword).length > 72) {
+      setErrorMsg('Security key must contain at least 12 characters and no more than 72 UTF-8 bytes.');
       return;
     }
     try {
@@ -191,7 +191,9 @@ export default function AuthModal() {
                 type="password"
                 value={regPassword}
                 onChange={(e) => setRegPassword(e.target.value)}
-                placeholder="Minimum 6 characters"
+                minLength={12}
+                maxLength={72}
+                placeholder="Minimum 12 characters"
                 style={styles.input}
                 required
               />

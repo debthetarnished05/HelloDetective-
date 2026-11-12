@@ -31,6 +31,8 @@ export interface IUser extends Document {
   casesSolved: string[]; // array of story IDs
   badges: IUserBadge[];
   stats: IUserStats;
+  refreshTokenHash?: string;
+  /** Legacy token field kept only to migrate active sessions during refresh. */
   refreshToken?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -88,9 +90,8 @@ const UserSchema = new Schema<IUser>(
       cluesFoundCount: { type: Number, default: 0 },
       interrogationsCount: { type: Number, default: 0 }
     },
-    refreshToken: {
-      type: String
-    }
+    refreshTokenHash: { type: String, select: false },
+    refreshToken: { type: String, select: false }
   },
   { timestamps: true }
 );

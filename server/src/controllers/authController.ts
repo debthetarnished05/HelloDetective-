@@ -5,6 +5,9 @@ import GameSession from '../models/GameSession.js';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/token.js';
 import { AuthRequest } from '../middleware/authMiddleware.js';
 import { matchesGuestSessionToken } from '../utils/guestSession.js';
+import { hashRefreshToken, matchesRefreshToken } from '../utils/refreshToken.js';
+
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync('invalid-account-password-check', 12);
 
 async function migrateGuestSession(req: Request, guestSessionId: string | undefined, user: any): Promise<void> {
   if (!guestSessionId) return;
@@ -24,7 +27,7 @@ export const register = async (req: Request, res: Response) => {
   try {
     const { username, email, password, guestSessionId } = req.body;
 
-    if (!username || !email || !password) {
+    if (typeof username !== 'string' || typeof email !== 'string' || typeof password !== 'string' || !username.trim() || !email.trim() || !password) {
       return res.status(400).json({ error: 'Username, email, and password are required.' });
     }
 
@@ -32,8 +35,8 @@ export const register = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Username must be between 3 and 30 characters.' });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters.' });
+    if (password.length < 12 || Buffer.byteLength(password, 'utf8') > 72) {
+      return res.status(400).json({ error: 'Password must be at least 12 characters and no more than 72 UTF-8 bytes.' });
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -46,13 +49,10 @@ export const register = async (req: Request, res: Response) => {
     });
 
     if (existingUser) {
-      if (existingUser.email === email.toLowerCase()) {
-        return res.status(400).json({ error: 'An agent with this email is already registered.' });
-      }
-      return res.status(400).json({ error: 'This detective callsign (username) is already taken.' });
+      return res.status(409).json({ error: 'An account with those details could not be created.' });
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, 12);
 
     const newUser = new User({
       username: username.trim(),
@@ -71,7 +71,7 @@ export const register = async (req: Request, res: Response) => {
 
     const accessToken = generateAccessToken(newUser);
     const refreshToken = generateRefreshToken(newUser);
-    newUser.refreshToken = refreshToken;
+    newUser.refreshTokenHash = hashRefreshToken(refreshToken);
     await newUser.save();
 
     // Seamless Guest Session Migration:
@@ -115,7 +115,7 @@ export const login = async (req: Request, res: Response) => {
     const identifier = req.body.identifier || req.body.login;
     const { password, guestSessionId } = req.body;
 
-    if (!identifier || !password) {
+    if (typeof identifier !== 'string' || typeof password !== 'string' || !identifier.trim() || !password) {
       return res.status(400).json({ error: 'Callsign/email and password are required.' });
     }
 
@@ -124,17 +124,19 @@ export const login = async (req: Request, res: Response) => {
     });
 
     if (!user) {
-      return res.status(401).json({ error: 'No detective found with those credentials in Bureau records.' });
+      await bcrypt.compare(password, DUMMY_PASSWORD_HASH);
+      return res.status(401).json({ error: 'Invalid callsign/email or password.' });
     }
 
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) {
-      return res.status(401).json({ error: 'Incorrect credentials. Security verification rejected.' });
+      return res.status(401).json({ error: 'Invalid callsign/email or password.' });
     }
 
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
-    user.refreshToken = refreshToken;
+    user.refreshTokenHash = hashRefreshToken(refreshToken);
+    user.refreshToken = undefined;
     await user.save();
 
     // Seamless Guest Session Migration:
@@ -185,15 +187,22 @@ export const refresh = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Refresh token expired or invalid.' });
     }
 
-    const user = await User.findById(decoded.id);
-    if (!user || user.refreshToken !== token) {
+    const user = await User.findById(decoded.id).select('+refreshTokenHash +refreshToken');
+    if (!user || (!matchesRefreshToken(token, user.refreshTokenHash) && user.refreshToken !== token)) {
       return res.status(401).json({ error: 'Refresh token revoked or session expired.' });
     }
 
     const newAccessToken = generateAccessToken(user);
     const newRefreshToken = generateRefreshToken(user);
-    user.refreshToken = newRefreshToken;
-    await user.save();
+    const currentTokenFilter = user.refreshTokenHash
+      ? { _id: user._id, refreshTokenHash: user.refreshTokenHash }
+      : { _id: user._id, refreshToken: token };
+    const rotatedUser = await User.findOneAndUpdate(
+      currentTokenFilter,
+      { $set: { refreshTokenHash: hashRefreshToken(newRefreshToken) }, $unset: { refreshToken: 1 } },
+      { new: true }
+    );
+    if (!rotatedUser) return res.status(401).json({ error: 'Refresh token has already been rotated.' });
 
     res.cookie('refreshToken', newRefreshToken, {
       httpOnly: true,
@@ -207,11 +216,11 @@ export const refresh = async (req: Request, res: Response) => {
       user: {
         id: user._id,
         username: user.username,
-        email: user.email,
-        rank: user.rank,
-        casesSolved: user.casesSolved,
-        badges: user.badges,
-        stats: user.stats
+        email: rotatedUser.email,
+        rank: rotatedUser.rank,
+        casesSolved: rotatedUser.casesSolved,
+        badges: rotatedUser.badges,
+        stats: rotatedUser.stats
       }
     });
   } catch (err: any) {
@@ -226,7 +235,15 @@ export const logout = async (req: AuthRequest, res: Response) => {
     if (token) {
       const decoded = verifyRefreshToken(token);
       if (decoded) {
-        await User.findByIdAndUpdate(decoded.id, { $unset: { refreshToken: 1 } });
+        const user = await User.findById(decoded.id).select('+refreshTokenHash +refreshToken');
+        if (user && (matchesRefreshToken(token, user.refreshTokenHash) || user.refreshToken === token)) {
+          await User.updateOne(
+            user.refreshTokenHash
+              ? { _id: user._id, refreshTokenHash: user.refreshTokenHash }
+              : { _id: user._id, refreshToken: token },
+            { $unset: { refreshTokenHash: 1, refreshToken: 1 } }
+          );
+        }
       }
     }
 

@@ -1,6 +1,7 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
+import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -24,22 +25,44 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+app.set('trust proxy', 1);
 
 const clientOrigins = (process.env.CLIENT_URL || 'http://localhost:5173,http://127.0.0.1:5173')
   .split(',')
   .map(url => url.trim());
+const additionalConnectSources = (process.env.CSP_CONNECT_SRC || '')
+  .split(',')
+  .map(url => url.trim())
+  .filter(Boolean);
+
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      baseUri: ["'self'"],
+      connectSrc: ["'self'", ...additionalConnectSources],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+      frameAncestors: ["'self'"],
+      imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+      objectSrc: ["'none'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com']
+    }
+  },
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
+}));
 
 app.use(cors({
   origin: (origin, callback) => {
-    // allow requests with no origin (like mobile apps, curl, Postman) or matching allowed origins
     if (!origin || clientOrigins.includes(origin)) {
       return callback(null, true);
     }
-    return callback(null, true);
+    return callback(null, false);
   },
   credentials: true
 }));
-app.use(express.json());
+app.use(express.json({ limit: '256kb' }));
 app.use(cookieParser());
 
 // Health check
