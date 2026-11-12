@@ -22,15 +22,14 @@ export default function ChatModal({ suspectId, sessionId, onClose }: ChatModalPr
     caseClosingTriggered,
     remainingClosingQuestions,
     interrogationLocked,
-    setClosingState,
-    setUnlockedEntities
+    setClosingState
   } = useGameStore();
 
   const suspectProfile = story?.suspects.find(s => s.id === suspectId);
   const suspectRuntime = suspectStates[suspectId] || {
     suspectId,
     trustScore: suspectProfile?.initialTrust ?? 50,
-    stressLevel: suspectProfile?.initialStress ?? 20,
+    stressLevel: suspectProfile?.initialStress ?? 5,
     mood: 'composed' as const,
     revealedFacts: [],
     chatHistory: []
@@ -41,8 +40,7 @@ export default function ChatModal({ suspectId, sessionId, onClose }: ChatModalPr
   const [loading, setLoading] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [copiedClueId, setCopiedClueId] = useState<number | null>(null);
-  const [unlockAlerts, setUnlockAlerts] = useState<{ type: string; name: string }[]>([]);
-  const [dramaAlert, setDramaAlert] = useState<{ type: 'slip' | 'blame'; text: string } | null>(null);
+  const [dramaAlert, setDramaAlert] = useState<{ type: 'slip'; text: string } | null>(null);
 
   // Unlocked evidence objects
   const availableEvidence: IEvidenceItem[] = (story?.evidence || []).filter(e =>
@@ -88,29 +86,14 @@ export default function ChatModal({ suspectId, sessionId, onClose }: ChatModalPr
         timestamp: new Date()
       });
 
-      // Handle psychological slip of the tongue or blame shifting
+      // Handle psychological slip of the tongue (blame shifting alerts removed)
       if (response.slippedUp) {
         setDramaAlert({
           type: 'slip',
           text: `⚡ FREUDIAN SLIP! ${suspectProfile?.name || 'Suspect'} fumbled their words and blurted out secret knowledge!`
         });
-      } else if (response.threwUnderTheBus) {
-        setDramaAlert({
-          type: 'blame',
-          text: `👉 BLAME SHIFT! Suspect attempted to divert guilt by pointing fingers at ${response.threwUnderTheBus}!`
-        });
       } else {
         setDramaAlert(null);
-      }
-
-      // Handle newly discovered leads
-      if (response.newlyUnlocked && response.newlyUnlocked.length > 0) {
-        setUnlockAlerts(response.newlyUnlocked);
-        setUnlockedEntities({
-          suspects: response.unlockedSuspects,
-          locations: response.unlockedLocations,
-          evidence: response.unlockedEvidence
-        });
       }
 
       // Update closing state
@@ -245,61 +228,11 @@ export default function ChatModal({ suspectId, sessionId, onClose }: ChatModalPr
           </div>
         ) : null}
 
-        {/* NEWLY UNLOCKED LEADS BANNER */}
-        {unlockAlerts.length > 0 && (
-          <div className="interrogation-alert-banner" style={{
-            backgroundColor: '#064e3b',
-            border: '2px solid #10b981',
-            borderRadius: '6px',
-            padding: '10px 14px',
-            marginBottom: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            animation: 'fadeIn 0.3s'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#ecfdf5', fontFamily: 'monospace', fontSize: '0.88rem' }}>
-              <span style={{ fontSize: '1.3rem' }}>🌟</span>
-              <div>
-                <strong>NEW INVESTIGATION LEAD UNCOVERED:</strong>
-                <div style={{ marginTop: '2px' }}>
-                  {unlockAlerts.map((lead, idx) => (
-                    <span key={idx} style={{
-                      display: 'inline-block',
-                      backgroundColor: 'rgba(255,255,255,0.2)',
-                      padding: '2px 8px',
-                      borderRadius: '4px',
-                      marginRight: '6px',
-                      fontWeight: 'bold'
-                    }}>
-                      [{lead.type.toUpperCase()}] {lead.name}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={() => setUnlockAlerts([])}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#a7f3d0',
-                cursor: 'pointer',
-                fontFamily: 'monospace',
-                fontSize: '0.8rem',
-                textDecoration: 'underline'
-              }}
-            >
-              Dismiss
-            </button>
-          </div>
-        )}
-
-        {/* PSYCHOLOGICAL DRAMA ALERT (Freudian Slip / Blame Shift) */}
+        {/* PSYCHOLOGICAL DRAMA ALERT (Freudian Slip) */}
         {dramaAlert && (
           <div className="interrogation-alert-banner" style={{
-            backgroundColor: dramaAlert.type === 'slip' ? '#78350f' : '#451a03',
-            border: dramaAlert.type === 'slip' ? '2px solid #f59e0b' : '2px solid #ea580c',
+            backgroundColor: '#78350f',
+            border: '2px solid #f59e0b',
             borderRadius: '6px',
             padding: '10px 14px',
             marginBottom: '12px',
@@ -309,7 +242,7 @@ export default function ChatModal({ suspectId, sessionId, onClose }: ChatModalPr
             animation: 'fadeIn 0.3s'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#fef3c7', fontFamily: 'monospace', fontSize: '0.86rem' }}>
-              <span style={{ fontSize: '1.25rem' }}>{dramaAlert.type === 'slip' ? '⚡' : '👉'}</span>
+              <span style={{ fontSize: '1.25rem' }}>⚡</span>
               <span><strong>{dramaAlert.text}</strong></span>
             </div>
             <button
@@ -502,8 +435,8 @@ export default function ChatModal({ suspectId, sessionId, onClose }: ChatModalPr
                     {msg.content}
                   </p>
 
-                  {/* Button to Record Clue to Detective Notebook */}
-                  {msg.role === 'assistant' && (
+                  {/* Button to Record Clue to Detective Notebook (Disallowed for errors / system notices) */}
+                  {msg.role === 'assistant' && !msg.content.startsWith('*') && !msg.content.includes('(Connection error') && (
                     <div style={{ marginTop: '8px', textAlign: 'right' }}>
                       <button
                         type="button"

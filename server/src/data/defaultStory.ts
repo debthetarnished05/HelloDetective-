@@ -204,7 +204,7 @@ export const DEFAULT_STORY: IStory = {
       personality: 'cunning',
       isInitiallyUnlocked: true,
       initialTrust: 45,
-      initialStress: 20,
+      initialStress: 8,
       isPrimeSuspect: true,
       category: 'prime_suspect',
       alibi: 'Claims he was working alone at Riverside Brews coffee shop on 5th Street from 9:30 PM until after midnight, minding his own business and writing code.',
@@ -216,7 +216,7 @@ export const DEFAULT_STORY: IStory = {
         'Admitted having a furious confrontation with Michael over the Aegis patent contract',
         'Broke down and confessed to stabbing Michael with the desk letter opener in a fit of rage'
       ],
-      breakdownThreshold: 80,
+      breakdownThreshold: 90,
       evidenceReactions: {
         parkade_security_log: 'His jaw tightens and his hands shake. He stammers that he might have "just stopped by for five minutes to grab his laptop."',
         barista_statement: 'He curses under his breath and admits he lied about sipping coffee peacefully until midnight.',
@@ -232,7 +232,7 @@ export const DEFAULT_STORY: IStory = {
       personality: 'defensive',
       isInitiallyUnlocked: true,
       initialTrust: 40,
-      initialStress: 25,
+      initialStress: 5,
       isPrimeSuspect: true,
       category: 'prime_suspect',
       alibi: 'Claims she was at her downtown condo all night watching television and crying after an argument with Michael earlier that afternoon.',
@@ -243,7 +243,7 @@ export const DEFAULT_STORY: IStory = {
         'Confessed she was deeply in debt and aware of the $2M life insurance policy',
         'Revealed she saw Marcus Chen lurking in the lobby when she departed at 8:30 PM'
       ],
-      breakdownThreshold: 75,
+      breakdownThreshold: 90,
       evidenceReactions: {
         threatening_email: 'She swears on her mother\'s grave that she never sent that email: "Check the IP, I don\'t even know what Riverside Brews is!"',
         crime_scene_photos: 'Breaks into genuine tears seeing her brother\'s office.'
@@ -262,7 +262,7 @@ export const DEFAULT_STORY: IStory = {
         description: 'Diana Wilkins\'s administrative credentials were used to blind the 42nd-floor cameras during the murder window.'
       },
       initialTrust: 55,
-      initialStress: 35,
+      initialStress: 10,
       isPrimeSuspect: true,
       category: 'prime_suspect',
       alibi: 'Claims she was at home running scheduled server updates from her couch and heard a muffled thud through the building walls around 11:00 PM.',
@@ -273,7 +273,7 @@ export const DEFAULT_STORY: IStory = {
         'Confessed she disabled the 42nd-floor security cameras from 10:32 PM to 11:18 PM on Marcus\'s orders',
         'Revealed she saw Marcus running out of the fire exit stairs toward the rear alley storm drain at 11:20 PM'
       ],
-      breakdownThreshold: 70,
+      breakdownThreshold: 90,
       evidenceReactions: {
         camera_override_log: 'She bursts into tears: "Marcus made me do it! He swore he was just going to delete a file from Michael\'s computer, he said nobody would get hurt!"',
         secret_partnership_agreement: 'She confirms Marcus had been accessing unauthorized offshore servers for weeks.'
@@ -292,7 +292,7 @@ export const DEFAULT_STORY: IStory = {
         description: 'Night Barista on duty at Riverside Brews coffee shop.'
       },
       initialTrust: 60,
-      initialStress: 20,
+      initialStress: 4,
       isPrimeSuspect: false,
       category: 'witness',
       alibi: 'Behind the espresso bar from 3:00 PM until closing up at 11:30 PM.',
@@ -303,7 +303,7 @@ export const DEFAULT_STORY: IStory = {
         'Confessed Marcus handed him a $100 bill and muttered "Tell anyone who asks that I was sitting right here all night"',
         'Revealed Marcus returned to the coffee shop at 11:35 PM drenched in rain with mud on his shoes looking terrified'
       ],
-      breakdownThreshold: 65,
+      breakdownThreshold: 90,
       evidenceReactions: {
         threatening_email: 'He points at the paper: "That timestamp—8:12 PM! Marcus was sitting right near the router then, furiously typing on his MacBook!"',
         barista_statement: 'He sighs: "You got my statement already. I told you everything except the bribe. Don\'t arrest me, man."',
@@ -323,7 +323,7 @@ export const DEFAULT_STORY: IStory = {
         description: 'Senior hardware engineer at Pier 9 Unit 4.'
       },
       initialTrust: 45,
-      initialStress: 30,
+      initialStress: 6,
       isPrimeSuspect: false,
       category: 'person_of_interest',
       alibi: 'Claims he was working alone soldering prototype boards at the Pier 9 lab until midnight.',
@@ -334,7 +334,7 @@ export const DEFAULT_STORY: IStory = {
         'Confessed Marcus showed up at the lab at 11:40 PM breathing raggedly with bruised knuckles and a stain on his shirt cuff',
         'Revealed the security PIN code to the wall safe where Marcus kept the draft contracts with Aegis Global'
       ],
-      breakdownThreshold: 75,
+      breakdownThreshold: 90,
       evidenceReactions: {
         secret_partnership_agreement: 'Leo snaps: "Marcus swore this was just a harmless joint venture! He lied to all of us—he was gutting the whole company!"',
         damascus_letter_opener: 'Leo recoils: "That was Michael\'s personal pride and joy. Marcus always twirled it on his fingers during executive reviews."'
@@ -353,7 +353,7 @@ export const DEFAULT_STORY: IStory = {
         description: 'Night shift custodian on duty at the corporate center.'
       },
       initialTrust: 65,
-      initialStress: 20,
+      initialStress: 5,
       isPrimeSuspect: false,
       category: 'witness',
       alibi: 'Cleaning the 38th through 41st floor restrooms and cubicles between 9:00 PM and 11:00 PM.',
@@ -364,7 +364,7 @@ export const DEFAULT_STORY: IStory = {
         'Confessed she looked through the stairwell window and saw a man with Marcus\'s build running down the stairs toward the alley',
         'Revealed she saw a dark Audi speed out of Gate B into the street without headlights at 11:22 PM'
       ],
-      breakdownThreshold: 65,
+      breakdownThreshold: 90,
       evidenceReactions: {
         parkade_security_log: 'She nods vigorously: "Yes! That black car with the shiny rims, it tore out of Gate B so fast it almost hit the dumpster!"',
         crime_scene_photos: 'She clutches her rosary: "The broken coffee mug... I heard that crash while I was emptying trash on 41!"'

@@ -84,7 +84,7 @@ export interface ISuspectItem {
   motive: string;
   privateKnowledge: string; // The private facts they know
   secrets: string[]; // Confessions unlocked when stress >= breakdownThreshold or confronted
-  breakdownThreshold: number; // e.g., 75-85
+  breakdownThreshold: number; // e.g., 90
   evidenceReactions?: Record<string, string>; // Special reactions to specific evidence IDs
   avatarUrl?: string;
   isPrimeSuspect?: boolean;

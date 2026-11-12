@@ -91,7 +91,7 @@ export default function SuspectsDirectory() {
         {displayedSuspects.map((suspect, index) => {
           const state = suspectStates[suspect.id] || {
             trustScore: suspect.initialTrust ?? 50,
-            stressLevel: suspect.initialStress ?? 20,
+            stressLevel: suspect.initialStress ?? 5,
             mood: 'composed' as const
           };
 

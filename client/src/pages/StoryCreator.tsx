@@ -286,12 +286,12 @@ const EXAMPLE_TEMPLATE: CaseFormData = {
       isPrimeSuspect: true,
       isInitiallyUnlocked: true,
       initialTrust: 45,
-      initialStress: 30,
+      initialStress: 6,
       alibi: 'Claims she was performing her midnight set on the stage continuously from 1:15 AM to 2:00 AM without stepping off.',
       motive: 'Vincent planned to serve her with divorce papers and cut her out of the estate and club ownership.',
       privateKnowledge: 'She stepped into the VIP backroom during the 10-minute trumpet solo at 1:40 AM to spike his private rye bottle.',
       secrets: "Admitted arguing violently with Vincent backstage before the midnight set\nConfessed she took her passport and cash bundle from Vincent's safe\nRevealed she saw Mickey delivering the drink tray to Vincent's room",
-      breakdownThreshold: 75,
+      breakdownThreshold: 90,
       dynamicUnlocks: [
         {
           type: 'location',
@@ -311,12 +311,12 @@ const EXAMPLE_TEMPLATE: CaseFormData = {
       isPrimeSuspect: true,
       isInitiallyUnlocked: true,
       initialTrust: 50,
-      initialStress: 40,
+      initialStress: 8,
       alibi: 'Claims he was behind the main bar mixing cocktails for the crowd all night.',
       motive: 'Vincent held over $15,000 in defaulted gambling markers against him and threatened violence.',
       privateKnowledge: 'Mickey poured the rye at 1:35 AM and brought it to the backroom, but claims Vincent was alive when he set it down.',
       secrets: "Admitted he poured Vincent's private rye at 1:30 AM\nConfessed Vincent threatened to have his hands broken over the gambling debt\nRevealed Salvatore handed him an unlabelled amber vial earlier that evening",
-      breakdownThreshold: 70,
+      breakdownThreshold: 90,
       dynamicUnlocks: [
         {
           type: 'character',
@@ -336,12 +336,12 @@ const EXAMPLE_TEMPLATE: CaseFormData = {
       isPrimeSuspect: false,
       isInitiallyUnlocked: false,
       initialTrust: 55,
-      initialStress: 20,
+      initialStress: 4,
       alibi: 'Claims he was seated in the front row booth flanked by three bodyguards all evening.',
       motive: 'Wanted to absorb the Midnight Lounge into his gambling and liquor empire.',
       privateKnowledge: 'He offered Delilah the cyanide powder days ago, knowing her desperation to get rid of Vincent.',
       secrets: "Admitted offering Vincent $50,000 to purchase the Midnight Lounge deed\nConfessed meeting Delilah in secret behind the theater two nights ago\nRevealed he stores industrial chemicals at Pier 19",
-      breakdownThreshold: 80,
+      breakdownThreshold: 90,
       dynamicUnlocks: [
         {
           type: 'location',
@@ -416,12 +416,12 @@ const BLANK_TEMPLATE: CaseFormData = {
       isPrimeSuspect: true,
       isInitiallyUnlocked: true,
       initialTrust: 50,
-      initialStress: 25,
+      initialStress: 5,
       alibi: '',
       motive: '',
       privateKnowledge: '',
       secrets: '',
-      breakdownThreshold: 75,
+      breakdownThreshold: 90,
       dynamicUnlocks: []
     }
   ],
@@ -613,12 +613,12 @@ export default function StoryCreator() {
           isPrimeSuspect: false,
           isInitiallyUnlocked: false,
           initialTrust: 50,
-          initialStress: 20,
+          initialStress: 5,
           alibi: 'Stated whereabouts during the time of death.',
           motive: 'Possible motive or zero motive.',
           privateKnowledge: 'Secret truth known only to this character.',
           secrets: '',
-          breakdownThreshold: 75,
+          breakdownThreshold: 90,
           dynamicUnlocks: []
         }
       ]

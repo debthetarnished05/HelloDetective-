@@ -78,11 +78,13 @@ export class LLMService {
       slipOfTongueDetail?: string | null;
       otherSuspects?: { id: string; name: string; role: string }[];
       presentedEvidenceTitles?: string[];
+      murderWeaponTitle?: string;
     }
   ) {
     const groq = getGroqClient();
 
     const personality = suspectProfile.personality || 'defensive';
+    const breakdownThreshold = suspectProfile.breakdownThreshold || 90;
     const personalityGuides: Record<string, string> = {
       confident: 'PERSONALITY ARCHETYPE: CONFIDENT. You are smug, polished, condescending, and dismissive of accusations. You only sweat if trapped in a hard mathematical or physical impossibility. Keep your composure and smirk at weak questions.',
       nervous: 'PERSONALITY ARCHETYPE: NERVOUS. You are twitchy, easily rattled, defensive, and stutter when pressed. High stress makes you stammer and fidget frantically. But you open up if the detective shows genuine kindness or protection (Good Cop).',
@@ -103,6 +105,12 @@ export class LLMService {
       ? extraOptions.presentedEvidenceTitles.join(', ')
       : 'None';
 
+    const weaponName = extraOptions?.murderWeaponTitle || 'murder weapon';
+
+    // Hybrid & Randomized Blame-Shifting vs Emotional Breakdown (~45% blame shift, ~55% breakdown)
+    const randomRoll = Math.random();
+    const shouldAttemptBlameShift = randomRoll < 0.45 && Boolean(otherSuspectsList);
+
     const systemPrompt = `You are roleplaying as ${suspectProfile.name} in a murder mystery investigation.
 ROLE: ${suspectProfile.role}
 PERSONALITY & TRAITS: ${suspectProfile.trait}
@@ -114,7 +122,7 @@ SUSPECTED MOTIVE: "${suspectProfile.motive}"
 TRUST SCORE: ${suspectState.trustScore}/100
 STRESS / PRESSURE LEVEL: ${suspectState.stressLevel}/100
 CURRENT MOOD: ${suspectState.mood}
-BREAKDOWN THRESHOLD: ${suspectProfile.breakdownThreshold}/100
+BREAKDOWN THRESHOLD: ${breakdownThreshold}/100
 
 === THEORY OF MIND: WHAT YOU KNOW vs. WHAT THE POLICE KNOW ===
 1. YOUR INTERNAL KNOWLEDGE (What YOU know happened):
@@ -129,12 +137,12 @@ BREAKDOWN THRESHOLD: ${suspectProfile.breakdownThreshold}/100
 3. THE GOLDEN RULE OF SECRECY (DO NOT PREMATURELY LEAK):
    - You must actively track what the detective DOES NOT know.
    - If the detective has NOT specifically brought up or presented the murder weapon:
-     YOU MUST NOT NAME IT, MENTION IT, OR USE IT IN METAPHORS, ANALOGIES, OR IDIOMS (e.g. NEVER say "as obvious as the blood on that letter opener").
+     YOU MUST NOT NAME IT, MENTION IT, OR USE IT IN METAPHORS, ANALOGIES, OR IDIOMS (e.g. NEVER say "as obvious as the blood on that ${weaponName}").
    - If the detective has NOT mentioned a hidden location, alibi vehicle, or private file:
      YOU MUST NOT VOLUNTEER IT.
    - You only discuss, defend against, or react to an unrevealed fact IF:
      a) The detective explicitly brings it up first (e.g. Detective says "We found the murder weapon" or shows the item), OR
-     b) Your STRESS LEVEL breaks past your breakdown threshold (${suspectProfile.breakdownThreshold || 80}/100), causing your defenses to fracture, OR
+     b) Your STRESS LEVEL breaks past your breakdown threshold (${breakdownThreshold}/100), OR
      c) A slip of the tongue (Freudian blunder) momentarily forces you to blurt out a specific detail (which you immediately attempt to backtrack/deny).
 
 === VERIFIED CANON KNOWLEDGE (STRICT RULE: NEVER FABRICATE FICTIONAL FACTS) ===
@@ -151,10 +159,15 @@ CRITICAL RULE: You have ALREADY admitted these facts. You CANNOT deny them or co
 4. OTHER SUSPECTS IN THIS CASE (You can shift suspicion onto one of them if cornered):
 [${otherSuspectsList || 'None'}]
 
-=== ADVANCED PSYCHOLOGICAL COPING RULES ===
-1. CONTRADICTION LOCK: You will NEVER confess to murder or your core secret purely because stress is high! Without direct contradictory evidence or proof, you deny, stonewall, lawyer up, or deflect.
+=== ADVANCED PSYCHOLOGICAL COPING & BREAKDOWN (HYBRID RULES) ===
+1. CHARACTER RESILIENCE & BREAKDOWN DYNAMICS:
+   - FOR NERVOUS / DEFENSIVE CHARACTERS:
+     When your STRESS LEVEL reaches or exceeds the breakdown threshold (${breakdownThreshold}/100), high psychological stress ALONE is enough to shatter your composure! You stammer, burst into tears, drop your stonewall, and blurt out critical admissions or secrets even without physical evidence.
+   - FOR CONFIDENT / CUNNING / AGGRESSIVE CHARACTERS:
+     STRICT CONTRADICTION LOCK! Even when your STRESS LEVEL reaches ${breakdownThreshold}/100, high stress alone is NOT enough to force a murder confession! You remain defiant, sneer, demand your lawyer, quote legal rights, or mock baseless claims. You ONLY confess to the crime if confronted with direct, inescapable contradictory physical evidence or trapped in mathematical/physical impossibility.
+
 2. PERSONALITY COPING UNDER PRESSURE:
-   - CUNNING: You do NOT cry or panic. Under high stress, you become colder, quote legal rights, sneer, or offer clever diversionary theories.
+   - CUNNING: You do NOT cry or panic easily. Under high stress, you become colder, quote legal rights, sneer, or offer clever diversionary theories.
    - AGGRESSIVE: Under high stress, you lose your temper, slam the desk, shout at the detective, and threaten their badge.
    - NERVOUS: High stress makes you stammer and fidget frantically. But you only open up if the detective shows KINDNESS / TRUST (Good Cop).
    - CONFIDENT: You maintain a suave, patronizing smile. You only sweat if trapped in a hard mathematical/physical impossibility.
@@ -184,8 +197,7 @@ Details: "${presentedEvidence.details}".
 ${evidenceReactionHint}
 If this evidence catches you in a lie:
 - STRESS DELTA: +15 to +25 | TRUST DELTA: -15 to -20.
-- BLAME SHIFTING (THROW UNDER THE BUS): If you were at the scene for a secondary reason (theft, meeting, errand), admit ONLY that secondary reason, and fiercely accuse another suspect of the murder to save yourself!
-Valid other suspects to accuse: ${otherSuspectsList || 'someone else'}.` : ''}
+${shouldAttemptBlameShift ? `- DYNAMIC REACTION (DESPERATE BLAME SHIFT): In a panic, fiercely attempt to shift the blame or point fingers at another suspect (${otherSuspectsList || 'someone else'})! Claim they framed you, forced you, or were the real mastermind!` : `- DYNAMIC REACTION (EMOTIONAL BREAKDOWN): Your alibi is shattered. Suffer an emotional breakdown, stammer in defeat, or confess what really happened!`}` : ''}
 
 ${!presentedEvidence && !extraOptions?.isSpamOrGibberish && !extraOptions?.slipOfTongueDetail ? `=== VERBAL INTERROGATION DYNAMICS ===
 - ROUTINE / STANDARD QUESTIONS: Basic questions like "What were you doing during the murder?", "Where were you?", "What did you think of the victim?":
@@ -213,8 +225,13 @@ You MUST reply with ONLY valid JSON with exactly these keys:
   "mood": "composed" | "defensive" | "nervous" | "broken_down"
 }`;
 
-    // Include recent chat history
-    const historyMessages = (suspectState.chatHistory || []).slice(-6).map(msg => ({
+    // Include recent chat history excluding the current user message if it was already pushed to chatHistory
+    const rawHistory = suspectState.chatHistory || [];
+    const prevHistory = (rawHistory.length > 0 && rawHistory[rawHistory.length - 1].role === 'user')
+      ? rawHistory.slice(0, -1)
+      : rawHistory;
+
+    const historyMessages = prevHistory.slice(-6).map(msg => ({
       role: msg.role as 'user' | 'assistant',
       content: msg.content
     }));
@@ -235,24 +252,30 @@ You MUST reply with ONLY valid JSON with exactly these keys:
       });
 
       const parsed = JSON.parse(cleanJsonString(completion.choices[0]?.message?.content || '{}'));
+      const rawBlame = typeof parsed.threw_under_the_bus === 'string' ? parsed.threw_under_the_bus.trim() : null;
+      const isInvalidBlame = !rawBlame || /^(none|null|n\/a|nobody|false)$/i.test(rawBlame);
+
       return {
         dialogue: parsed.dialogue || "I have nothing further to say to you without my lawyer.",
-        trust_delta: typeof parsed.trust_delta === 'number' ? parsed.trust_delta : 0,
-        stress_delta: typeof parsed.stress_delta === 'number' ? parsed.stress_delta : 0,
+        trust_delta: Math.max(-20, Math.min(20, typeof parsed.trust_delta === 'number' ? parsed.trust_delta : 0)),
+        stress_delta: Math.max(-15, Math.min(35, typeof parsed.stress_delta === 'number' ? parsed.stress_delta : 0)),
         new_revealed_fact: parsed.new_revealed_fact || null,
-        threw_under_the_bus: typeof parsed.threw_under_the_bus === 'string' ? parsed.threw_under_the_bus : null,
+        threw_under_the_bus: isInvalidBlame ? null : rawBlame,
         mood: (['composed', 'defensive', 'nervous', 'broken_down'].includes(parsed.mood) ? parsed.mood : 'composed') as any,
-        broke_down: suspectState.stressLevel >= (suspectProfile.breakdownThreshold || 80)
+        broke_down: suspectState.stressLevel >= breakdownThreshold
       };
     } catch (e: any) {
       console.warn('Groq suspect interrogation error or json failure, retrying plain text fallback:', e?.message);
       try {
+        const fallbackEvidenceContext = presentedEvidence
+          ? ` The detective is confronting you with "${presentedEvidence.title}": ${presentedEvidence.details}.${evidenceReactionHint ? ' Secret reaction: ' + evidenceReactionHint : ''}`
+          : '';
         const fallback = await groq.chat.completions.create({
           model: MODEL_NAME,
           messages: [
-            { role: 'system', content: `You are roleplaying as ${suspectProfile.name} (${suspectProfile.role}) in an interrogation. Answer in character in 1-2 sentences. Do not confess to murder unless proven. Output plain dialogue only.` },
+            { role: 'system', content: `You are roleplaying as ${suspectProfile.name} (${suspectProfile.role}, personality: ${personality}) in an interrogation. Alibi: "${suspectProfile.alibi}". Stress: ${suspectState.stressLevel}/100.${fallbackEvidenceContext} Answer in character in 1-2 sentences. Do not confess to murder unless proven. Output plain dialogue only.` },
             ...historyMessages,
-            { role: 'user', content: safeUserText }
+            { role: 'user', content: presentedEvidence ? `[Shows Evidence: ${presentedEvidence.title}] ${safeUserText}` : safeUserText }
           ],
           temperature: 0.6,
           max_tokens: 250
@@ -269,7 +292,7 @@ You MUST reply with ONLY valid JSON with exactly these keys:
         };
       } catch (fallbackErr) {
         return {
-          dialogue: "You're trying to twist my words, Detective. I was nowhere near that office.",
+          dialogue: "You're trying to twist my words, Detective. I was nowhere near the scene of the crime.",
           trust_delta: -5,
           stress_delta: 5,
           new_revealed_fact: null,
@@ -782,12 +805,12 @@ REQUIRED JSON STRUCTURE (Must match exactly):
       "personality": "confident" | "nervous" | "cunning" | "aggressive" | "defensive",
       "isInitiallyUnlocked": true, // 2-3 are true; others unlocked when named
       "initialTrust": 50,
-      "initialStress": 25,
+      "initialStress": 5, // Integer between 0 and 10
       "alibi": "Their public story of where they were",
       "motive": "Why they could have wanted the victim dead",
       "privateKnowledge": "What they privately know, what they hide, and their actual actions",
       "secrets": ["Secret 1", "Secret 2"],
-      "breakdownThreshold": 80,
+      "breakdownThreshold": 90,
       "evidenceReactions": {
         "evidence_slug": "How they react when shown this specific evidence"
       },
@@ -938,8 +961,8 @@ Return ONLY valid JSON.`;
           category: cat,
           isPrimeSuspect: Boolean(s.isPrimeSuspect || cat === 'prime_suspect'),
           initialTrust: typeof s.initialTrust === 'number' ? s.initialTrust : 50,
-          initialStress: typeof s.initialStress === 'number' ? s.initialStress : 20,
-          breakdownThreshold: typeof s.breakdownThreshold === 'number' ? s.breakdownThreshold : 75
+          initialStress: typeof s.initialStress === 'number' ? Math.max(0, Math.min(10, s.initialStress)) : 5,
+          breakdownThreshold: typeof s.breakdownThreshold === 'number' ? s.breakdownThreshold : 90
         };
       });
       // Ensure at least 1 suspect is unlocked

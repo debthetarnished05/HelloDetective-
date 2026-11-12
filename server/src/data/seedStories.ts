@@ -165,7 +165,7 @@ export const OPERA_STORY: IStory = {
       category: 'prime_suspect',
       isPrimeSuspect: true,
       initialTrust: 40,
-      initialStress: 25,
+      initialStress: 3,
       alibi: 'Claims he was entertaining civic patrons in Royal Box A throughout the entire second act and never stepped foot backstage.',
       motive: 'Vivienne discovered he embezzled £15,000 from the company fund and had drafted a complaint for Scotland Yard.',
       privateKnowledge: 'Knows he planted Camille\'s handkerchief and forged her name on the pharmacy slip to frame her.',
@@ -174,7 +174,7 @@ export const OPERA_STORY: IStory = {
         'He obtained the belladonna by blackmailing Dr. Pendelton over his revoked medical license.',
         'He used the service dumbwaiter from the mezzanine to bypass stage door guards.'
       ],
-      breakdownThreshold: 80,
+      breakdownThreshold: 90,
       dynamicUnlocks: []
     },
     {
@@ -187,7 +187,7 @@ export const OPERA_STORY: IStory = {
       category: 'prime_suspect',
       isPrimeSuspect: true,
       initialTrust: 65,
-      initialStress: 60,
+      initialStress: 7,
       alibi: 'Was in the Green Room and chorus rehearsal hall warming up her scales with Maestro Bellini.',
       motive: 'Stood to inherit the lead role of Tosca upon Vivienne\'s sudden demise.',
       privateKnowledge: 'Lost her monogrammed handkerchief two days ago after leaving it in Blackwood\'s office.',
@@ -196,7 +196,7 @@ export const OPERA_STORY: IStory = {
         'Her monogrammed handkerchief was stolen from her dressing basket Tuesday evening.',
         'She has never purchased belladonna and was on stage during the alleged purchase.'
       ],
-      breakdownThreshold: 85,
+      breakdownThreshold: 90,
       dynamicUnlocks: []
     },
     {
@@ -209,7 +209,7 @@ export const OPERA_STORY: IStory = {
       category: 'person_of_interest',
       isPrimeSuspect: false,
       initialTrust: 45,
-      initialStress: 50,
+      initialStress: 6,
       alibi: 'Was tending to a stagehand who sprained an ankle in the prop workshop.',
       motive: 'Was being blackmailed by Vivienne over prescribing illegal morphine to society patrons.',
       privateKnowledge: 'Admits Julian Blackwood coerced him into surrendering concentrated belladonna extract.',
@@ -218,7 +218,7 @@ export const OPERA_STORY: IStory = {
         'Julian Blackwood threatened to report his drug prescriptions unless he provided the belladonna.',
         'Saw Blackwood carry an amber glass vial toward the dumbwaiter shaft.'
       ],
-      breakdownThreshold: 75,
+      breakdownThreshold: 90,
       dynamicUnlocks: []
     },
     {
@@ -231,7 +231,7 @@ export const OPERA_STORY: IStory = {
       category: 'witness',
       isPrimeSuspect: false,
       initialTrust: 70,
-      initialStress: 20,
+      initialStress: 2,
       alibi: 'Conducting orchestra rehearsals and checking score manuscripts in the pit.',
       motive: 'None. Adored Vivienne\'s voice as a masterpiece of European opera.',
       privateKnowledge: 'Can vouch with absolute musical certainty for Camille Dupré\'s exact whereabouts.',
@@ -239,7 +239,7 @@ export const OPERA_STORY: IStory = {
         'Heard loud shouting between Vivienne and Blackwood regarding "the police and stolen funds" two nights ago.',
         'Saw Julian Blackwood leave Royal Box A at 9:35 PM during the second act.'
       ],
-      breakdownThreshold: 80,
+      breakdownThreshold: 90,
       dynamicUnlocks: []
     }
   ],
@@ -386,7 +386,7 @@ export const ARCTIC_STORY: IStory = {
       category: 'prime_suspect',
       isPrimeSuspect: true,
       initialTrust: 40,
-      initialStress: 85,
+      initialStress: 9,
       alibi: 'Admits to striking Lindqvist with a wrench during a dispute over drill data, then fleeing in sheer terror.',
       motive: 'Lindqvist threatened to revoke his academic tenure and remove him from the station.',
       privateKnowledge: 'Believes in his heart that his strike killed Lindqvist, not knowing Lindqvist was still breathing.',
@@ -395,7 +395,7 @@ export const ARCTIC_STORY: IStory = {
         'He dropped the wrench and ran at exactly 03:02 UTC—twenty minutes before the nitrogen purge.',
         'Saw Dr. Ingrid Meyer walking toward the B4 vault elevator as he was running away.'
       ],
-      breakdownThreshold: 60,
+      breakdownThreshold: 90,
       dynamicUnlocks: []
     },
     {
@@ -408,7 +408,7 @@ export const ARCTIC_STORY: IStory = {
       category: 'prime_suspect',
       isPrimeSuspect: true,
       initialTrust: 60,
-      initialStress: 15,
+      initialStress: 2,
       alibi: 'Claims she was asleep in Bunk Pod #2 throughout the night storm, supported by her biometric sleep band.',
       motive: 'Lindqvist caught her selling $40 billion in subglacial mining concessions to Nordic Mining Holdings.',
       privateKnowledge: 'Found Lindqvist unconscious on the deck after Nikolai\'s assault, seized the opportunity, and vented liquid nitrogen into the room to permanently silence him.',
@@ -417,7 +417,7 @@ export const ARCTIC_STORY: IStory = {
         'Used her administrative override code to trigger the nitrogen flood.',
         'Knew Nikolai\'s fight with the victim would provide the perfect cover story.'
       ],
-      breakdownThreshold: 80,
+      breakdownThreshold: 90,
       dynamicUnlocks: []
     },
     {
@@ -430,7 +430,7 @@ export const ARCTIC_STORY: IStory = {
       category: 'witness',
       isPrimeSuspect: false,
       initialTrust: 70,
-      initialStress: 30,
+      initialStress: 3,
       alibi: 'Was in the generator room balancing the turbine load during the blizzard.',
       motive: 'None. Respected Lindqvist\'s safety protocols.',
       privateKnowledge: 'Confirmed the nitrogen purge cannot trigger by accident—it requires an executive override keycard.',
@@ -438,7 +438,7 @@ export const ARCTIC_STORY: IStory = {
         'Noticed Ingrid Meyer asking strange questions about the vault\'s automated purging system last week.',
         'Examined the SCADA server and discovered the admin login originated from Meyer\'s credentials.'
       ],
-      breakdownThreshold: 75,
+      breakdownThreshold: 90,
       dynamicUnlocks: []
     }
   ],
@@ -597,7 +597,7 @@ export const JAZZ_STORY: IStory = {
       category: 'prime_suspect',
       isPrimeSuspect: true,
       initialTrust: 45,
-      initialStress: 35,
+      initialStress: 4,
       alibi: 'Swears on his mother\'s grave he was glued to the piano bench playing non-stop from 11:15 PM until the police arrived at midnight.',
       motive: 'Moretti owned his music rights and was extorting his life savings under threat of violence.',
       privateKnowledge: 'Knows he slipped into the backroom during the 8-minute drum solo, shot Moretti point-blank, and stuffed the gun into the piano.',
@@ -606,7 +606,7 @@ export const JAZZ_STORY: IStory = {
         'He arranged the extended 8-minute drum solo specifically to create a window to kill Moretti.',
         'His right French cuff has microscopic gunpowder burn residue.'
       ],
-      breakdownThreshold: 80,
+      breakdownThreshold: 90,
       dynamicUnlocks: []
     },
     {
@@ -619,7 +619,7 @@ export const JAZZ_STORY: IStory = {
       category: 'prime_suspect',
       isPrimeSuspect: true,
       initialTrust: 55,
-      initialStress: 40,
+      initialStress: 4,
       alibi: 'Was on stage singing vocal choruses, and taking a powder in the dressing room between songs.',
       motive: 'Was Moretti\'s secret lover, but discovered he was two-timing her with a chorus dancer.',
       privateKnowledge: 'Noticed Frankie slipped away from the piano during the drum solo and returned looking pale as a ghost.',
@@ -628,7 +628,7 @@ export const JAZZ_STORY: IStory = {
         'Lent Frankie a cigarette backstage right before the midnight set.',
         'Saw Frankie stash something heavy into the piano casing after the applause died down.'
       ],
-      breakdownThreshold: 75,
+      breakdownThreshold: 90,
       dynamicUnlocks: []
     },
     {
@@ -641,7 +641,7 @@ export const JAZZ_STORY: IStory = {
       category: 'person_of_interest',
       isPrimeSuspect: false,
       initialTrust: 30,
-      initialStress: 25,
+      initialStress: 3,
       alibi: 'Was out front by the velvet rope turning away drunken patrons.',
       motive: 'Had a dispute over his cut of the casino loan collection.',
       privateKnowledge: 'Moretti told him earlier that evening he was going to squeeze Frankie Valenti until he bled dry.',
@@ -649,7 +649,7 @@ export const JAZZ_STORY: IStory = {
         'He carries a .45 automatic, not a .38 caliber revolver.',
         'Heard the muffled gunshot but thought it was the drummer hitting the rimshot.'
       ],
-      breakdownThreshold: 85,
+      breakdownThreshold: 90,
       dynamicUnlocks: []
     }
   ],
@@ -795,7 +795,7 @@ export const HARBOR_STORY: IStory = {
       category: 'prime_suspect',
       isPrimeSuspect: true,
       initialTrust: 45,
-      initialStress: 75,
+      initialStress: 8,
       alibi: 'Gives a frantic, coerced confession claiming he pushed Higgins off the crane gantry after an argument.',
       motive: 'Higgins fired his father from the union last month for alcohol abuse.',
       privateKnowledge: 'Falsely confessed because detective interrogators threatened to charge his mother with harboring stolen tools.',
@@ -804,7 +804,7 @@ export const HARBOR_STORY: IStory = {
         'He has no idea what weapon was used and guessed "pushing him off the crane" because that\'s where the body was found.',
         'Saw Sean Callahan dragging a heavy tarp toward the pier edge at midnight.'
       ],
-      breakdownThreshold: 85,
+      breakdownThreshold: 90,
       dynamicUnlocks: []
     },
     {
@@ -817,7 +817,7 @@ export const HARBOR_STORY: IStory = {
       category: 'prime_suspect',
       isPrimeSuspect: true,
       initialTrust: 30,
-      initialStress: 20,
+      initialStress: 2,
       alibi: 'Claims he was doing paperwork in his office and having dinner at the diner across the street.',
       motive: 'Higgins discovered his contraband smuggling operation and was reporting him to federal marshals.',
       privateKnowledge: 'Ambushed Higgins in Warehouse 9, strangled him with mooring wire, and dumped his corpse in the water using the crane hoist.',
@@ -826,7 +826,7 @@ export const HARBOR_STORY: IStory = {
         'He coerced the night watchman to alter the pier gate logs.',
         'Booked a one-way flight to Rio under an alias for tomorrow morning.'
       ],
-      breakdownThreshold: 80,
+      breakdownThreshold: 90,
       dynamicUnlocks: []
     },
     {
@@ -839,7 +839,7 @@ export const HARBOR_STORY: IStory = {
       category: 'witness',
       isPrimeSuspect: false,
       initialTrust: 65,
-      initialStress: 40,
+      initialStress: 4,
       alibi: 'At home waiting for Don to return for late supper.',
       motive: 'None. Loved her husband of 30 years.',
       privateKnowledge: 'Don told her that Callahan was threatening his life over a federal smuggling investigation.',
@@ -847,7 +847,7 @@ export const HARBOR_STORY: IStory = {
         'Don kept an emergency safety copy of his audit notes in his home lockbox.',
         'Said: "If anything happens to me, tell the police to look at Callahan\'s offshore bank accounts."'
       ],
-      breakdownThreshold: 75,
+      breakdownThreshold: 90,
       dynamicUnlocks: []
     }
   ],
@@ -1017,7 +1017,7 @@ export const MANOR_STORY: IStory = {
       category: 'prime_suspect',
       isPrimeSuspect: true,
       initialTrust: 50,
-      initialStress: 20,
+      initialStress: 2,
       alibi: 'Claims she was reading novels in her second-floor boudoir from 10:00 PM until the maid discovered the body at midnight.',
       motive: 'Inherited the entire £2,000,000 railway fortune; Alistair was threatening to divorce her tomorrow morning.',
       privateKnowledge: 'Knew Jenkins was drugging Alistair\'s port. Slipped into the library at 11:35 PM while Alistair was paralyzed, held the pillow over his face until he stopped moving, and slipped back up the service stair.',
@@ -1026,7 +1026,7 @@ export const MANOR_STORY: IStory = {
         'Her dressing gown cuff has two down feathers from the murder pillow.',
         'Maid Clara saw her shadow slip out of the library passage at the 11:30 half-hour chime.'
       ],
-      breakdownThreshold: 80,
+      breakdownThreshold: 90,
       dynamicUnlocks: []
     },
     {
@@ -1039,7 +1039,7 @@ export const MANOR_STORY: IStory = {
       category: 'prime_suspect',
       isPrimeSuspect: true,
       initialTrust: 45,
-      initialStress: 45,
+      initialStress: 5,
       alibi: 'Served Lord Alistair his evening port at 10:30 PM, then retired to polish silver in the pantry.',
       motive: 'Lord Alistair discovered he was stealing rare first-edition folios from the library and selling them to London dealers.',
       privateKnowledge: 'Admitted slipping arsenic into the port to cause an incapacitating illness so he could flee with the stolen books.',
@@ -1048,7 +1048,7 @@ export const MANOR_STORY: IStory = {
         'Kept three stolen Shakespeare folios hidden in his pantry silver vault.',
         'Saw Lady Eleanor sneaking down the west service stairs in her silk robe at 11:32 PM.'
       ],
-      breakdownThreshold: 75,
+      breakdownThreshold: 90,
       dynamicUnlocks: []
     },
     {
@@ -1061,7 +1061,7 @@ export const MANOR_STORY: IStory = {
       category: 'prime_suspect',
       isPrimeSuspect: true,
       initialTrust: 30,
-      initialStress: 65,
+      initialStress: 7,
       alibi: 'Claims he was in London playing cards at the Mayfair Club all evening.',
       motive: 'Was completely cut out of his father\'s will and owed £30,000 to ruthless loan sharks.',
       privateKnowledge: 'Climbed the terrace trellis at 11:45 PM with a brass poker, smashed the window, but found his father already dead and cold in the armchair!',
@@ -1070,7 +1070,7 @@ export const MANOR_STORY: IStory = {
         'He arrived at 11:45 PM—after the murder had already occurred.',
         'Panicked when he touched his father\'s face and felt no pulse, dropping the poker and fleeing into the storm.'
       ],
-      breakdownThreshold: 75,
+      breakdownThreshold: 90,
       dynamicUnlocks: []
     },
     {
@@ -1083,7 +1083,7 @@ export const MANOR_STORY: IStory = {
       category: 'witness',
       isPrimeSuspect: false,
       initialTrust: 75,
-      initialStress: 35,
+      initialStress: 4,
       alibi: 'Extinguishing hallway gaslamps and checking bedroom hearths.',
       motive: 'None. Devoted servant.',
       privateKnowledge: 'Heard the grandfather clock chime 11:30 PM just as Lady Eleanor passed her in the corridor toward the library.',
@@ -1091,7 +1091,7 @@ export const MANOR_STORY: IStory = {
         'Saw Lady Eleanor wearing her green silk robe heading toward the library passage.',
         'Noticed Lady Eleanor was breathing heavily and hiding something in her pocket when she returned upstairs at 11:42 PM.'
       ],
-      breakdownThreshold: 70,
+      breakdownThreshold: 90,
       dynamicUnlocks: []
     }
   ],
@@ -1171,14 +1171,14 @@ export const MIDNIGHT_LOUNGE_STORY: IStory = {
       "role": "Lead Torch Singer & Victim's Wife",
       "trait": "Glamorous, composed",
       "initialTrust": 45,
-      "initialStress": 30,
+      "initialStress": 3,
       "alibi": "Performing on stage.",
       "motive": "Vincent planned to divorce her.",
       "privateKnowledge": "She stepped into the VIP backroom during the solo.",
       "secrets": [
         "Admitted arguing violently with Vincent"
       ],
-      "breakdownThreshold": 75,
+      "breakdownThreshold": 90,
       "isInitiallyUnlocked": true,
       "evidenceReactions": {},
       "isPrimeSuspect": true,
@@ -1350,7 +1350,7 @@ export const NEON_STORY: IStory = {
       "role": "Rival Data Broker / Ex-Partner",
       "trait": "Aggressive, defensive, physically imposing. Uses intimidation to deflect questions.",
       "initialTrust": 30,
-      "initialStress": 60,
+      "initialStress": 7,
       "alibi": "I was at the 'Neon Pulse' club until 01:00 AM. I didn't even know Jin was coming to the alley until I saw the body and the arm nearby. I tried to help him, but he was already gone. I hit him once when he lunged at me; I thought I killed him, but I was just scared.",
       "motive": "Jin was stealing his client base. Kael views Jin as a threat to his livelihood and had a history of violent altercations.",
       "privateKnowledge": "Kael was actually in the alley at 00:45 AM to confront Jin about a missed payment. He got into a fight, hit Jin with the bronze arm, and fled in panic when Jin collapsed. He genuinely believes he committed murder, which is why he is so stressed and defensive. He did not poison Jin.",
@@ -1359,7 +1359,7 @@ export const NEON_STORY: IStory = {
         "He struck the victim with the bronze arm, causing non-fatal trauma.",
         "He fled the scene in terror, believing he had killed Jin."
       ],
-      "breakdownThreshold": 85,
+      "breakdownThreshold": 90,
       "evidenceReactions": {
         "bronze_cyber_arm": "Trembles. Admits to hitting Jin with it but swears it wasn't meant to kill, only to stop him. Claims Jin fell on his own afterwards.",
         "alibi_log_discrepancy": "Angered. Admits to being there early to 'settle things' but insists he left before any death occurred. Claims he returned later to check and found him dead.",
@@ -1375,7 +1375,7 @@ export const NEON_STORY: IStory = {
       "role": "Jin's Secretary / Scapegoat",
       "trait": "Nervous, meticulous, overly compliant. Hides her own agency.",
       "initialTrust": 50,
-      "initialStress": 40,
+      "initialStress": 4,
       "alibi": "I was in my office on the 4th floor. I heard a crash around 02:00 AM but thought it was construction. I didn't go down to the alley because I was locked in on a report.",
       "motive": "Jin was planning to fire her for embezzling small sums. She feared exposure.",
       "privateKnowledge": "Mira was not involved in the murder. She was in the office, but she ignored the distress signals from Jin's comm link because she was afraid of being implicated in his illegal activities. She is a witness, not a participant.",
@@ -1384,7 +1384,7 @@ export const NEON_STORY: IStory = {
         "She ignored Jin's final distress call.",
         "She is afraid of Kael Vance's reputation."
       ],
-      "breakdownThreshold": 70,
+      "breakdownThreshold": 90,
       "evidenceReactions": {
         "financial_ledger_leak": "Cries. Admits to the small embezzlement but denies knowing about the $50M debt or the poisoning.",
         "toxicology_report": "Confused. States she didn't see anything strange. Suggests checking the black market clinics."
@@ -1399,7 +1399,7 @@ export const NEON_STORY: IStory = {
       "role": "Silent Partner / Credit Shark",
       "trait": "Cold, calculated, calm under pressure. Speaks in short, precise sentences.",
       "initialTrust": 60,
-      "initialStress": 10,
+      "initialStress": 2,
       "alibi": "I was in my private suite in the Spire. I was reviewing market data. I had no reason to be in Sector 7. Jin and I were discussing a merger, not a murder.",
       "motive": "Jin was going to default on a $50M debt. Vex's entire criminal empire would collapse if Jin disappeared without paying. Vex needed to ensure the money was transferred and then silence Jin to prevent exposure of the debt structure.",
       "privateKnowledge": "Vex infiltrated the Kurogane building using a backdoor access code. He installed the micro-capsule trigger in Jin's neck port during a scheduled maintenance session (which Jin trusted him to perform). He triggered the capsule at 01:45 AM. When he returned at 02:15 AM to collect the drive, he found Jin unconscious (from Kael's earlier blow) and the scene disturbed. He knew Kael had been there, so he staged the scene to look like Kael's violent attack was the cause, ensuring Kael would be blamed for the murder.",
@@ -1760,8 +1760,8 @@ export const OBSIDIAN_CONSPIRACY_STORY: IStory = {
       personality: 'cunning',
       isInitiallyUnlocked: true,
       initialTrust: 45,
-      initialStress: 35,
-      breakdownThreshold: 80,
+      initialStress: 4,
+      breakdownThreshold: 90,
       alibi: 'Claims he was in the VIP lounge mingling with city council members and attending to guests with mild headaches.',
       motive: 'Sterling caught him embezzling foundation grants and forging provenance papers; faced total medical license revocation and ruin.',
       privateKnowledge: 'He conspired with Evelyn Cross. He injected conotoxin into Sterling\'s private champagne flute at 10:15 PM so Evelyn could enter the study, stab him with the obsidian dagger, and take the ledger.',
@@ -1786,8 +1786,8 @@ export const OBSIDIAN_CONSPIRACY_STORY: IStory = {
       personality: 'cunning',
       isInitiallyUnlocked: true,
       initialTrust: 40,
-      initialStress: 30,
-      breakdownThreshold: 80,
+      initialStress: 3,
+      breakdownThreshold: 90,
       alibi: 'Claims she was in the restoration annex cataloging the Renaissance gallery items from 10:00 PM until the alarm sounded.',
       motive: 'Sold $12M in replica antiquities to offshore cartels; Vance discovered the fraud and ordered an audit that evening.',
       privateKnowledge: 'She colluded with Dr. Cole. After Cole paralyzed Vance, she swiped her keycard at 10:28 PM, stabbed Vance with the obsidian dagger, seized the provenance ledger, and hid the flight tickets.',
@@ -1812,8 +1812,8 @@ export const OBSIDIAN_CONSPIRACY_STORY: IStory = {
       personality: 'aggressive',
       isInitiallyUnlocked: true,
       initialTrust: 25,
-      initialStress: 65,
-      breakdownThreshold: 75,
+      initialStress: 7,
+      breakdownThreshold: 90,
       alibi: 'Claims he stormed out of the gala at 9:45 PM after his father humiliated him in front of the board.',
       motive: 'Completely cut out of the $200M will; desperate for funds to settle mob gambling debts.',
       privateKnowledge: 'He climbed the terrace trellis at 10:45 PM to confront his father, smashed the glass, cut his hand, but found Sterling already dead and covered in blood. He panicked and fled into the night.',
@@ -1837,8 +1837,8 @@ export const OBSIDIAN_CONSPIRACY_STORY: IStory = {
       personality: 'defensive',
       isInitiallyUnlocked: false,
       initialTrust: 50,
-      initialStress: 25,
-      breakdownThreshold: 70,
+      initialStress: 3,
+      breakdownThreshold: 90,
       alibi: 'In the ballroom conducting auction negotiations with high-net-worth foreign collectors.',
       motive: 'Desperate to acquire Vance\'s Minoan treasures to save her overseas auction house.',
       privateKnowledge: 'She paid Evelyn Cross $4M for illegal antiquities, but had nothing to do with the murder.',
@@ -1866,8 +1866,8 @@ export const OBSIDIAN_CONSPIRACY_STORY: IStory = {
       personality: 'defensive',
       isInitiallyUnlocked: false,
       initialTrust: 55,
-      initialStress: 30,
-      breakdownThreshold: 75,
+      initialStress: 3,
+      breakdownThreshold: 90,
       alibi: 'Monitoring the ballroom entrance and perimeter radio checks.',
       motive: 'None. Worried about negligence lawsuits.',
       privateKnowledge: 'He noticed the 50th-floor camera feed go dead at 10:20 PM and was ordered by Dr. Cole to ignore it as a routine glitch.',
@@ -1895,8 +1895,8 @@ export const OBSIDIAN_CONSPIRACY_STORY: IStory = {
       personality: 'nervous',
       isInitiallyUnlocked: false,
       initialTrust: 70,
-      initialStress: 20,
-      breakdownThreshold: 65,
+      initialStress: 2,
+      breakdownThreshold: 90,
       alibi: 'Supervising the four-course meal service in the catering kitchen.',
       motive: 'None. Deep professional pride.',
       privateKnowledge: 'She saw Dr. Julian Cole take Sterling\'s champagne bottle into the mezzanine alcove before service.',
@@ -2121,8 +2121,8 @@ export const ALCHEMISTS_PACT_STORY: IStory = {
       personality: 'cunning',
       isInitiallyUnlocked: true,
       initialTrust: 40,
-      initialStress: 30,
-      breakdownThreshold: 80,
+      initialStress: 3,
+      breakdownThreshold: 90,
       alibi: 'Claims he was in his industrial workshop all night testing metallurgy welds for a construction contractor.',
       motive: 'Recruited to execute the heist of $45M in bearer bonds to fund an international private laboratory.',
       privateKnowledge: 'He conspired with Valeria Ramos. Valeria disabled the alarms and opened the outer blast door at 01:15 AM. Damian entered, deployed the aerosol gas when Richter refused to step aside, and cut the lockbox with thermite.',
@@ -2146,8 +2146,8 @@ export const ALCHEMISTS_PACT_STORY: IStory = {
       personality: 'cunning',
       isInitiallyUnlocked: true,
       initialTrust: 45,
-      initialStress: 35,
-      breakdownThreshold: 80,
+      initialStress: 4,
+      breakdownThreshold: 90,
       alibi: 'Claims she was monitoring the terminal banks in the security control room and noticed nothing unusual until 02:15 AM.',
       motive: 'Faced with heavy debt and passed over for partnership; sought a 50% split of the $45M bearer bonds.',
       privateKnowledge: 'She colluded with Damian. She installed the bypass transceiver, looped the CCTV, and keyed the electronic blast door open from her console.',
@@ -2171,8 +2171,8 @@ export const ALCHEMISTS_PACT_STORY: IStory = {
       personality: 'nervous',
       isInitiallyUnlocked: true,
       initialTrust: 30,
-      initialStress: 65,
-      breakdownThreshold: 75,
+      initialStress: 7,
+      breakdownThreshold: 90,
       alibi: 'Claims he was working late on quarterly audits in the main banking hall until midnight.',
       motive: 'Embezzled 300,000 francs from client accounts; faced prison if the vault audit occurred the next morning.',
       privateKnowledge: 'He stayed late to alter account balances in the banking hall ledger, but never went down to the subterranean vault.',
@@ -2195,8 +2195,8 @@ export const ALCHEMISTS_PACT_STORY: IStory = {
       personality: 'defensive',
       isInitiallyUnlocked: false,
       initialTrust: 65,
-      initialStress: 25,
-      breakdownThreshold: 70,
+      initialStress: 3,
+      breakdownThreshold: 90,
       alibi: 'Patrolling the exterior perimeter and freight siding between 01:00 AM and 02:00 AM.',
       motive: 'None. Dedicated employee.',
       privateKnowledge: 'He noticed Valeria was unusually tense and insisted he take an early coffee break at 01:00 AM.',

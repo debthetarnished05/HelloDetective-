@@ -154,7 +154,7 @@ export const startNewGame = async (req: AuthRequest, res: Response) => {
       suspectsMap.set(suspect.id, {
         suspectId: suspect.id,
         trustScore: suspect.initialTrust ?? 50,
-        stressLevel: suspect.initialStress ?? 20,
+        stressLevel: suspect.initialStress ?? 5,
         mood: 'composed',
         revealedFacts: [],
         chatHistory: []
@@ -349,21 +349,13 @@ export const chatSuspect = async (req: Request, res: Response) => {
     const suspectProfile = story.suspects.find((s: any) => s.id === suspectId);
     if (!suspectProfile) return res.status(404).json({ error: `Suspect ${suspectId} not found in story` });
 
-    // Decrement countdown if in closing phase
-    if (session.caseClosingTriggered) {
-      session.remainingClosingQuestions = Math.max(0, session.remainingClosingQuestions - 1);
-      if (session.remainingClosingQuestions <= 0) {
-        session.interrogationLocked = true;
-      }
-    }
-
     // Ensure suspect runtime state exists
     let suspectState = session.suspects.get(suspectId);
     if (!suspectState) {
       suspectState = {
         suspectId,
         trustScore: suspectProfile.initialTrust ?? 50,
-        stressLevel: suspectProfile.initialStress ?? 20,
+        stressLevel: suspectProfile.initialStress ?? 5,
         mood: 'composed',
         revealedFacts: [],
         chatHistory: []
@@ -389,17 +381,19 @@ export const chatSuspect = async (req: Request, res: Response) => {
 
     // Detect incoherent spam, gibberish or repeated questioning
     const cleanMsg = (message || '').trim();
-    const isShort = cleanMsg.length < 4 && !presentedEvidenceId;
+    // Exempt legitimate short dialogue words: "no", "yes", "why", "who", "how", "lie"
+    const isShort = cleanMsg.length < 4 && !/^(no|yes|why|who|how|lie)\b/i.test(cleanMsg) && !presentedEvidenceId;
     const isRepeatedChar = /(.)\1{4,}/.test(cleanMsg);
     const isGibberish = isShort || isRepeatedChar || (/^[bcdfghjklmnpqrstvwxyz]{6,}$/i.test(cleanMsg));
 
-    const lastUserMsg = (suspectState.chatHistory || [])
+    const lastUserHistoryItem = (suspectState.chatHistory || [])
       .filter(m => m.role === 'user')
-      .slice(-1)[0]?.content;
+      .slice(-1)[0];
     const isRepeatQuestion = Boolean(
-      lastUserMsg &&
-      lastUserMsg.toLowerCase().replace(/\[presents evidence:.*?\]\s*/i, '').trim() === cleanMsg.toLowerCase() &&
-      !presentedEvidenceId
+      lastUserHistoryItem &&
+      !lastUserHistoryItem.attachedEvidence &&
+      !presentedEvidenceId &&
+      lastUserHistoryItem.content.toLowerCase().trim() === cleanMsg.toLowerCase()
     );
     const isSpamOrGibberish = Boolean(isGibberish || isRepeatQuestion);
 
@@ -421,9 +415,19 @@ export const chatSuspect = async (req: Request, res: Response) => {
       const personality = suspectProfile.personality || 'defensive';
       const slipChance = getSlipProbability(personality, suspectState.stressLevel);
       if (Math.random() < slipChance) {
-        const unrevealedSecrets = (suspectProfile.secrets || []).filter(
-          (s: string) => !suspectState.revealedFacts.includes(s)
-        );
+        // Robust secret filtering: check if exact secret or substantial keyword overlap already revealed
+        const unrevealedSecrets = (suspectProfile.secrets || []).filter((s: string) => {
+          const sNorm = s.toLowerCase().replace(/[^a-z0-9]/g, ' ');
+          const isCovered = (suspectState.revealedFacts || []).some(rf => {
+            if (rf === s) return true;
+            const rfNorm = rf.toLowerCase().replace(/[^a-z0-9]/g, ' ');
+            const keyWords = sNorm.split(/\s+/).filter(w => w.length > 4);
+            const matches = keyWords.filter(w => rfNorm.includes(w));
+            return keyWords.length > 0 && matches.length >= Math.min(2, keyWords.length);
+          });
+          return !isCovered;
+        });
+
         if (unrevealedSecrets.length > 0) {
           slipOfTongueDetail = unrevealedSecrets[0];
         } else if (suspectProfile.privateKnowledge && !suspectState.revealedFacts.includes(suspectProfile.privateKnowledge)) {
@@ -437,10 +441,10 @@ export const chatSuspect = async (req: Request, res: Response) => {
       .filter((s: any) => s.id !== suspectProfile.id)
       .map((s: any) => ({ id: s.id, name: s.name, role: s.role }));
 
-    // Collect revealed facts across ALL suspects for cross-referencing contradictions
+    // Collect revealed facts across OTHER suspects for cross-referencing contradictions (exclude current suspect!)
     const allRevealedFacts: string[] = [];
-    session.suspects.forEach((state) => {
-      if (state.revealedFacts && state.revealedFacts.length > 0) {
+    session.suspects.forEach((state, id) => {
+      if (id !== suspectId && state.revealedFacts && state.revealedFacts.length > 0) {
         allRevealedFacts.push(...state.revealedFacts);
       }
     });
@@ -467,6 +471,9 @@ export const chatSuspect = async (req: Request, res: Response) => {
       .filter((e: any) => presentedEvidenceIds.has(e.id))
       .map((e: any) => e.title);
 
+    const murderWeaponItem = (story.evidence || []).find((e: any) => e.isMurderWeapon);
+    const murderWeaponTitle = murderWeaponItem?.title || undefined;
+
     // Invoke AI Interrogation with personality-driven psychology
     const aiResponse = await LLMService.chatWithSuspect(
       suspectProfile,
@@ -479,17 +486,50 @@ export const chatSuspect = async (req: Request, res: Response) => {
         isSpamOrGibberish,
         slipOfTongueDetail,
         otherSuspects,
-        presentedEvidenceTitles
+        presentedEvidenceTitles,
+        murderWeaponTitle
       }
     );
 
-    // Apply updates
-    suspectState.trustScore = Math.max(0, Math.min(100, suspectState.trustScore + (aiResponse.trust_delta || 0)));
-    suspectState.stressLevel = Math.max(0, Math.min(100, suspectState.stressLevel + (aiResponse.stress_delta || 0)));
-    suspectState.mood = aiResponse.mood || (suspectState.stressLevel >= 80 ? 'broken_down' : suspectState.stressLevel >= 50 ? 'nervous' : suspectState.trustScore < 30 ? 'defensive' : 'composed');
+    // Decrement countdown if in closing phase only on SUCCESSFUL interrogation turn
+    if (session.caseClosingTriggered) {
+      session.remainingClosingQuestions = Math.max(0, (session.remainingClosingQuestions ?? 12) - 1);
+      if (session.remainingClosingQuestions <= 0) {
+        session.interrogationLocked = true;
+      }
+    }
+
+    // Apply clamped updates
+    const clampedTrustDelta = Math.max(-20, Math.min(20, aiResponse.trust_delta || 0));
+    const clampedStressDelta = Math.max(-15, Math.min(35, aiResponse.stress_delta || 0));
+    suspectState.trustScore = Math.max(0, Math.min(100, suspectState.trustScore + clampedTrustDelta));
+    suspectState.stressLevel = Math.max(0, Math.min(100, suspectState.stressLevel + clampedStressDelta));
+
+    // Mood synchronization: breakdown threshold (>= 90) strictly overrides "composed"
+    const breakdownPoint = suspectProfile.breakdownThreshold || 90;
+    suspectState.mood = suspectState.stressLevel >= breakdownPoint
+      ? 'broken_down'
+      : (aiResponse.mood && aiResponse.mood !== 'composed' && suspectState.stressLevel >= 50
+        ? aiResponse.mood
+        : suspectState.stressLevel >= 50
+        ? 'nervous'
+        : suspectState.trustScore < 30
+        ? 'defensive'
+        : 'composed');
 
     if (aiResponse.new_revealed_fact && !suspectState.revealedFacts.includes(aiResponse.new_revealed_fact)) {
       suspectState.revealedFacts.push(aiResponse.new_revealed_fact);
+      // If the dynamic admission matches any canonical secret, also mark canonical secret
+      const normFact = aiResponse.new_revealed_fact.toLowerCase();
+      for (const sec of suspectProfile.secrets || []) {
+        const secKeywords = sec.toLowerCase().split(/\s+/).filter((w: string) => w.length > 4);
+        const matches = secKeywords.filter((w: string) => normFact.includes(w));
+        if (secKeywords.length > 0 && matches.length >= Math.min(2, secKeywords.length)) {
+          if (!suspectState.revealedFacts.includes(sec)) {
+            suspectState.revealedFacts.push(sec);
+          }
+        }
+      }
     }
     if (slipOfTongueDetail && !suspectState.revealedFacts.includes(slipOfTongueDetail)) {
       suspectState.revealedFacts.push(slipOfTongueDetail);
