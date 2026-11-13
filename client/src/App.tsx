@@ -15,6 +15,8 @@ import Locations from './pages/Locations';
 import OfficerDesk from './pages/OfficerDesk';
 import Warrant from './pages/Warrant';
 import StoryCreator from './pages/StoryCreator';
+import LeadBoard from './pages/LeadBoard';
+import LeadBoardSync from './components/LeadBoardSync';
 
 function App() {
   const { sessionId, setSessionData } = useGameStore();
@@ -100,6 +102,7 @@ function App() {
   return (
     <Router>
       <Navigation />
+      <LeadBoardSync />
       <NotepadSidebar />
       <AuthModal />
       <DetectiveProfileModal />
@@ -112,6 +115,7 @@ function App() {
           <Route path="/locations" element={<Locations />} />
           <Route path="/officer" element={<OfficerDesk />} />
           <Route path="/warrant" element={<Warrant />} />
+          <Route path="/lead-board" element={<LeadBoard />} />
           <Route path="/story-creator" element={<StoryCreator />} />
         </Routes>
       </div>

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { IStory, ISuspectRuntimeState, IOfficerChatMessage, IRecordedClue, IChatMessage } from '../types/index';
+import type { IStory, ISuspectRuntimeState, IOfficerChatMessage, IRecordedClue, IChatMessage, ILeadBoardConnection } from '../types/index';
 
 interface GameState {
   sessionId: string | null;
@@ -16,6 +16,9 @@ interface GameState {
   officerChatHistory: IOfficerChatMessage[];
   notes: string;
   recordedClues: IRecordedClue[];
+  leadBoardConnections: ILeadBoardConnection[];
+  leadBoardSaveStatus: string;
+  leadBoardSaveRetry: number;
   isLoading: boolean;
   activeSuspectId: string | null;
   draggedEvidenceId: string | null;
@@ -28,6 +31,9 @@ interface GameState {
   advanceStage: (newStage: number, newEvidence?: string[], newLocations?: string[]) => void;
   setNotes: (newNotes: string) => void;
   addRecordedClue: (clue: IRecordedClue) => void;
+  setLeadBoardConnections: (connections: ILeadBoardConnection[]) => void;
+  setLeadBoardSaveStatus: (status: string) => void;
+  retryLeadBoardSave: () => void;
   setActiveSuspect: (suspectId: string | null) => void;
   setDraggedEvidence: (evidenceId: string | null) => void;
   setLoading: (loading: boolean) => void;
@@ -52,6 +58,9 @@ export const useGameStore = create<GameState>((set) => ({
   officerChatHistory: [],
   notes: '',
   recordedClues: [],
+  leadBoardConnections: [],
+  leadBoardSaveStatus: '',
+  leadBoardSaveRetry: 0,
   isLoading: true,
   activeSuspectId: null,
   draggedEvidenceId: null,
@@ -95,6 +104,9 @@ export const useGameStore = create<GameState>((set) => ({
       officerChatHistory: session.officerChatHistory || [],
       notes: session.notes || '',
       recordedClues: session.recordedClues || [],
+      leadBoardConnections: session.leadBoardConnections || [],
+      leadBoardSaveStatus: '',
+      leadBoardSaveRetry: 0,
       isLoading: false
     });
   },
@@ -152,6 +164,10 @@ export const useGameStore = create<GameState>((set) => ({
     set((state) => ({
       recordedClues: [...state.recordedClues, clue]
     })),
+
+  setLeadBoardConnections: (connections) => set({ leadBoardConnections: connections }),
+  setLeadBoardSaveStatus: (status) => set({ leadBoardSaveStatus: status }),
+  retryLeadBoardSave: () => set((state) => ({ leadBoardSaveRetry: state.leadBoardSaveRetry + 1 })),
 
   setActiveSuspect: (suspectId) => set({ activeSuspectId: suspectId }),
 

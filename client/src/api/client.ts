@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { IStory } from '../types/index';
+import type { IStory, ILeadBoardConnection } from '../types/index';
 import type { AuthResponse, IUser } from '../types/auth';
 
 function getApiBaseUrl(): string {
@@ -237,6 +237,11 @@ export const gameApi = {
       notes
     });
     return response.data;
+  },
+
+  saveLeadBoard: async (sessionId: string, connections: ILeadBoardConnection[]) => {
+    const response = await apiClient.put('/game/lead-board', { sessionId, connections });
+    return response.data as { connections: ILeadBoardConnection[] };
   },
 
   recordClue: async (

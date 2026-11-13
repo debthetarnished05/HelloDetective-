@@ -177,3 +177,19 @@ export interface IRecordedClue {
   statement: string;
   timestamp: string | Date;
 }
+
+export type LeadBoardLeadType = 'evidence' | 'location' | 'suspect' | 'alibi' | 'statement';
+
+export interface ILeadBoardReference {
+  type: LeadBoardLeadType;
+  id: string;
+}
+
+export type LeadBoardRelationship = 'supports' | 'contradicts' | 'related' | 'uncertain';
+
+export interface ILeadBoardConnection {
+  from: ILeadBoardReference;
+  to: ILeadBoardReference;
+  relationship: LeadBoardRelationship;
+  note: string;
+}

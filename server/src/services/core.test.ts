@@ -10,6 +10,7 @@ import { createGuestSessionToken, hashGuestSessionToken } from '../utils/guestSe
 import GameSession from '../models/GameSession.js';
 import Story from '../models/StoryData.js';
 import { isReadyToStartClosing } from './caseProgress.js';
+import { validateLeadBoardConnections } from './leadBoard.js';
 
 function validGeneratedStory(): IStory {
   return {
@@ -222,4 +223,40 @@ test('starts the closing phase only after all locations, evidence, and suspects 
   assert.equal(isReadyToStartClosing({ ...complete, unlockedLocations: ['scene-a'] }, story), false);
   assert.equal(isReadyToStartClosing({ ...complete, unlockedEvidence: ['clue-a'] }, story), false);
   assert.equal(isReadyToStartClosing({ ...complete, unlockedSuspects: ['suspect-a'] }, story), false);
+});
+
+test('accepts player-authored links between unlocked leads and keeps only supported board fields', () => {
+  const result = validateLeadBoardConnections([{
+    from: { type: 'evidence', id: 'parkade-log' },
+    to: { type: 'alibi', id: 'marcus' },
+    relationship: 'contradicts',
+    note: 'The entry time overlaps the café statement.',
+    hiddenHint: 'must be discarded'
+  }], {
+    evidence: ['parkade-log'], locations: [], suspects: ['marcus'], statements: []
+  });
+
+  assert.equal(result.valid, true);
+  if (result.valid) {
+    assert.deepEqual(result.connections, [{
+      from: { type: 'evidence', id: 'parkade-log' },
+      to: { type: 'alibi', id: 'marcus' },
+      relationship: 'contradicts',
+      note: 'The entry time overlaps the café statement.'
+    }]);
+  }
+});
+
+test('rejects lead board links to locked leads, invalid labels, duplicate pairs, and oversized notes', () => {
+  const unlocked = { evidence: ['log'], locations: ['cafe'], suspects: ['marcus'], statements: ['statement-1'] };
+  const makeLink = (from: any, to: any, relationship = 'related', note = '') => ({ from, to, relationship, note });
+
+  assert.equal(validateLeadBoardConnections([makeLink({ type: 'evidence', id: 'locked' }, { type: 'location', id: 'cafe' })], unlocked).valid, false);
+  assert.equal(validateLeadBoardConnections([makeLink({ type: 'evidence', id: 'log' }, { type: 'location', id: 'cafe' }, 'solves')], unlocked).valid, false);
+  assert.equal(validateLeadBoardConnections([
+    makeLink({ type: 'evidence', id: 'log' }, { type: 'location', id: 'cafe' }),
+    makeLink({ type: 'location', id: 'cafe' }, { type: 'evidence', id: 'log' }, 'supports')
+  ], unlocked).valid, false);
+  assert.equal(validateLeadBoardConnections([makeLink({ type: 'evidence', id: 'log' }, { type: 'alibi', id: 'marcus' }, 'related', 'x'.repeat(501))], unlocked).valid, false);
+  assert.equal(validateLeadBoardConnections([makeLink({ type: 'statement', id: 'not-recorded' }, { type: 'suspect', id: 'marcus' })], unlocked).valid, false);
 });

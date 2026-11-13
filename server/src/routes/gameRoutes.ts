@@ -8,6 +8,7 @@ import {
   submitDeduction,
   submitWarrant,
   saveNotes,
+  saveLeadBoard,
   recordClue,
   listStories,
   getStoryById,
@@ -36,6 +37,7 @@ router.post('/officer/chat', llmRateLimit, optionalAuth, chatOfficer);
 router.post('/deduction', llmRateLimit, optionalAuth, submitDeduction);
 router.post('/warrant', llmRateLimit, optionalAuth, submitWarrant);
 router.post('/notes', optionalAuth, saveNotes);
+router.put('/lead-board', optionalAuth, saveLeadBoard);
 router.post('/clue', optionalAuth, recordClue);
 
 // Story management endpoints

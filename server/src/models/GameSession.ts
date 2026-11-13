@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
-import { ISuspectRuntimeState, IChatMessage, IOfficerChatMessage, IRecordedClue } from '../types/index.js';
+import { ISuspectRuntimeState, IChatMessage, IOfficerChatMessage, IRecordedClue, ILeadBoardConnection } from '../types/index.js';
 
 export interface IGameSession extends Document {
   storyId: Types.ObjectId;
@@ -22,6 +22,7 @@ export interface IGameSession extends Document {
   officerChatHistory: IOfficerChatMessage[];
   notes: string;
   recordedClues: IRecordedClue[];
+  leadBoardConnections: ILeadBoardConnection[];
   groundTruth: Record<string, any>;
   status: 'active' | 'solved';
   verdict?: {
@@ -85,6 +86,18 @@ const RecordedClueSchema = new Schema({
   timestamp: { type: Date, default: Date.now }
 }, { _id: false });
 
+const LeadBoardReferenceSchema = new Schema({
+  type: { type: String, enum: ['evidence', 'location', 'suspect', 'alibi', 'statement'], required: true },
+  id: { type: String, required: true, maxlength: 200 }
+}, { _id: false });
+
+const LeadBoardConnectionSchema = new Schema({
+  from: { type: LeadBoardReferenceSchema, required: true },
+  to: { type: LeadBoardReferenceSchema, required: true },
+  relationship: { type: String, enum: ['supports', 'contradicts', 'related', 'uncertain'], required: true },
+  note: { type: String, maxlength: 500, default: '' }
+}, { _id: false });
+
 const GameSessionSchema = new Schema<IGameSession>({
   storyId: { type: Schema.Types.ObjectId, ref: 'Story', required: true },
   userId: { type: Schema.Types.ObjectId, ref: 'User', default: null },
@@ -110,6 +123,7 @@ const GameSessionSchema = new Schema<IGameSession>({
   officerChatHistory: [OfficerChatMessageSchema],
   notes: { type: String, default: '' },
   recordedClues: [RecordedClueSchema],
+  leadBoardConnections: { type: [LeadBoardConnectionSchema], default: [] },
   groundTruth: { type: Object, required: true },
   status: { type: String, enum: ['active', 'solved'], default: 'active' },
   verdict: {

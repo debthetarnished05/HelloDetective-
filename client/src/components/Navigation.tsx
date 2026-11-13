@@ -96,6 +96,9 @@ export default function Navigation() {
           <Link to="/warrant" style={{ ...styles.link, color: '#ff8a80', borderBottom: isActive('/warrant') ? '2px solid #ff8a80' : 'none' }}>
             Submit Warrant
           </Link>
+          <Link to="/lead-board" style={{ ...styles.link, color: '#f6df9d', borderBottom: isActive('/lead-board') ? '2px solid #f6df9d' : 'none' }}>
+            Lead Board
+          </Link>
           <Link
             to="/story-creator"
             style={{
@@ -210,6 +213,16 @@ export default function Navigation() {
             }}
           >
             ⚖️ Submit Warrant
+          </Link>
+          <Link
+            to="/lead-board"
+            style={{
+              ...styles.mobileLink,
+              backgroundColor: isActive('/lead-board') ? 'rgba(246,223,157,0.2)' : 'transparent',
+              color: '#f6df9d'
+            }}
+          >
+            🧷 Visual Lead Board
           </Link>
           <Link
             to="/story-creator"
