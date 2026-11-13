@@ -467,10 +467,10 @@ export default function LeadBoard() {
       </header>
 
       <section className="lead-board-workspace" aria-label="Investigation lead board">
-        {leadBoardSaveStatus && (
+        {leadBoardSaveStatus === 'Save failed' && (
           <div className="lead-board-floating-tools" aria-live="polite">
-            <span>{leadBoardSaveStatus}</span>
-            {leadBoardSaveStatus === 'Save failed' && <button type="button" className="lead-board-secondary-button" onClick={retryLeadBoardSave}>Retry</button>}
+            <span>Save failed</span>
+            <button type="button" className="lead-board-secondary-button" onClick={retryLeadBoardSave}>Retry</button>
           </div>
         )}
 
