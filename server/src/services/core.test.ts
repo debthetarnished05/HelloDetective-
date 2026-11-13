@@ -26,8 +26,8 @@ function validGeneratedStory(): IStory {
     objectives: { progress: [], currentObjectives: ['Review evidence'] },
     locations: [
       { id: 'gallery', title: 'Gallery', subtitle: 'Main hall', status: 'Crime Scene', lastVisited: 'Tonight', witnesses: 'None', notes: '', isInitiallyUnlocked: true, hiddenEvidenceIds: ['vial'] },
-      { id: 'office', title: 'Office', subtitle: 'North wing', status: 'Lead', lastVisited: 'Pending', witnesses: 'None', notes: '', isInitiallyUnlocked: false, hiddenEvidenceIds: ['ledger'] },
-      { id: 'dock', title: 'Dock', subtitle: 'Rear entrance', status: 'Lead', lastVisited: 'Pending', witnesses: 'None', notes: '', isInitiallyUnlocked: false, hiddenEvidenceIds: ['shoeprint'] }
+      { id: 'office', title: 'Office', subtitle: 'North wing', status: 'Lead', lastVisited: 'Pending', witnesses: 'None', notes: '', isInitiallyUnlocked: false, hiddenEvidenceIds: ['ledger'], leadSource: { type: 'evidence_mention', sourceName: 'Empty Vial', sourceId: 'vial', description: 'The vial label points to the office records.' } },
+      { id: 'dock', title: 'Dock', subtitle: 'Rear entrance', status: 'Lead', lastVisited: 'Pending', witnesses: 'None', notes: '', isInitiallyUnlocked: false, hiddenEvidenceIds: ['shoeprint'], leadSource: { type: 'location_mention', sourceName: 'Office', sourceId: 'office', description: 'The office records direct investigators to the dock.' } }
     ],
     evidence: [
       { id: 'vial', title: 'Empty Vial', subtitle: 'Toxicology', details: 'A trace of toxin remains.', date: 'Tonight', location: 'Gallery', priority: 'Critical', isInitiallyUnlocked: true, locationId: 'gallery' },
@@ -39,7 +39,7 @@ function validGeneratedStory(): IStory {
     suspects: [
       { id: 'curator', name: 'Iris Vale', role: 'Curator', trait: 'Careful', initialTrust: 50, initialStress: 5, alibi: 'At home', motive: 'Inheritance', privateKnowledge: 'Knows the gallery', secrets: [], breakdownThreshold: 90, isInitiallyUnlocked: true },
       { id: 'guard', name: 'Noah Reed', role: 'Guard', trait: 'Quiet', initialTrust: 50, initialStress: 5, alibi: 'On patrol', motive: 'Debt', privateKnowledge: 'Knows the alarm', secrets: [], breakdownThreshold: 90, isInitiallyUnlocked: true },
-      { id: 'dealer', name: 'Eli Frost', role: 'Dealer', trait: 'Smooth', initialTrust: 50, initialStress: 5, alibi: 'At dinner', motive: 'Profit', privateKnowledge: 'Knows the victim', secrets: [], breakdownThreshold: 90, isInitiallyUnlocked: false }
+      { id: 'dealer', name: 'Eli Frost', role: 'Dealer', trait: 'Smooth', initialTrust: 50, initialStress: 5, alibi: 'At dinner', motive: 'Profit', privateKnowledge: 'Knows the victim', secrets: [], breakdownThreshold: 90, isInitiallyUnlocked: false, leadSource: { type: 'suspect_clue', sourceName: 'Iris Vale', sourceId: 'curator', description: 'Iris identifies Eli as having access to the gallery.' } }
     ],
     groundTruth: {
       killer: 'curator', motive: 'stolen_ledger_coverup', weapon: 'vial',
@@ -95,6 +95,20 @@ test('rejects a generated story whose weapon reference does not resolve', () => 
   const story = validGeneratedStory();
   story.groundTruth.weapon = 'missing_weapon';
   assert.throws(() => validateGeneratedStory(story), /weapon must reference an existing evidence ID/);
+});
+
+test('rejects generated cases with locked leads that have no unlock source', () => {
+  const story = validGeneratedStory();
+  delete story.locations[1].leadSource;
+  assert.throws(() => validateGeneratedStory(story), /is locked but has no lead source/);
+});
+
+test('rejects generated cases whose lead sources form an unreachable cycle', () => {
+  const story = validGeneratedStory();
+  story.locations[1].leadSource = {
+    type: 'location_mention', sourceName: 'Dock', sourceId: 'dock', description: 'The dock points to the office.'
+  };
+  assert.throws(() => validateGeneratedStory(story), /unreachable leads/);
 });
 
 test('rejects duplicate entity IDs and invalid initial unlock counts', () => {
