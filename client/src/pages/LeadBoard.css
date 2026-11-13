@@ -160,7 +160,7 @@
 .lead-board-connection-layer {
   position: absolute;
   inset: 0;
-  z-index: 1;
+  z-index: 3;
   overflow: visible;
   pointer-events: none;
 }
