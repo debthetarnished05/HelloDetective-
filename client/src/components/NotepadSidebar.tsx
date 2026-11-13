@@ -28,6 +28,7 @@ export default function NotepadSidebar() {
     <>
       {/* Tab on right edge */}
       <div
+        className="detective-notepad-tab"
         onClick={() => setIsOpen(!isOpen)}
         style={{
           position: 'fixed',
@@ -55,7 +56,7 @@ export default function NotepadSidebar() {
 
       {/* Sliding Panel */}
       <div
-        className="notebook"
+        className="notebook detective-notepad-panel"
         style={{
           position: 'fixed',
           top: '55px',

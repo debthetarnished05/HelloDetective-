@@ -103,12 +103,13 @@ export default function LeadBoard() {
   const placedCardsRef = useRef<ILeadBoardCard[]>(leadBoardCards);
   const [selectedCardKey, setSelectedCardKey] = useState<string | null>(null);
   const [pendingConnection, setPendingConnection] = useState<PendingConnection | null>(null);
+  const [connectionReason, setConnectionReason] = useState('');
   const [connectionError, setConnectionError] = useState('');
   const [menu, setMenu] = useState<BoardMenuState | null>(null);
   const [boardMessage, setBoardMessage] = useState('');
   const viewportRef = useRef<HTMLDivElement>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
-  const connectionEditorRef = useRef<HTMLFormElement>(null);
+  const reasonInputRef = useRef<HTMLTextAreaElement>(null);
   const cardDragRef = useRef<CardDragState | null>(null);
   const canvasPanRef = useRef<CanvasPanState | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -126,10 +127,10 @@ export default function LeadBoard() {
     setBoardMessage('');
   }, [sessionId]);
 
+  const connectionEditorOpen = pendingConnection !== null;
   useEffect(() => {
-    if (!pendingConnection) return;
-    connectionEditorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }, [pendingConnection]);
+    if (connectionEditorOpen) reasonInputRef.current?.focus();
+  }, [connectionEditorOpen]);
 
   useEffect(() => {
     if (!menu) return;
@@ -188,8 +189,8 @@ export default function LeadBoard() {
 
   const nodesByKey = useMemo(() => new Map(nodes.map(node => [referenceKey(node), node])), [nodes]);
   const cardsByKey = useMemo(() => new Map(placedCards.map(card => [referenceKey(card), card])), [placedCards]);
-  const canvasWidth = Math.max(1400, ...placedCards.map(card => card.x + CARD_WIDTH + 100));
-  const canvasHeight = Math.max(850, ...placedCards.map(card => card.y + CARD_HEIGHT + 100));
+  const canvasWidth = Math.max(window.innerWidth - 32, ...placedCards.map(card => card.x + CARD_WIDTH + 100));
+  const canvasHeight = Math.max(window.innerHeight - 175, 700, ...placedCards.map(card => card.y + CARD_HEIGHT + 100));
   const groups = LEAD_GROUPS.map(group => ({
     ...group,
     nodes: nodes.filter(node => group.types.includes(node.type))
@@ -294,14 +295,26 @@ export default function LeadBoard() {
     setSelectedCardKey(null);
     setConnectionError('');
     if (matching) {
-      setPendingConnection({ ...matching, editingKey: connectionKey(matching) });
+      openConnectionEditor({ ...matching, editingKey: connectionKey(matching) });
       return;
     }
     if (leadBoardConnections.length >= 300) {
       setBoardMessage('This board has reached its 300-connection limit. Remove a link to add another.');
       return;
     }
-    setPendingConnection({ from, to, relationship: 'related', note: '' });
+    openConnectionEditor({ from, to, relationship: 'related', note: '' });
+  }
+
+  function openConnectionEditor(connection: PendingConnection) {
+    setConnectionError('');
+    setConnectionReason(connection.note);
+    setPendingConnection(connection);
+  }
+
+  function closeConnectionEditor() {
+    setPendingConnection(null);
+    setConnectionReason('');
+    setConnectionError('');
   }
 
   function beginCardDrag(event: ReactPointerEvent<HTMLDivElement>, card: ILeadBoardCard) {
@@ -374,12 +387,17 @@ export default function LeadBoard() {
   function saveConnection(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!pendingConnection) return;
-    const cleanedNote = pendingConnection.note.trim();
+    const cleanedNote = connectionReason.trim();
     if (!cleanedNote) {
       setConnectionError('Write a short reason for this connection.');
       return;
     }
-    const saved: ILeadBoardConnection = { ...pendingConnection, note: cleanedNote };
+    const saved: ILeadBoardConnection = {
+      from: pendingConnection.from,
+      to: pendingConnection.to,
+      relationship: pendingConnection.relationship,
+      note: cleanedNote
+    };
     delete (saved as PendingConnection).editingKey;
     if (pendingConnection.editingKey) {
       setLeadBoardConnections(leadBoardConnections.map(connection =>
@@ -388,15 +406,14 @@ export default function LeadBoard() {
     } else {
       setLeadBoardConnections([...leadBoardConnections, saved]);
     }
-    setPendingConnection(null);
-    setConnectionError('');
+    closeConnectionEditor();
     setBoardMessage('Connection saved to this case board.');
   }
 
   function removeConnection() {
     if (!pendingConnection?.editingKey) return;
     setLeadBoardConnections(leadBoardConnections.filter(connection => connectionKey(connection) !== pendingConnection.editingKey));
-    setPendingConnection(null);
+    closeConnectionEditor();
     setBoardMessage('Connection removed.');
   }
 
@@ -411,7 +428,7 @@ export default function LeadBoard() {
     const y2 = to.y + CARD_HEIGHT / 2;
     const midX = (x1 + x2) / 2;
     const midY = (y1 + y2) / 2;
-    const reason = connection.note.trim() || (draft ? 'Write a reason' : 'Click to add reason');
+    const reason = (draft ? connectionReason : connection.note).trim() || (draft ? 'Write a reason' : 'Click to add reason');
     const editing = !draft && pendingConnection?.editingKey === connectionKey(connection);
 
     return (
@@ -426,11 +443,11 @@ export default function LeadBoard() {
           role="button"
           tabIndex={draft ? -1 : 0}
           aria-label={draft ? 'Add a reason for this connection' : `Edit connection reason: ${reason}`}
-          onClick={() => !draft && !pendingConnection && setPendingConnection({ ...connection, editingKey: connectionKey(connection) })}
+          onClick={() => !draft && !pendingConnection && openConnectionEditor({ ...connection, editingKey: connectionKey(connection) })}
           onKeyDown={event => {
             if (!draft && !pendingConnection && (event.key === 'Enter' || event.key === ' ')) {
               event.preventDefault();
-              setPendingConnection({ ...connection, editingKey: connectionKey(connection) });
+              openConnectionEditor({ ...connection, editingKey: connectionKey(connection) });
             }
           }}
         >
@@ -448,42 +465,31 @@ export default function LeadBoard() {
     <main className="page-wrapper lead-board-page">
       <header className="lead-board-header">
         <div className="taped-title handwritten">Visual Lead Board</div>
-        <p>Place the leads you uncover, arrange them, and record the connections you see.</p>
-        <div className="lead-board-notice">
-          This is your private case board. Its theories do not confirm answers or change story progression.
-          <span aria-live="polite">{leadBoardSaveStatus}</span>
-        </div>
       </header>
 
       <section className="lead-board-workspace" aria-label="Investigation lead board">
-        <div className="lead-board-toolbar">
-          <div>
-            <h2>{story?.title || 'Case Board'}</h2>
-            <p>Right-click the board to add a card. Select two cards to connect them.</p>
-          </div>
-          <div className="lead-board-toolbar-actions">
-            <span className="lead-board-count">{placedCards.length} cards · {leadBoardConnections.length} links</span>
-            {leadBoardSaveStatus === 'Save failed' && <button type="button" className="lead-board-secondary-button" onClick={retryLeadBoardSave}>Retry save</button>}
-            <button type="button" className="lead-board-primary-button" onClick={openMenuAtViewportCenter}>＋ Add Lead</button>
-          </div>
+        <div className="lead-board-floating-tools">
+          {leadBoardSaveStatus && <span aria-live="polite">{leadBoardSaveStatus}</span>}
+          {leadBoardSaveStatus === 'Save failed' && <button type="button" className="lead-board-secondary-button" onClick={retryLeadBoardSave}>Retry</button>}
+          <button type="button" className="lead-board-primary-button" onClick={openMenuAtViewportCenter}>＋ Add Lead</button>
         </div>
 
         {boardMessage && <p className="lead-board-feedback" aria-live="polite">{boardMessage}</p>}
 
         {pendingConnection && (
-          <form className="lead-board-link-editor" ref={connectionEditorRef} onSubmit={saveConnection}>
+          <form className="lead-board-link-editor" onSubmit={saveConnection}>
             <div className="lead-board-editor-title">
               <div>
                 <h3>{pendingConnection.editingKey ? 'Edit connection' : 'Explain this connection'}</h3>
                 <p>{nodesByKey.get(referenceKey(pendingConnection.from))?.title} ↔ {nodesByKey.get(referenceKey(pendingConnection.to))?.title}</p>
               </div>
-              <button type="button" className="lead-board-icon-button" aria-label="Close connection editor" onClick={() => setPendingConnection(null)}>×</button>
+              <button type="button" className="lead-board-icon-button" aria-label="Close connection editor" onClick={closeConnectionEditor}>×</button>
             </div>
             <label>
               Relationship
               <select
                 value={pendingConnection.relationship}
-                onChange={event => setPendingConnection({ ...pendingConnection, relationship: event.target.value as LeadBoardRelationship })}
+                onChange={event => setPendingConnection(current => current ? { ...current, relationship: event.target.value as LeadBoardRelationship } : current)}
               >
                 {RELATIONSHIPS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
               </select>
@@ -491,21 +497,21 @@ export default function LeadBoard() {
             <label className="lead-board-reason-field">
               Reason shown on the line
               <textarea
-                value={pendingConnection.note}
+                ref={reasonInputRef}
+                value={connectionReason}
                 maxLength={500}
-                autoFocus
                 onChange={event => {
                   setConnectionError('');
-                  setPendingConnection({ ...pendingConnection, note: event.target.value });
+                  setConnectionReason(event.target.value);
                 }}
                 placeholder="What do these two leads suggest when considered together?"
               />
-              <span>{pendingConnection.note.length}/500</span>
+              <span>{connectionReason.length}/500</span>
             </label>
             {connectionError && <p className="lead-board-form-error" role="alert">{connectionError}</p>}
             <div className="lead-board-editor-actions">
               {pendingConnection.editingKey && <button type="button" className="lead-board-danger-button" onClick={removeConnection}>Remove link</button>}
-              <button type="button" className="lead-board-secondary-button" onClick={() => setPendingConnection(null)}>Cancel</button>
+              <button type="button" className="lead-board-secondary-button" onClick={closeConnectionEditor}>Cancel</button>
               <button type="submit" className="lead-board-primary-button">{pendingConnection.editingKey ? 'Save reason' : 'Draw connection'}</button>
             </div>
           </form>
@@ -525,7 +531,6 @@ export default function LeadBoard() {
             ref={surfaceRef}
             style={{ width: `${canvasWidth}px`, height: `${canvasHeight}px` }}
           >
-            <div className="lead-board-cork-grain" aria-hidden="true" />
             <svg className="lead-board-connection-layer" width={canvasWidth} height={canvasHeight} aria-label="Connections between leads">
               {leadBoardConnections.map(connection => drawConnection(connection))}
               {pendingConnection && !pendingConnection.editingKey && drawConnection(pendingConnection, true)}
@@ -578,16 +583,8 @@ export default function LeadBoard() {
               );
             })}
 
-            {placedCards.length === 0 && (
-              <div className="lead-board-empty-canvas">
-                <span aria-hidden="true">＋</span>
-                <strong>Your board is ready</strong>
-                <p>Right-click anywhere on the corkboard, or use “Add Lead,” to place your first card.</p>
-              </div>
-            )}
           </div>
         </div>
-        <div className="lead-board-footer-hint">Drag the corkboard background to pan · Drag a card to move it · Right-click to add a lead</div>
       </section>
 
       {menu && (
