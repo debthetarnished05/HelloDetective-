@@ -21,7 +21,7 @@ import { isSessionVersionConflict, trimSessionHistories } from '../services/sess
 import { canAccessGameSession } from '../services/sessionAuthorization.js';
 import { toPlayerSession, toPlayerStory } from '../services/playerProjection.js';
 import { isReadyToStartClosing } from '../services/caseProgress.js';
-import { validateLeadBoardConnections } from '../services/leadBoard.js';
+import { validateLeadBoardState } from '../services/leadBoard.js';
 import { IStory, ISuspectRuntimeState } from '../types/index.js';
 import { createGuestSessionToken, hashGuestSessionToken } from '../utils/guestSession.js';
 import { randomUUID } from 'node:crypto';
@@ -1247,7 +1247,7 @@ export const saveNotes = async (req: AuthRequest, res: Response) => {
 
 export const saveLeadBoard = async (req: AuthRequest, res: Response) => {
   try {
-    const { sessionId, connections } = req.body || {};
+    const { sessionId, cards, connections } = req.body || {};
     if (typeof sessionId !== 'string' || !sessionId.trim()) {
       return res.status(400).json({ error: 'A case session is required.' });
     }
@@ -1255,7 +1255,7 @@ export const saveLeadBoard = async (req: AuthRequest, res: Response) => {
     if (!session) return res.status(404).json({ error: 'Session not found' });
     if (!ownsSession(req, res, session)) return;
 
-    const validation = validateLeadBoardConnections(connections, {
+    const validation = validateLeadBoardState(cards, connections, {
       evidence: session.unlockedEvidence || [],
       locations: session.unlockedLocations || [],
       suspects: session.unlockedSuspects || [],
@@ -1269,11 +1269,11 @@ export const saveLeadBoard = async (req: AuthRequest, res: Response) => {
       : { userId: null, guestAccessTokenHash: session.guestAccessTokenHash };
     const result = await GameSession.updateOne(
       { _id: session._id, ...ownershipFilter },
-      { $set: { leadBoardConnections: validation.connections } }
+      { $set: { leadBoardCards: validation.cards, leadBoardConnections: validation.connections } }
     );
     if (result.matchedCount === 0) return res.status(404).json({ error: 'Session not found' });
 
-    res.status(200).json({ connections: validation.connections });
+    res.status(200).json({ cards: validation.cards, connections: validation.connections });
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Failed to save lead board' });
   }

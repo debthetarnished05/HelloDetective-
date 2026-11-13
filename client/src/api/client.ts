@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { IStory, ILeadBoardConnection } from '../types/index';
+import type { IStory, ILeadBoardCard, ILeadBoardConnection } from '../types/index';
 import type { AuthResponse, IUser } from '../types/auth';
 
 function getApiBaseUrl(): string {
@@ -239,9 +239,9 @@ export const gameApi = {
     return response.data;
   },
 
-  saveLeadBoard: async (sessionId: string, connections: ILeadBoardConnection[]) => {
-    const response = await apiClient.put('/game/lead-board', { sessionId, connections });
-    return response.data as { connections: ILeadBoardConnection[] };
+  saveLeadBoard: async (sessionId: string, cards: ILeadBoardCard[], connections: ILeadBoardConnection[]) => {
+    const response = await apiClient.put('/game/lead-board', { sessionId, cards, connections });
+    return response.data as { cards: ILeadBoardCard[]; connections: ILeadBoardConnection[] };
   },
 
   recordClue: async (

@@ -28,6 +28,7 @@ export function toPlayerSession(session: any): Record<string, unknown> {
     officerChatHistory: session.officerChatHistory || [],
     notes: session.notes || '',
     recordedClues: session.recordedClues || [],
+    leadBoardCards: session.leadBoardCards || [],
     leadBoardConnections: session.leadBoardConnections || [],
     status: session.status,
     verdict: session.status === 'solved' ? session.verdict : undefined

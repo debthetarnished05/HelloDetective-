@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
-import { ISuspectRuntimeState, IChatMessage, IOfficerChatMessage, IRecordedClue, ILeadBoardConnection } from '../types/index.js';
+import { ISuspectRuntimeState, IChatMessage, IOfficerChatMessage, IRecordedClue, ILeadBoardCard, ILeadBoardConnection } from '../types/index.js';
 
 export interface IGameSession extends Document {
   storyId: Types.ObjectId;
@@ -22,6 +22,7 @@ export interface IGameSession extends Document {
   officerChatHistory: IOfficerChatMessage[];
   notes: string;
   recordedClues: IRecordedClue[];
+  leadBoardCards: ILeadBoardCard[];
   leadBoardConnections: ILeadBoardConnection[];
   groundTruth: Record<string, any>;
   status: 'active' | 'solved';
@@ -98,6 +99,13 @@ const LeadBoardConnectionSchema = new Schema({
   note: { type: String, maxlength: 500, default: '' }
 }, { _id: false });
 
+const LeadBoardCardSchema = new Schema({
+  type: { type: String, enum: ['evidence', 'location', 'suspect', 'alibi', 'statement'], required: true },
+  id: { type: String, required: true, maxlength: 200 },
+  x: { type: Number, required: true, min: 0, max: 10000 },
+  y: { type: Number, required: true, min: 0, max: 10000 }
+}, { _id: false });
+
 const GameSessionSchema = new Schema<IGameSession>({
   storyId: { type: Schema.Types.ObjectId, ref: 'Story', required: true },
   userId: { type: Schema.Types.ObjectId, ref: 'User', default: null },
@@ -123,6 +131,7 @@ const GameSessionSchema = new Schema<IGameSession>({
   officerChatHistory: [OfficerChatMessageSchema],
   notes: { type: String, default: '' },
   recordedClues: [RecordedClueSchema],
+  leadBoardCards: { type: [LeadBoardCardSchema], default: [] },
   leadBoardConnections: { type: [LeadBoardConnectionSchema], default: [] },
   groundTruth: { type: Object, required: true },
   status: { type: String, enum: ['active', 'solved'], default: 'active' },

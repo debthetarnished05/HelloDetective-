@@ -185,6 +185,11 @@ export interface ILeadBoardReference {
   id: string;
 }
 
+export interface ILeadBoardCard extends ILeadBoardReference {
+  x: number;
+  y: number;
+}
+
 export type LeadBoardRelationship = 'supports' | 'contradicts' | 'related' | 'uncertain';
 
 export interface ILeadBoardConnection {

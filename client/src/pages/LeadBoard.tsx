@@ -1,60 +1,151 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { FormEvent, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { useGameStore } from '../store/gameStore';
-import type { ILeadBoardConnection, ILeadBoardReference, LeadBoardRelationship } from '../types/index';
+import type { ILeadBoardCard, ILeadBoardConnection, ILeadBoardReference, LeadBoardLeadType, LeadBoardRelationship } from '../types/index';
 import './LeadBoard.css';
 
 interface LeadBoardNode extends ILeadBoardReference {
   title: string;
   summary: string;
-  group: 'Evidence & statements' | 'People & alibis' | 'Locations';
 }
 
-interface PendingConnection {
-  from: LeadBoardNode;
-  to: LeadBoardNode;
+interface BoardMenuState {
+  screenX: number;
+  screenY: number;
+  boardX: number;
+  boardY: number;
+  group: string | null;
 }
 
-const RELATIONSHIPS: Array<{ value: LeadBoardRelationship; label: string }> = [
-  { value: 'supports', label: 'May support' },
-  { value: 'contradicts', label: 'May contradict' },
-  { value: 'related', label: 'Related to' },
-  { value: 'uncertain', label: 'Unclear connection' }
+interface PendingConnection extends ILeadBoardConnection {
+  editingKey?: string;
+}
+
+interface CardDragState {
+  id: string;
+  pointerId: number;
+  startClientX: number;
+  startClientY: number;
+  grabX: number;
+  grabY: number;
+  moved: boolean;
+}
+
+interface CanvasPanState {
+  pointerId: number;
+  startClientX: number;
+  startClientY: number;
+  startScrollLeft: number;
+  startScrollTop: number;
+}
+
+const CARD_WIDTH = 240;
+const CARD_HEIGHT = 160;
+const MAX_CANVAS_COORDINATE = 10000;
+
+const RELATIONSHIPS: Array<{ value: LeadBoardRelationship; label: string; color: string }> = [
+  { value: 'supports', label: 'May support', color: '#57c785' },
+  { value: 'contradicts', label: 'May contradict', color: '#e16d6d' },
+  { value: 'related', label: 'Related to', color: '#e8bd5c' },
+  { value: 'uncertain', label: 'Unclear connection', color: '#ad93f2' }
 ];
 
-function nodeKey(reference: ILeadBoardReference): string {
+const LEAD_GROUPS = [
+  { id: 'clues', label: 'Clues & evidence', types: ['evidence', 'statement'] as LeadBoardLeadType[] },
+  { id: 'suspects', label: 'Suspects', types: ['suspect'] as LeadBoardLeadType[] },
+  { id: 'alibis', label: 'Alibis', types: ['alibi'] as LeadBoardLeadType[] },
+  { id: 'locations', label: 'Locations', types: ['location'] as LeadBoardLeadType[] }
+];
+
+function referenceKey(reference: ILeadBoardReference): string {
   return JSON.stringify([reference.type, reference.id]);
 }
 
 function connectionKey(connection: ILeadBoardConnection): string {
-  return JSON.stringify([nodeKey(connection.from), nodeKey(connection.to)].sort());
+  return JSON.stringify([referenceKey(connection.from), referenceKey(connection.to)].sort());
 }
 
-function relationshipLabel(relationship: LeadBoardRelationship): string {
-  return RELATIONSHIPS.find(item => item.value === relationship)?.label || 'Related to';
+function typeLabel(type: LeadBoardLeadType): string {
+  switch (type) {
+    case 'evidence': return 'Evidence';
+    case 'statement': return 'Clue';
+    case 'suspect': return 'Suspect';
+    case 'alibi': return 'Alibi';
+    case 'location': return 'Location';
+  }
 }
 
-function shorten(value: string, maxLength = 180): string {
-  const cleaned = value.trim();
-  return cleaned.length > maxLength ? `${cleaned.slice(0, maxLength).trimEnd()}…` : cleaned;
+function shorten(value: string, length: number): string {
+  const trimmed = value.trim();
+  return trimmed.length > length ? `${trimmed.slice(0, length - 1).trimEnd()}…` : trimmed;
+}
+
+function relationshipInfo(value: LeadBoardRelationship) {
+  return RELATIONSHIPS.find(item => item.value === value) || RELATIONSHIPS[2];
 }
 
 export default function LeadBoard() {
   const {
+    sessionId,
     story,
     unlockedEvidence,
     unlockedLocations,
     unlockedSuspects,
     recordedClues,
+    leadBoardCards,
     leadBoardConnections,
+    leadBoardSaveStatus,
+    setLeadBoardCards,
     setLeadBoardConnections,
-    leadBoardSaveStatus: saveStatus,
     retryLeadBoardSave
   } = useGameStore();
-  const [selectedLead, setSelectedLead] = useState<LeadBoardNode | null>(null);
+  const [placedCards, setPlacedCards] = useState<ILeadBoardCard[]>(leadBoardCards);
+  const placedCardsRef = useRef<ILeadBoardCard[]>(leadBoardCards);
+  const [selectedCardKey, setSelectedCardKey] = useState<string | null>(null);
   const [pendingConnection, setPendingConnection] = useState<PendingConnection | null>(null);
-  const [selectionMessage, setSelectionMessage] = useState('');
-  const [relationship, setRelationship] = useState<LeadBoardRelationship>('related');
-  const [note, setNote] = useState('');
+  const [connectionError, setConnectionError] = useState('');
+  const [menu, setMenu] = useState<BoardMenuState | null>(null);
+  const [boardMessage, setBoardMessage] = useState('');
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const surfaceRef = useRef<HTMLDivElement>(null);
+  const connectionEditorRef = useRef<HTMLFormElement>(null);
+  const cardDragRef = useRef<CardDragState | null>(null);
+  const canvasPanRef = useRef<CanvasPanState | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const serializedPlacedCards = JSON.stringify(leadBoardCards);
+
+  useEffect(() => {
+    placedCardsRef.current = leadBoardCards;
+    setPlacedCards(leadBoardCards);
+  }, [sessionId, serializedPlacedCards]);
+
+  useEffect(() => {
+    setSelectedCardKey(null);
+    setPendingConnection(null);
+    setMenu(null);
+    setBoardMessage('');
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (!pendingConnection) return;
+    connectionEditorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [pendingConnection]);
+
+  useEffect(() => {
+    if (!menu) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenu(null);
+    };
+    const handlePointerDown = (event: PointerEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) setMenu(null);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('pointerdown', handlePointerDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('pointerdown', handlePointerDown);
+    };
+  }, [menu]);
 
   const nodes = useMemo<LeadBoardNode[]>(() => {
     const evidence = (story?.evidence || [])
@@ -63,231 +154,494 @@ export default function LeadBoard() {
         type: 'evidence' as const,
         id: item.id,
         title: item.title,
-        summary: item.details || item.subtitle,
-        group: 'Evidence & statements' as const
+        summary: item.details || item.subtitle
       }));
-    const statements = recordedClues.map(clue => ({
-      type: 'statement' as const,
-      id: clue.id,
-      title: `${clue.suspectName}'s recorded statement`,
-      summary: clue.statement,
-      group: 'Evidence & statements' as const
-    }));
+    const statements = recordedClues
+      .filter(clue => unlockedSuspects.includes(clue.suspectId))
+      .map(clue => ({
+        type: 'statement' as const,
+        id: clue.id,
+        title: `${clue.suspectName}'s statement`,
+        summary: clue.statement
+      }));
     const people = (story?.suspects || [])
       .filter(person => unlockedSuspects.includes(person.id))
       .flatMap(person => {
         const cards: LeadBoardNode[] = [{
-          type: 'suspect',
-          id: person.id,
-          title: person.name,
-          summary: person.role,
-          group: 'People & alibis'
+          type: 'suspect', id: person.id, title: person.name, summary: person.role
         }];
-        if (person.alibi?.trim()) {
-          cards.push({
-            type: 'alibi',
-            id: person.id,
-            title: `${person.name}'s alibi`,
-            summary: person.alibi,
-            group: 'People & alibis'
-          });
-        }
+        if (person.alibi?.trim()) cards.push({
+          type: 'alibi', id: person.id, title: `${person.name}'s alibi`, summary: person.alibi
+        });
         return cards;
       });
     const locations = (story?.locations || [])
-      .filter(item => unlockedLocations.includes(item.id))
-      .map(item => ({
+      .filter(location => unlockedLocations.includes(location.id))
+      .map(location => ({
         type: 'location' as const,
-        id: item.id,
-        title: item.title,
-        summary: item.notes || item.subtitle,
-        group: 'Locations' as const
+        id: location.id,
+        title: location.title,
+        summary: location.notes || location.subtitle
       }));
     return [...evidence, ...statements, ...people, ...locations];
   }, [story, unlockedEvidence, unlockedLocations, unlockedSuspects, recordedClues]);
 
-  const nodesByKey = useMemo(() => new Map(nodes.map(node => [nodeKey(node), node])), [nodes]);
+  const nodesByKey = useMemo(() => new Map(nodes.map(node => [referenceKey(node), node])), [nodes]);
+  const cardsByKey = useMemo(() => new Map(placedCards.map(card => [referenceKey(card), card])), [placedCards]);
+  const canvasWidth = Math.max(1400, ...placedCards.map(card => card.x + CARD_WIDTH + 100));
+  const canvasHeight = Math.max(850, ...placedCards.map(card => card.y + CARD_HEIGHT + 100));
+  const groups = LEAD_GROUPS.map(group => ({
+    ...group,
+    nodes: nodes.filter(node => group.types.includes(node.type))
+  }));
 
-  const groups: Array<LeadBoardNode['group']> = ['Evidence & statements', 'People & alibis', 'Locations'];
+  function replaceVisibleCards(cards: ILeadBoardCard[]) {
+    placedCardsRef.current = cards;
+    setPlacedCards(cards);
+  }
 
-  function selectLead(node: LeadBoardNode) {
-    setSelectionMessage('');
-    if (!selectedLead) {
-      if (leadBoardConnections.length >= 300) {
-        setSelectionMessage('Remove a connection before adding another.');
-        return;
-      }
-      setSelectedLead(node);
+  function commitCards(cards: ILeadBoardCard[]) {
+    replaceVisibleCards(cards);
+    setLeadBoardCards(cards);
+  }
+
+  function openLeadMenu(screenX: number, screenY: number, boardX: number, boardY: number) {
+    const left = Math.max(8, Math.min(screenX, window.innerWidth - 310));
+    const top = Math.max(8, Math.min(screenY, window.innerHeight - 390));
+    setBoardMessage('');
+    setMenu({ screenX: left, screenY: top, boardX, boardY, group: null });
+  }
+
+  function openMenuAtViewportCenter() {
+    const viewport = viewportRef.current;
+    const surface = surfaceRef.current;
+    if (!viewport || !surface) return;
+    const viewportRect = viewport.getBoundingClientRect();
+    const surfaceRect = surface.getBoundingClientRect();
+    const screenX = viewportRect.left + Math.min(viewportRect.width / 2, 500);
+    const screenY = viewportRect.top + Math.min(viewportRect.height / 2, 300);
+    openLeadMenu(screenX, screenY, screenX - surfaceRect.left, screenY - surfaceRect.top);
+  }
+
+  function handleContextMenu(event: ReactMouseEvent<HTMLDivElement>) {
+    if ((event.target as HTMLElement).closest('.lead-board-card')) return;
+    event.preventDefault();
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    const bounds = surface.getBoundingClientRect();
+    openLeadMenu(event.clientX, event.clientY, event.clientX - bounds.left, event.clientY - bounds.top);
+  }
+
+  function placeLead(node: LeadBoardNode) {
+    if (!menu) return;
+    if (placedCardsRef.current.length >= 200) {
+      setBoardMessage('This board has reached its 200-card limit. Remove a card to add another.');
+      setMenu(null);
       return;
     }
-    if (nodeKey(selectedLead) === nodeKey(node)) {
-      setSelectedLead(null);
+    const key = referenceKey(node);
+    if (placedCardsRef.current.some(card => referenceKey(card) === key)) {
+      setBoardMessage('That lead is already on the board.');
       return;
     }
-    const key = JSON.stringify([nodeKey(selectedLead), nodeKey(node)].sort());
-    if (leadBoardConnections.some(connection => connectionKey(connection) === key)) {
-      setSelectionMessage('Those leads are already connected. Remove the link below to connect them again.');
-      setSelectedLead(null);
+
+    let x = Math.max(12, Math.min(MAX_CANVAS_COORDINATE - CARD_WIDTH, Math.round(menu.boardX - CARD_WIDTH / 2)));
+    let y = Math.max(12, Math.min(MAX_CANVAS_COORDINATE - CARD_HEIGHT, Math.round(menu.boardY - CARD_HEIGHT / 2)));
+    let attempts = 0;
+    while (attempts < 20 && placedCardsRef.current.some(card => Math.abs(card.x - x) < 35 && Math.abs(card.y - y) < 35)) {
+      x = Math.min(MAX_CANVAS_COORDINATE - CARD_WIDTH, x + 28);
+      y = Math.min(MAX_CANVAS_COORDINATE - CARD_HEIGHT, y + 28);
+      attempts += 1;
+    }
+
+    commitCards([...placedCardsRef.current, { type: node.type, id: node.id, x, y }]);
+    setMenu(null);
+    setBoardMessage(`${typeLabel(node.type)} card added.`);
+  }
+
+  function removeCard(card: ILeadBoardCard) {
+    const key = referenceKey(card);
+    const nextCards = placedCardsRef.current.filter(item => referenceKey(item) !== key);
+    commitCards(nextCards);
+    setLeadBoardConnections(leadBoardConnections.filter(connection =>
+      referenceKey(connection.from) !== key && referenceKey(connection.to) !== key
+    ));
+    if (selectedCardKey === key) setSelectedCardKey(null);
+    if (pendingConnection && (referenceKey(pendingConnection.from) === key || referenceKey(pendingConnection.to) === key)) {
+      setPendingConnection(null);
+    }
+  }
+
+  function selectCard(card: ILeadBoardCard) {
+    if (pendingConnection) return;
+    const key = referenceKey(card);
+    setBoardMessage('');
+    if (!selectedCardKey) {
+      setSelectedCardKey(key);
+      return;
+    }
+    if (selectedCardKey === key) {
+      setSelectedCardKey(null);
+      return;
+    }
+
+    const selectedReference = JSON.parse(selectedCardKey) as [LeadBoardLeadType, string];
+    const from = { type: selectedReference[0], id: selectedReference[1] };
+    const to = { type: card.type, id: card.id };
+    const matching = leadBoardConnections.find(connection => connectionKey(connection) === connectionKey({
+      from, to, relationship: 'related', note: ''
+    }));
+    setSelectedCardKey(null);
+    setConnectionError('');
+    if (matching) {
+      setPendingConnection({ ...matching, editingKey: connectionKey(matching) });
       return;
     }
     if (leadBoardConnections.length >= 300) {
-      setSelectionMessage('Remove a connection before adding another.');
-      setSelectedLead(null);
+      setBoardMessage('This board has reached its 300-connection limit. Remove a link to add another.');
       return;
     }
-    setPendingConnection({ from: selectedLead, to: node });
-    setSelectedLead(null);
-    setRelationship('related');
-    setNote('');
+    setPendingConnection({ from, to, relationship: 'related', note: '' });
   }
 
-  function addConnection() {
-    if (!pendingConnection) return;
-    const nextConnection: ILeadBoardConnection = {
-      from: { type: pendingConnection.from.type, id: pendingConnection.from.id },
-      to: { type: pendingConnection.to.type, id: pendingConnection.to.id },
-      relationship,
-      note: note.trim()
+  function beginCardDrag(event: ReactPointerEvent<HTMLDivElement>, card: ILeadBoardCard) {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    const bounds = surface.getBoundingClientRect();
+    cardDragRef.current = {
+      id: referenceKey(card),
+      pointerId: event.pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      grabX: event.clientX - bounds.left - card.x,
+      grabY: event.clientY - bounds.top - card.y,
+      moved: false
     };
-    setLeadBoardConnections([...leadBoardConnections, nextConnection]);
-    setPendingConnection(null);
-    setNote('');
+    event.currentTarget.setPointerCapture(event.pointerId);
   }
 
-  function removeConnection(connectionToRemove: ILeadBoardConnection) {
-    const key = connectionKey(connectionToRemove);
-    setLeadBoardConnections(leadBoardConnections.filter(connection => connectionKey(connection) !== key));
+  function moveCard(event: ReactPointerEvent<HTMLDivElement>) {
+    const drag = cardDragRef.current;
+    const surface = surfaceRef.current;
+    if (!drag || !surface || drag.pointerId !== event.pointerId) return;
+    if (!drag.moved && Math.hypot(event.clientX - drag.startClientX, event.clientY - drag.startClientY) < 4) return;
+    drag.moved = true;
+    const bounds = surface.getBoundingClientRect();
+    const x = Math.max(0, Math.min(MAX_CANVAS_COORDINATE, Math.round(event.clientX - bounds.left - drag.grabX)));
+    const y = Math.max(0, Math.min(MAX_CANVAS_COORDINATE, Math.round(event.clientY - bounds.top - drag.grabY)));
+    replaceVisibleCards(placedCardsRef.current.map(card => referenceKey(card) === drag.id ? { ...card, x, y } : card));
   }
+
+  function finishCardDrag(event: ReactPointerEvent<HTMLDivElement>, card: ILeadBoardCard) {
+    const drag = cardDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    cardDragRef.current = null;
+    if (drag.moved) {
+      commitCards(placedCardsRef.current);
+    } else {
+      selectCard(card);
+    }
+  }
+
+  function startCanvasPan(event: ReactPointerEvent<HTMLDivElement>) {
+    if (event.target !== surfaceRef.current || event.button !== 0 || !viewportRef.current) return;
+    event.preventDefault();
+    canvasPanRef.current = {
+      pointerId: event.pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startScrollLeft: viewportRef.current.scrollLeft,
+      startScrollTop: viewportRef.current.scrollTop
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function panCanvas(event: ReactPointerEvent<HTMLDivElement>) {
+    const pan = canvasPanRef.current;
+    const viewport = viewportRef.current;
+    if (!pan || !viewport || pan.pointerId !== event.pointerId) return;
+    viewport.scrollLeft = pan.startScrollLeft - (event.clientX - pan.startClientX);
+    viewport.scrollTop = pan.startScrollTop - (event.clientY - pan.startClientY);
+  }
+
+  function finishCanvasPan(event: ReactPointerEvent<HTMLDivElement>) {
+    if (canvasPanRef.current?.pointerId === event.pointerId) canvasPanRef.current = null;
+  }
+
+  function saveConnection(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!pendingConnection) return;
+    const cleanedNote = pendingConnection.note.trim();
+    if (!cleanedNote) {
+      setConnectionError('Write a short reason for this connection.');
+      return;
+    }
+    const saved: ILeadBoardConnection = { ...pendingConnection, note: cleanedNote };
+    delete (saved as PendingConnection).editingKey;
+    if (pendingConnection.editingKey) {
+      setLeadBoardConnections(leadBoardConnections.map(connection =>
+        connectionKey(connection) === pendingConnection.editingKey ? saved : connection
+      ));
+    } else {
+      setLeadBoardConnections([...leadBoardConnections, saved]);
+    }
+    setPendingConnection(null);
+    setConnectionError('');
+    setBoardMessage('Connection saved to this case board.');
+  }
+
+  function removeConnection() {
+    if (!pendingConnection?.editingKey) return;
+    setLeadBoardConnections(leadBoardConnections.filter(connection => connectionKey(connection) !== pendingConnection.editingKey));
+    setPendingConnection(null);
+    setBoardMessage('Connection removed.');
+  }
+
+  function drawConnection(connection: ILeadBoardConnection, draft = false) {
+    const from = cardsByKey.get(referenceKey(connection.from));
+    const to = cardsByKey.get(referenceKey(connection.to));
+    if (!from || !to) return null;
+    const style = relationshipInfo(connection.relationship);
+    const x1 = from.x + CARD_WIDTH / 2;
+    const y1 = from.y + CARD_HEIGHT / 2;
+    const x2 = to.x + CARD_WIDTH / 2;
+    const y2 = to.y + CARD_HEIGHT / 2;
+    const midX = (x1 + x2) / 2;
+    const midY = (y1 + y2) / 2;
+    const reason = connection.note.trim() || (draft ? 'Write a reason' : 'Click to add reason');
+    const editing = !draft && pendingConnection?.editingKey === connectionKey(connection);
+
+    return (
+      <g
+        key={draft ? 'draft-connection' : connectionKey(connection)}
+        className={`lead-board-edge${draft ? ' is-draft' : ''}${editing ? ' is-editing' : ''}`}
+      >
+        <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={style.color} strokeWidth={draft ? 3 : 2.5} strokeDasharray={draft ? '8 7' : undefined} />
+        <g
+          className="lead-board-edge-label"
+          transform={`translate(${midX} ${midY})`}
+          role="button"
+          tabIndex={draft ? -1 : 0}
+          aria-label={draft ? 'Add a reason for this connection' : `Edit connection reason: ${reason}`}
+          onClick={() => !draft && !pendingConnection && setPendingConnection({ ...connection, editingKey: connectionKey(connection) })}
+          onKeyDown={event => {
+            if (!draft && !pendingConnection && (event.key === 'Enter' || event.key === ' ')) {
+              event.preventDefault();
+              setPendingConnection({ ...connection, editingKey: connectionKey(connection) });
+            }
+          }}
+        >
+          <title>{reason}</title>
+          <rect x="-93" y="-16" width="186" height="32" rx="8" fill="#f5e8c8" stroke={style.color} strokeWidth="2" />
+          <text x="0" y="4" textAnchor="middle">{shorten(reason, 31)}</text>
+        </g>
+      </g>
+    );
+  }
+
+  const menuGroup = menu ? groups.find(group => group.id === menu.group) : undefined;
 
   return (
     <main className="page-wrapper lead-board-page">
       <header className="lead-board-header">
         <div className="taped-title handwritten">Visual Lead Board</div>
-        <p>Review the leads you have uncovered and record how you think they connect.</p>
+        <p>Place the leads you uncover, arrange them, and record the connections you see.</p>
         <div className="lead-board-notice">
-          Your links and notes are private case notes. They do not confirm a theory or change story progression.
-          <span aria-live="polite">{saveStatus}</span>
+          This is your private case board. Its theories do not confirm answers or change story progression.
+          <span aria-live="polite">{leadBoardSaveStatus}</span>
         </div>
       </header>
 
-      <section className="lead-board-section" aria-labelledby="available-leads-title">
-        <div className="lead-board-section-heading">
+      <section className="lead-board-workspace" aria-label="Investigation lead board">
+        <div className="lead-board-toolbar">
           <div>
-            <h2 id="available-leads-title">Available leads</h2>
-            <p>Select one card, then another, to connect them.</p>
+            <h2>{story?.title || 'Case Board'}</h2>
+            <p>Right-click the board to add a card. Select two cards to connect them.</p>
           </div>
-          {selectedLead && (
-            <button type="button" className="lead-board-secondary-button" onClick={() => setSelectedLead(null)}>
-              Cancel selection
-            </button>
-          )}
+          <div className="lead-board-toolbar-actions">
+            <span className="lead-board-count">{placedCards.length} cards · {leadBoardConnections.length} links</span>
+            {leadBoardSaveStatus === 'Save failed' && <button type="button" className="lead-board-secondary-button" onClick={retryLeadBoardSave}>Retry save</button>}
+            <button type="button" className="lead-board-primary-button" onClick={openMenuAtViewportCenter}>＋ Add Lead</button>
+          </div>
         </div>
-        {(selectionMessage || leadBoardConnections.length >= 300) && (
-          <p className="lead-board-limit">{selectionMessage || 'This board has reached its 300-connection limit. Remove a connection to add another.'}</p>
+
+        {boardMessage && <p className="lead-board-feedback" aria-live="polite">{boardMessage}</p>}
+
+        {pendingConnection && (
+          <form className="lead-board-link-editor" ref={connectionEditorRef} onSubmit={saveConnection}>
+            <div className="lead-board-editor-title">
+              <div>
+                <h3>{pendingConnection.editingKey ? 'Edit connection' : 'Explain this connection'}</h3>
+                <p>{nodesByKey.get(referenceKey(pendingConnection.from))?.title} ↔ {nodesByKey.get(referenceKey(pendingConnection.to))?.title}</p>
+              </div>
+              <button type="button" className="lead-board-icon-button" aria-label="Close connection editor" onClick={() => setPendingConnection(null)}>×</button>
+            </div>
+            <label>
+              Relationship
+              <select
+                value={pendingConnection.relationship}
+                onChange={event => setPendingConnection({ ...pendingConnection, relationship: event.target.value as LeadBoardRelationship })}
+              >
+                {RELATIONSHIPS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
+              </select>
+            </label>
+            <label className="lead-board-reason-field">
+              Reason shown on the line
+              <textarea
+                value={pendingConnection.note}
+                maxLength={500}
+                autoFocus
+                onChange={event => {
+                  setConnectionError('');
+                  setPendingConnection({ ...pendingConnection, note: event.target.value });
+                }}
+                placeholder="What do these two leads suggest when considered together?"
+              />
+              <span>{pendingConnection.note.length}/500</span>
+            </label>
+            {connectionError && <p className="lead-board-form-error" role="alert">{connectionError}</p>}
+            <div className="lead-board-editor-actions">
+              {pendingConnection.editingKey && <button type="button" className="lead-board-danger-button" onClick={removeConnection}>Remove link</button>}
+              <button type="button" className="lead-board-secondary-button" onClick={() => setPendingConnection(null)}>Cancel</button>
+              <button type="submit" className="lead-board-primary-button">{pendingConnection.editingKey ? 'Save reason' : 'Draw connection'}</button>
+            </div>
+          </form>
         )}
 
-        {nodes.length === 0 ? (
-          <p className="lead-board-empty">No leads are unlocked yet. New cards will appear here as the investigation unfolds.</p>
-        ) : (
-          <div className="lead-board-groups">
-            {groups.map(group => {
-              const groupNodes = nodes.filter(node => node.group === group);
-              if (groupNodes.length === 0) return null;
+        <div
+          className="lead-board-viewport"
+          ref={viewportRef}
+          onContextMenu={handleContextMenu}
+          onPointerDown={startCanvasPan}
+          onPointerMove={panCanvas}
+          onPointerUp={finishCanvasPan}
+          onPointerCancel={finishCanvasPan}
+        >
+          <div
+            className="lead-board-canvas"
+            ref={surfaceRef}
+            style={{ width: `${canvasWidth}px`, height: `${canvasHeight}px` }}
+          >
+            <div className="lead-board-cork-grain" aria-hidden="true" />
+            <svg className="lead-board-connection-layer" width={canvasWidth} height={canvasHeight} aria-label="Connections between leads">
+              {leadBoardConnections.map(connection => drawConnection(connection))}
+              {pendingConnection && !pendingConnection.editingKey && drawConnection(pendingConnection, true)}
+            </svg>
+
+            {placedCards.map(card => {
+              const node = nodesByKey.get(referenceKey(card));
+              if (!node) return null;
+              const cardKey = referenceKey(card);
+              const selected = selectedCardKey === cardKey;
               return (
-                <section className="lead-board-group" key={group} aria-label={group}>
-                  <h3>{group}</h3>
-                  <div className="lead-board-cards">
-                    {groupNodes.map(node => {
-                      const isSelected = selectedLead ? nodeKey(selectedLead) === nodeKey(node) : false;
-                      return (
-                        <button
-                          type="button"
-                          className={`lead-board-card${isSelected ? ' is-selected' : ''}`}
-                          key={nodeKey(node)}
-                          aria-pressed={isSelected}
-                          onClick={() => selectLead(node)}
-                        >
-                          <span className="lead-board-card-type">{node.type}</span>
-                          <strong>{node.title}</strong>
-                          <span className="lead-board-card-summary">{shorten(node.summary || 'No additional details recorded.')}</span>
-                          {isSelected && <span className="lead-board-selected-label">Selected — choose another lead</span>}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </section>
+                <div
+                  className={`lead-board-card lead-card-${card.type}${selected ? ' is-selected' : ''}`}
+                  key={cardKey}
+                  style={{ left: card.x, top: card.y }}
+                  onPointerDown={event => beginCardDrag(event, card)}
+                  onPointerMove={moveCard}
+                  onPointerUp={event => finishCardDrag(event, card)}
+                  onPointerCancel={event => {
+                    if (cardDragRef.current?.pointerId === event.pointerId) {
+                      const drag = cardDragRef.current;
+                      cardDragRef.current = null;
+                      if (drag.moved) commitCards(placedCardsRef.current);
+                    }
+                  }}
+                  role="group"
+                  tabIndex={0}
+                  aria-label={`${typeLabel(card.type)}: ${node.title}${selected ? ', selected' : ''}. Drag to move, click to connect.`}
+                  onKeyDown={event => {
+                    if (event.target !== event.currentTarget) return;
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      selectCard(card);
+                    }
+                  }}
+                >
+                  <span className="lead-board-card-pin" aria-hidden="true" />
+                  <button
+                    type="button"
+                    className="lead-board-card-remove"
+                    aria-label={`Remove ${node.title} from board`}
+                    onPointerDown={event => event.stopPropagation()}
+                    onClick={event => { event.stopPropagation(); removeCard(card); }}
+                  >×</button>
+                  <span className="lead-board-card-type">{typeLabel(card.type)}</span>
+                  <strong>{node.title}</strong>
+                  <span className="lead-board-card-summary">{shorten(node.summary || 'No additional details recorded.', 145)}</span>
+                  {selected && <span className="lead-board-card-selected">Selected · choose another card</span>}
+                </div>
               );
             })}
+
+            {placedCards.length === 0 && (
+              <div className="lead-board-empty-canvas">
+                <span aria-hidden="true">＋</span>
+                <strong>Your board is ready</strong>
+                <p>Right-click anywhere on the corkboard, or use “Add Lead,” to place your first card.</p>
+              </div>
+            )}
           </div>
-        )}
+        </div>
+        <div className="lead-board-footer-hint">Drag the corkboard background to pan · Drag a card to move it · Right-click to add a lead</div>
       </section>
 
-      {pendingConnection && (
-        <section className="lead-board-composer" aria-labelledby="connection-composer-title">
-          <h2 id="connection-composer-title">Record your connection</h2>
-          <div className="lead-board-pair-preview">
-            <span>{pendingConnection.from.title}</span>
-            <span aria-hidden="true">↔</span>
-            <span>{pendingConnection.to.title}</span>
-          </div>
-          <label>
-            How do these leads relate?
-            <select value={relationship} onChange={event => setRelationship(event.target.value as LeadBoardRelationship)}>
-              {RELATIONSHIPS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
-            </select>
-          </label>
-          <label>
-            Private note (optional)
-            <textarea value={note} maxLength={500} onChange={event => setNote(event.target.value)} placeholder="What makes this connection worth checking?" />
-            <span className="lead-board-character-count">{note.length}/500</span>
-          </label>
-          <div className="lead-board-composer-actions">
-            <button type="button" className="lead-board-primary-button" onClick={addConnection}>Add connection</button>
-            <button type="button" className="lead-board-secondary-button" onClick={() => setPendingConnection(null)}>Cancel</button>
-          </div>
-        </section>
+      {menu && (
+        <div
+          className="lead-board-context-menu"
+          ref={menuRef}
+          role="dialog"
+          aria-label="Add a lead to the board"
+          style={{ left: menu.screenX, top: menu.screenY }}
+        >
+          {!menu.group ? (
+            <>
+              <div className="lead-board-menu-heading">Add a card</div>
+              {groups.map(group => (
+                <button
+                  type="button"
+                  className="lead-board-menu-option"
+                  key={group.id}
+                  disabled={group.nodes.length === 0}
+                  onClick={() => setMenu({ ...menu, group: group.id })}
+                >
+                  <span>{group.label}</span><span>{group.nodes.length} ›</span>
+                </button>
+              ))}
+              <button type="button" className="lead-board-menu-close" onClick={() => setMenu(null)}>Cancel</button>
+            </>
+          ) : (
+            <>
+              <div className="lead-board-menu-heading">
+                <button type="button" className="lead-board-menu-back" onClick={() => setMenu({ ...menu, group: null })}>‹ Categories</button>
+                {menuGroup?.label}
+              </div>
+              <div className="lead-board-menu-list">
+                {(menuGroup?.nodes || []).map(node => {
+                  const isPlaced = placedCards.some(card => referenceKey(card) === referenceKey(node));
+                  return (
+                    <button
+                      type="button"
+                      className="lead-board-menu-option"
+                      key={referenceKey(node)}
+                      disabled={isPlaced}
+                      onClick={() => placeLead(node)}
+                    >
+                      <span><small>{typeLabel(node.type)}</small>{node.title}</span>
+                      {isPlaced && <span>On board</span>}
+                    </button>
+                  );
+                })}
+              </div>
+              <button type="button" className="lead-board-menu-close" onClick={() => setMenu(null)}>Cancel</button>
+            </>
+          )}
+        </div>
       )}
-
-      <section className="lead-board-section" aria-labelledby="connections-title">
-        <div className="lead-board-section-heading">
-          <div>
-            <h2 id="connections-title">Your connections <span>{leadBoardConnections.length}</span></h2>
-            <p>These are your working theories. Revise or remove them as you investigate.</p>
-          </div>
-          {saveStatus === 'Save failed' && (
-            <button type="button" className="lead-board-secondary-button" onClick={retryLeadBoardSave}>Retry save</button>
-          )}
-        </div>
-        {leadBoardConnections.length === 0 ? (
-          <p className="lead-board-empty">No connections yet. Choose two lead cards above to start building your board.</p>
-        ) : (
-          <div className="lead-board-connections">
-            {leadBoardConnections.map(connection => {
-              const from = nodesByKey.get(nodeKey(connection.from));
-              const to = nodesByKey.get(nodeKey(connection.to));
-              if (!from || !to) return null;
-              return (
-                <article className={`lead-board-connection relation-${connection.relationship}`} key={connectionKey(connection)}>
-                  <div className="lead-board-connection-card">
-                    <span>{from.type}</span>
-                    <strong>{from.title}</strong>
-                  </div>
-                  <div className="lead-board-connector">
-                    <span>{relationshipLabel(connection.relationship)}</span>
-                    <i aria-hidden="true" />
-                  </div>
-                  <div className="lead-board-connection-card">
-                    <span>{to.type}</span>
-                    <strong>{to.title}</strong>
-                  </div>
-                  {connection.note && <p className="lead-board-connection-note">{connection.note}</p>}
-                  <button type="button" className="lead-board-remove" onClick={() => removeConnection(connection)} aria-label={`Remove connection between ${from.title} and ${to.title}`}>Remove</button>
-                </article>
-              );
-            })}
-          </div>
-        )}
-      </section>
     </main>
   );
 }

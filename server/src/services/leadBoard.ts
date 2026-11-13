@@ -1,9 +1,11 @@
-import type { ILeadBoardConnection, LeadBoardLeadType, LeadBoardRelationship } from '../types/index.js';
+import type { ILeadBoardCard, ILeadBoardConnection, LeadBoardLeadType, LeadBoardRelationship } from '../types/index.js';
 
 const LEAD_TYPES = new Set<LeadBoardLeadType>(['evidence', 'location', 'suspect', 'alibi', 'statement']);
 const RELATIONSHIPS = new Set<LeadBoardRelationship>(['supports', 'contradicts', 'related', 'uncertain']);
 export const MAX_LEAD_BOARD_CONNECTIONS = 300;
+export const MAX_LEAD_BOARD_CARDS = 200;
 export const MAX_LEAD_BOARD_NOTE_LENGTH = 500;
+export const MAX_LEAD_BOARD_COORDINATE = 10000;
 
 export interface UnlockedLeadIds {
   evidence: string[];
@@ -14,6 +16,10 @@ export interface UnlockedLeadIds {
 
 export type LeadBoardValidationResult =
   | { valid: true; connections: ILeadBoardConnection[] }
+  | { valid: false; error: string };
+
+export type LeadBoardStateValidationResult =
+  | { valid: true; cards: ILeadBoardCard[]; connections: ILeadBoardConnection[] }
   | { valid: false; error: string };
 
 function referenceKey(reference: { type: string; id: string }): string {
@@ -80,4 +86,42 @@ export function validateLeadBoardConnections(input: unknown, unlocked: UnlockedL
   }
 
   return { valid: true, connections };
+}
+
+export function validateLeadBoardState(cardsInput: unknown, connectionsInput: unknown, unlocked: UnlockedLeadIds): LeadBoardStateValidationResult {
+  if (!Array.isArray(cardsInput)) return { valid: false, error: 'Board cards must be a list.' };
+  if (cardsInput.length > MAX_LEAD_BOARD_CARDS) {
+    return { valid: false, error: `A case board can contain at most ${MAX_LEAD_BOARD_CARDS} cards.` };
+  }
+
+  const seenCards = new Set<string>();
+  const cards: ILeadBoardCard[] = [];
+  for (const raw of cardsInput) {
+    if (!raw || typeof raw !== 'object') return { valid: false, error: 'A board card is invalid.' };
+    const item = raw as Record<string, unknown>;
+    if (typeof item.type !== 'string' || !LEAD_TYPES.has(item.type as LeadBoardLeadType) || typeof item.id !== 'string') {
+      return { valid: false, error: 'A board card has an unsupported lead reference.' };
+    }
+    if (!item.id.trim() || item.id.length > 200 || !isReferenceUnlocked(item.type as LeadBoardLeadType, item.id, unlocked)) {
+      return { valid: false, error: 'Board cards can only use leads already unlocked in this case.' };
+    }
+    if (typeof item.x !== 'number' || !Number.isFinite(item.x) || item.x < 0 || item.x > MAX_LEAD_BOARD_COORDINATE ||
+        typeof item.y !== 'number' || !Number.isFinite(item.y) || item.y < 0 || item.y > MAX_LEAD_BOARD_COORDINATE) {
+      return { valid: false, error: 'A board card position is outside the allowed area.' };
+    }
+    const key = referenceKey({ type: item.type, id: item.id });
+    if (seenCards.has(key)) return { valid: false, error: 'Each unlocked lead can only be placed on the board once.' };
+    seenCards.add(key);
+    cards.push({ type: item.type as LeadBoardLeadType, id: item.id, x: Math.round(item.x), y: Math.round(item.y) });
+  }
+
+  const result = validateLeadBoardConnections(connectionsInput, unlocked);
+  if (!result.valid) return result;
+  for (const connection of result.connections) {
+    if (!seenCards.has(referenceKey(connection.from)) || !seenCards.has(referenceKey(connection.to))) {
+      return { valid: false, error: 'Connections must join cards that are on this board.' };
+    }
+  }
+
+  return { valid: true, cards, connections: result.connections };
 }

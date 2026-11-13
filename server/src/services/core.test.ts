@@ -10,7 +10,7 @@ import { createGuestSessionToken, hashGuestSessionToken } from '../utils/guestSe
 import GameSession from '../models/GameSession.js';
 import Story from '../models/StoryData.js';
 import { isReadyToStartClosing } from './caseProgress.js';
-import { validateLeadBoardConnections } from './leadBoard.js';
+import { validateLeadBoardConnections, validateLeadBoardState } from './leadBoard.js';
 
 function validGeneratedStory(): IStory {
   return {
@@ -156,6 +156,8 @@ test('projects only unlocked session state and strips story solutions and hidden
     unlockedEvidence: ['vial'],
     unlockedLocations: ['gallery'],
     canvassedLocations: [],
+    leadBoardCards: [{ type: 'evidence', id: 'vial', x: 120, y: 80 }],
+    leadBoardConnections: [],
     suspects: new Map([
       ['curator', { trustScore: 55 }],
       ['guard', { trustScore: 15 }]
@@ -165,6 +167,8 @@ test('projects only unlocked session state and strips story solutions and hidden
   };
   const playerSession = toPlayerSession(session);
   assert.deepEqual(Object.keys(playerSession.suspects as object), ['curator']);
+  assert.deepEqual(playerSession.leadBoardCards, [{ type: 'evidence', id: 'vial', x: 120, y: 80 }]);
+  assert.deepEqual(playerSession.leadBoardConnections, []);
   assert.equal('groundTruth' in playerSession, false);
 
   const story = validGeneratedStory();
@@ -259,4 +263,32 @@ test('rejects lead board links to locked leads, invalid labels, duplicate pairs,
   ], unlocked).valid, false);
   assert.equal(validateLeadBoardConnections([makeLink({ type: 'evidence', id: 'log' }, { type: 'alibi', id: 'marcus' }, 'related', 'x'.repeat(501))], unlocked).valid, false);
   assert.equal(validateLeadBoardConnections([makeLink({ type: 'statement', id: 'not-recorded' }, { type: 'suspect', id: 'marcus' })], unlocked).valid, false);
+});
+
+test('validates placed lead cards and requires each saved connection endpoint to be on the board', () => {
+  const unlocked = { evidence: ['log'], locations: ['cafe'], suspects: ['marcus'], statements: ['statement-1'] };
+  const cards = [
+    { type: 'evidence', id: 'log', x: 23.4, y: 55.7 },
+    { type: 'alibi', id: 'marcus', x: 400, y: 200 }
+  ];
+  const connections = [{
+    from: { type: 'evidence', id: 'log' },
+    to: { type: 'alibi', id: 'marcus' },
+    relationship: 'contradicts',
+    note: 'The times overlap.'
+  }];
+  const result = validateLeadBoardState(cards, connections, unlocked);
+
+  assert.equal(result.valid, true);
+  if (result.valid) {
+    assert.deepEqual(result.cards[0], { type: 'evidence', id: 'log', x: 23, y: 56 });
+    assert.equal(result.connections.length, 1);
+  }
+
+  assert.equal(validateLeadBoardState([
+    cards[0], { type: 'location', id: 'locked-place', x: 100, y: 100 }
+  ], [], unlocked).valid, false);
+  assert.equal(validateLeadBoardState([cards[0]], connections, unlocked).valid, false);
+  assert.equal(validateLeadBoardState([cards[0], cards[0]], [], unlocked).valid, false);
+  assert.equal(validateLeadBoardState([{ type: 'evidence', id: 'log', x: -1, y: 0 }], [], unlocked).valid, false);
 });

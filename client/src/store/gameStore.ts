@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { IStory, ISuspectRuntimeState, IOfficerChatMessage, IRecordedClue, IChatMessage, ILeadBoardConnection } from '../types/index';
+import type { IStory, ISuspectRuntimeState, IOfficerChatMessage, IRecordedClue, IChatMessage, ILeadBoardCard, ILeadBoardConnection } from '../types/index';
 
 interface GameState {
   sessionId: string | null;
@@ -16,6 +16,7 @@ interface GameState {
   officerChatHistory: IOfficerChatMessage[];
   notes: string;
   recordedClues: IRecordedClue[];
+  leadBoardCards: ILeadBoardCard[];
   leadBoardConnections: ILeadBoardConnection[];
   leadBoardSaveStatus: string;
   leadBoardSaveRetry: number;
@@ -32,6 +33,7 @@ interface GameState {
   setNotes: (newNotes: string) => void;
   addRecordedClue: (clue: IRecordedClue) => void;
   setLeadBoardConnections: (connections: ILeadBoardConnection[]) => void;
+  setLeadBoardCards: (cards: ILeadBoardCard[]) => void;
   setLeadBoardSaveStatus: (status: string) => void;
   retryLeadBoardSave: () => void;
   setActiveSuspect: (suspectId: string | null) => void;
@@ -41,6 +43,27 @@ interface GameState {
   setClosingState: (data: { caseClosingTriggered?: boolean; remainingClosingQuestions?: number; interrogationLocked?: boolean }) => void;
   setUnlockedEntities: (data: { suspects?: string[]; locations?: string[]; evidence?: string[] }) => void;
   setOfficerChatHistory: (history: IOfficerChatMessage[]) => void;
+}
+
+function initialLeadBoardCards(session: any, connections: ILeadBoardConnection[]): ILeadBoardCard[] {
+  const savedCards = Array.isArray(session.leadBoardCards) ? session.leadBoardCards as ILeadBoardCard[] : [];
+  if (savedCards.length > 0 || connections.length === 0) return savedCards;
+
+  const references = new Map<string, ILeadBoardCard>();
+  for (const connection of connections) {
+    for (const reference of [connection.from, connection.to]) {
+      const key = JSON.stringify([reference.type, reference.id]);
+      if (!references.has(key)) {
+        const index = references.size;
+        references.set(key, {
+          ...reference,
+          x: 64 + (index % 4) * 290,
+          y: 64 + Math.floor(index / 4) * 200
+        });
+      }
+    }
+  }
+  return [...references.values()];
 }
 
 export const useGameStore = create<GameState>((set) => ({
@@ -58,6 +81,7 @@ export const useGameStore = create<GameState>((set) => ({
   officerChatHistory: [],
   notes: '',
   recordedClues: [],
+  leadBoardCards: [],
   leadBoardConnections: [],
   leadBoardSaveStatus: '',
   leadBoardSaveRetry: 0,
@@ -79,6 +103,9 @@ export const useGameStore = create<GameState>((set) => ({
         });
       }
     }
+
+    const leadBoardConnections = session.leadBoardConnections || [];
+    const leadBoardCards = initialLeadBoardCards(session, leadBoardConnections);
 
       if (sessionId) {
         localStorage.setItem('detective_session_id', sessionId);
@@ -104,7 +131,8 @@ export const useGameStore = create<GameState>((set) => ({
       officerChatHistory: session.officerChatHistory || [],
       notes: session.notes || '',
       recordedClues: session.recordedClues || [],
-      leadBoardConnections: session.leadBoardConnections || [],
+      leadBoardCards,
+      leadBoardConnections,
       leadBoardSaveStatus: '',
       leadBoardSaveRetry: 0,
       isLoading: false
@@ -166,6 +194,7 @@ export const useGameStore = create<GameState>((set) => ({
     })),
 
   setLeadBoardConnections: (connections) => set({ leadBoardConnections: connections }),
+  setLeadBoardCards: (cards) => set({ leadBoardCards: cards }),
   setLeadBoardSaveStatus: (status) => set({ leadBoardSaveStatus: status }),
   retryLeadBoardSave: () => set((state) => ({ leadBoardSaveRetry: state.leadBoardSaveRetry + 1 })),
 
