@@ -31,14 +31,6 @@ interface CardDragState {
   moved: boolean;
 }
 
-interface CanvasPanState {
-  pointerId: number;
-  startClientX: number;
-  startClientY: number;
-  startScrollLeft: number;
-  startScrollTop: number;
-}
-
 const CARD_WIDTH = 240;
 const CARD_HEIGHT = 160;
 const MAX_CANVAS_COORDINATE = 10000;
@@ -107,13 +99,17 @@ export default function LeadBoard() {
   const [connectionError, setConnectionError] = useState('');
   const [menu, setMenu] = useState<BoardMenuState | null>(null);
   const [boardMessage, setBoardMessage] = useState('');
-  const viewportRef = useRef<HTMLDivElement>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
   const reasonInputRef = useRef<HTMLTextAreaElement>(null);
   const cardDragRef = useRef<CardDragState | null>(null);
-  const canvasPanRef = useRef<CanvasPanState | null>(null);
+  const touchMenuRef = useRef<{ pointerId: number; clientX: number; clientY: number } | null>(null);
+  const longPressTimerRef = useRef<number | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const serializedPlacedCards = JSON.stringify(leadBoardCards);
+
+  useEffect(() => () => {
+    if (longPressTimerRef.current !== null) window.clearTimeout(longPressTimerRef.current);
+  }, []);
 
   useEffect(() => {
     placedCardsRef.current = leadBoardCards;
@@ -189,7 +185,7 @@ export default function LeadBoard() {
 
   const nodesByKey = useMemo(() => new Map(nodes.map(node => [referenceKey(node), node])), [nodes]);
   const cardsByKey = useMemo(() => new Map(placedCards.map(card => [referenceKey(card), card])), [placedCards]);
-  const canvasWidth = Math.max(window.innerWidth, ...placedCards.map(card => card.x + CARD_WIDTH + 100));
+  const canvasWidth = Math.max(document.documentElement.clientWidth - 32, ...placedCards.map(card => card.x + CARD_WIDTH + 24));
   const canvasHeight = Math.max(window.innerHeight - 75, 700, ...placedCards.map(card => card.y + CARD_HEIGHT + 100));
   const groups = LEAD_GROUPS.map(group => ({
     ...group,
@@ -213,17 +209,6 @@ export default function LeadBoard() {
     setMenu({ screenX: left, screenY: top, boardX, boardY, group: null });
   }
 
-  function openMenuAtViewportCenter() {
-    const viewport = viewportRef.current;
-    const surface = surfaceRef.current;
-    if (!viewport || !surface) return;
-    const viewportRect = viewport.getBoundingClientRect();
-    const surfaceRect = surface.getBoundingClientRect();
-    const screenX = viewportRect.left + Math.min(viewportRect.width / 2, 500);
-    const screenY = viewportRect.top + Math.min(viewportRect.height / 2, 300);
-    openLeadMenu(screenX, screenY, screenX - surfaceRect.left, screenY - surfaceRect.top);
-  }
-
   function handleContextMenu(event: ReactMouseEvent<HTMLDivElement>) {
     if ((event.target as HTMLElement).closest('.lead-board-card')) return;
     event.preventDefault();
@@ -231,6 +216,37 @@ export default function LeadBoard() {
     if (!surface) return;
     const bounds = surface.getBoundingClientRect();
     openLeadMenu(event.clientX, event.clientY, event.clientX - bounds.left, event.clientY - bounds.top);
+  }
+
+  function cancelTouchMenu() {
+    if (longPressTimerRef.current !== null) window.clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = null;
+    touchMenuRef.current = null;
+  }
+
+  function beginTouchMenu(event: ReactPointerEvent<HTMLDivElement>) {
+    if (event.pointerType !== 'touch' || event.target !== surfaceRef.current) return;
+    cancelTouchMenu();
+    const touch = { pointerId: event.pointerId, clientX: event.clientX, clientY: event.clientY };
+    touchMenuRef.current = touch;
+    longPressTimerRef.current = window.setTimeout(() => {
+      const surface = surfaceRef.current;
+      if (!surface) return;
+      const bounds = surface.getBoundingClientRect();
+      openLeadMenu(touch.clientX, touch.clientY, touch.clientX - bounds.left, touch.clientY - bounds.top);
+      longPressTimerRef.current = null;
+      touchMenuRef.current = null;
+    }, 550);
+  }
+
+  function moveTouchMenu(event: ReactPointerEvent<HTMLDivElement>) {
+    const touch = touchMenuRef.current;
+    if (touch?.pointerId !== event.pointerId) return;
+    if (Math.hypot(event.clientX - touch.clientX, event.clientY - touch.clientY) > 12) cancelTouchMenu();
+  }
+
+  function finishTouchMenu(event: ReactPointerEvent<HTMLDivElement>) {
+    if (touchMenuRef.current?.pointerId === event.pointerId) cancelTouchMenu();
   }
 
   function placeLead(node: LeadBoardNode) {
@@ -246,7 +262,7 @@ export default function LeadBoard() {
       return;
     }
 
-    let x = Math.max(12, Math.min(MAX_CANVAS_COORDINATE - CARD_WIDTH, Math.round(menu.boardX - CARD_WIDTH / 2)));
+    let x = Math.max(12, Math.min(Math.min(MAX_CANVAS_COORDINATE - CARD_WIDTH, canvasWidth - CARD_WIDTH), Math.round(menu.boardX - CARD_WIDTH / 2)));
     let y = Math.max(12, Math.min(MAX_CANVAS_COORDINATE - CARD_HEIGHT, Math.round(menu.boardY - CARD_HEIGHT / 2)));
     let attempts = 0;
     while (attempts < 20 && placedCardsRef.current.some(card => Math.abs(card.x - x) < 35 && Math.abs(card.y - y) < 35)) {
@@ -343,7 +359,7 @@ export default function LeadBoard() {
     if (!drag.moved && Math.hypot(event.clientX - drag.startClientX, event.clientY - drag.startClientY) < 4) return;
     drag.moved = true;
     const bounds = surface.getBoundingClientRect();
-    const x = Math.max(0, Math.min(MAX_CANVAS_COORDINATE, Math.round(event.clientX - bounds.left - drag.grabX)));
+    const x = Math.max(0, Math.min(Math.min(MAX_CANVAS_COORDINATE, canvasWidth - CARD_WIDTH), Math.round(event.clientX - bounds.left - drag.grabX)));
     const y = Math.max(0, Math.min(MAX_CANVAS_COORDINATE, Math.round(event.clientY - bounds.top - drag.grabY)));
     replaceVisibleCards(placedCardsRef.current.map(card => referenceKey(card) === drag.id ? { ...card, x, y } : card));
   }
@@ -357,31 +373,6 @@ export default function LeadBoard() {
     } else {
       selectCard(card);
     }
-  }
-
-  function startCanvasPan(event: ReactPointerEvent<HTMLDivElement>) {
-    if (event.target !== surfaceRef.current || event.button !== 0 || !viewportRef.current) return;
-    event.preventDefault();
-    canvasPanRef.current = {
-      pointerId: event.pointerId,
-      startClientX: event.clientX,
-      startClientY: event.clientY,
-      startScrollLeft: viewportRef.current.scrollLeft,
-      startScrollTop: viewportRef.current.scrollTop
-    };
-    event.currentTarget.setPointerCapture(event.pointerId);
-  }
-
-  function panCanvas(event: ReactPointerEvent<HTMLDivElement>) {
-    const pan = canvasPanRef.current;
-    const viewport = viewportRef.current;
-    if (!pan || !viewport || pan.pointerId !== event.pointerId) return;
-    viewport.scrollLeft = pan.startScrollLeft - (event.clientX - pan.startClientX);
-    viewport.scrollTop = pan.startScrollTop - (event.clientY - pan.startClientY);
-  }
-
-  function finishCanvasPan(event: ReactPointerEvent<HTMLDivElement>) {
-    if (canvasPanRef.current?.pointerId === event.pointerId) canvasPanRef.current = null;
   }
 
   function saveConnection(event: FormEvent<HTMLFormElement>) {
@@ -476,11 +467,12 @@ export default function LeadBoard() {
       </header>
 
       <section className="lead-board-workspace" aria-label="Investigation lead board">
-        <div className="lead-board-floating-tools">
-          {leadBoardSaveStatus && <span aria-live="polite">{leadBoardSaveStatus}</span>}
-          {leadBoardSaveStatus === 'Save failed' && <button type="button" className="lead-board-secondary-button" onClick={retryLeadBoardSave}>Retry</button>}
-          <button type="button" className="lead-board-primary-button" onClick={openMenuAtViewportCenter}>＋ Add Lead</button>
-        </div>
+        {leadBoardSaveStatus && (
+          <div className="lead-board-floating-tools" aria-live="polite">
+            <span>{leadBoardSaveStatus}</span>
+            {leadBoardSaveStatus === 'Save failed' && <button type="button" className="lead-board-secondary-button" onClick={retryLeadBoardSave}>Retry</button>}
+          </div>
+        )}
 
         {boardMessage && <p className="lead-board-feedback" aria-live="polite">{boardMessage}</p>}
 
@@ -527,12 +519,11 @@ export default function LeadBoard() {
 
         <div
           className="lead-board-viewport"
-          ref={viewportRef}
           onContextMenu={handleContextMenu}
-          onPointerDown={startCanvasPan}
-          onPointerMove={panCanvas}
-          onPointerUp={finishCanvasPan}
-          onPointerCancel={finishCanvasPan}
+          onPointerDown={beginTouchMenu}
+          onPointerMove={moveTouchMenu}
+          onPointerUp={finishTouchMenu}
+          onPointerCancel={finishTouchMenu}
         >
           <div
             className="lead-board-canvas"
@@ -543,6 +534,14 @@ export default function LeadBoard() {
               {leadBoardConnections.map(connection => drawConnection(connection))}
               {pendingConnection && !pendingConnection.editingKey && drawConnection(pendingConnection, true)}
             </svg>
+
+            {placedCards.length === 0 && (
+              <div className="lead-board-empty-canvas">
+                <span aria-hidden="true">＋</span>
+                <strong>Start your investigation board</strong>
+                <p>Right-click an open space to add a lead. On touch screens, press and hold.</p>
+              </div>
+            )}
 
             {placedCards.map(card => {
               const node = nodesByKey.get(referenceKey(card));
@@ -566,7 +565,7 @@ export default function LeadBoard() {
                   }}
                   role="group"
                   tabIndex={0}
-                  aria-label={`${typeLabel(card.type)}: ${node.title}${selected ? ', selected' : ''}. Drag to move, click to connect.`}
+                  aria-label={`${typeLabel(card.type)}: ${node.title}${selected ? ', selected' : ''}. Drag to move; on touch screens drag from the pin. Click to connect.`}
                   onKeyDown={event => {
                     if (event.target !== event.currentTarget) return;
                     if (event.key === 'Enter' || event.key === ' ') {

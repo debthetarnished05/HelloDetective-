@@ -216,7 +216,7 @@
   box-shadow: 2px 5px 11px rgba(25, 16, 10, 0.5);
   cursor: grab;
   user-select: none;
-  touch-action: none;
+  touch-action: pan-y;
   transition: box-shadow 130ms ease, outline-color 130ms ease;
 }
 
@@ -247,7 +247,9 @@
   border-radius: 50%;
   background: radial-gradient(circle at 35% 30%, #fff 0 12%, #87929b 38%, #424a4f 78%);
   box-shadow: 0 2px 3px rgba(0, 0, 0, 0.5);
-  pointer-events: none;
+  cursor: grab;
+  pointer-events: auto;
+  touch-action: none;
 }
 
 .lead-board-card-type {
@@ -607,35 +609,28 @@
   align-items: stretch;
   width: 100%;
   max-width: none;
-  height: calc(100vh - 75px);
-  min-height: 420px;
+  min-height: calc(100vh - 75px);
   margin: 0;
-  padding: 0;
+  padding: 40px 16px 32px;
 }
 
 .lead-board-header {
-  position: absolute;
-  top: 8px;
-  left: 50%;
-  z-index: 6;
-  margin: 0;
-  transform: translateX(-50%);
-  pointer-events: none;
+  position: relative;
+  margin: 0 auto 12px;
+  transform: none;
 }
 
 .lead-board-header .taped-title {
   margin: 0;
   padding: 8px 28px;
-  pointer-events: auto;
 }
 
 .lead-board-workspace {
-  position: absolute;
-  inset: 0;
+  position: relative;
   flex: none;
   min-height: 0;
   width: 100%;
-  height: 100%;
+  height: auto;
   overflow: visible;
   border: 0;
   border-radius: 0;
@@ -644,19 +639,23 @@
 }
 
 .lead-board-viewport {
-  position: absolute;
-  inset: 0;
+  position: relative;
   width: 100%;
-  height: 100%;
+  height: auto;
   min-height: 0;
-  overflow: auto;
+  overflow: visible;
   border: 0;
   background: transparent;
+  cursor: default;
+  overscroll-behavior: auto;
+  scrollbar-color: auto;
+  touch-action: pan-y;
 }
 
 .lead-board-canvas {
   background: transparent;
   box-shadow: none;
+  touch-action: pan-y;
 }
 
 .lead-board-cork-grain {
@@ -772,12 +771,8 @@ body:has(.lead-board-page) .detective-notepad-panel {
 
 @media (max-width: 650px) {
   .lead-board-page {
-    height: calc(100vh - 75px);
-    padding: 0;
-  }
-
-  .lead-board-header {
-    top: 5px;
+    min-height: calc(100vh - 60px);
+    padding: 24px 12px;
   }
 
   .lead-board-header .taped-title {
