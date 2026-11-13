@@ -16,7 +16,7 @@ import {
   ALCHEMISTS_PACT_STORY
 } from '../data/seedStories.js';
 import { LLMService } from '../services/llmService.js';
-import { scoreWarrant } from '../services/warrantScoring.js';
+import { scoreWarrant, warrantProgressFingerprint } from '../services/warrantScoring.js';
 import { isSessionVersionConflict, trimSessionHistories } from '../services/sessionSafeguards.js';
 import { canAccessGameSession } from '../services/sessionAuthorization.js';
 import { toPlayerSession, toPlayerStory } from '../services/playerProjection.js';
@@ -284,25 +284,15 @@ export const getSessionState = async (req: AuthRequest, res: Response) => {
     let leadDetectiveName = session.leadDetectiveName || 'Guest Detective';
     if (req.user) leadDetectiveName = `Detective ${req.user.username}`;
 
-    // Auto-heal any suspects or locations that Officer Davis confirmed in previous chat history but failed to add to session arrays
+    // Recover an unlock only from a server-approved history record, never from dialogue text alone.
     let sessionDirty = false;
     if (story && session.officerChatHistory && session.officerChatHistory.length > 0) {
       for (const suspect of story.suspects || []) {
         if (!session.unlockedSuspects.includes(suspect.id)) {
-          const nameRegex = new RegExp(`\\b${suspect.name.replace(/['"]+/g, '')}\\b`, 'i');
-          const firstName = suspect.name.split(' ')[0];
-          const firstNameRegex = firstName.length > 2 ? new RegExp(`\\b${firstName}\\b`, 'i') : null;
-
-          const confirmedInHistory = session.officerChatHistory.some((m: any) =>
-            m.role === 'assistant' && (
-              (m.unlockedEntity && m.unlockedEntity.id === suspect.id) ||
-              ((nameRegex.test(m.content) || (firstNameRegex && firstNameRegex.test(m.content))) &&
-                /\b(dispatched (patrol|a squad|units)|waiting in (the )?(interrogation|interview) room|bringing them in)\b/i.test(m.content) &&
-                !/\b(not|cannot|can't|won't|denied|without (probable cause|a warrant)|need (a warrant|proof))\b/i.test(m.content)
-              )
-            )
+          const confirmedInHistory = session.officerChatHistory.some((entry: any) =>
+            entry.role === 'assistant' && entry.isApproved === true &&
+            entry.unlockedEntity?.type === 'character' && entry.unlockedEntity.id === suspect.id
           );
-
           if (confirmedInHistory) {
             session.unlockedSuspects.push(suspect.id);
             sessionDirty = true;
@@ -310,29 +300,10 @@ export const getSessionState = async (req: AuthRequest, res: Response) => {
         }
       }
 
-      const techSuspect = (story.suspects || []).find((s: any) => /cto|chief technology officer|tech/i.test(s.role || ''));
-      for (const m of session.officerChatHistory) {
-        if (m.content) {
-          if (techSuspect) {
-            if (/\bthe CFO\b/i.test(m.content)) {
-              m.content = m.content.replace(/\bthe CFO\b/gi, `${techSuspect.name}, the ${techSuspect.role}`);
-              m.content = m.content.replace(/\bCFO\b/g, 'CTO');
-              sessionDirty = true;
-            }
-            if (/julian thorne/i.test(m.content)) {
-              m.content = m.content.replace(/julian thorne/gi, techSuspect.name);
-              sessionDirty = true;
-            }
-          } else {
-            if (/julian thorne/i.test(m.content)) {
-              m.content = m.content.replace(/julian thorne/gi, story.victimProfile?.name || 'the suspect');
-              sessionDirty = true;
-            }
-          }
-          if (/\b(?:interrogation\s+)?room\s+\d+\b/i.test(m.content)) {
-            m.content = m.content.replace(/\b(?:interrogation\s+)?room\s+\d+\b/gi, 'the interrogation room');
-            sessionDirty = true;
-          }
+      for (const entry of session.officerChatHistory) {
+        if (entry.content && /\b(?:interrogation\s+)?room\s+\d+\b/i.test(entry.content)) {
+          entry.content = entry.content.replace(/\b(?:interrogation\s+)?room\s+\d+\b/gi, 'the interrogation room');
+          sessionDirty = true;
         }
       }
     }
@@ -552,8 +523,8 @@ export const chatSuspect = async (req: AuthRequest, res: Response) => {
       }
     );
 
-    // Decrement countdown if in closing phase only on SUCCESSFUL interrogation turn
-    if (session.caseClosingTriggered) {
+    // Provider fallback replies do not consume a limited closing question.
+    if (session.caseClosingTriggered && aiResponse.modelSucceeded) {
       session.remainingClosingQuestions = Math.max(0, (session.remainingClosingQuestions ?? 12) - 1);
       if (session.remainingClosingQuestions <= 0) {
         session.interrogationLocked = true;
@@ -578,19 +549,12 @@ export const chatSuspect = async (req: AuthRequest, res: Response) => {
         ? 'defensive'
         : 'composed');
 
-    if (aiResponse.new_revealed_fact && !suspectState.revealedFacts.includes(aiResponse.new_revealed_fact)) {
-      suspectState.revealedFacts.push(aiResponse.new_revealed_fact);
-      // If the dynamic admission matches any canonical secret, also mark canonical secret
-      const normFact = aiResponse.new_revealed_fact.toLowerCase();
-      for (const sec of suspectProfile.secrets || []) {
-        const secKeywords = sec.toLowerCase().split(/\s+/).filter((w: string) => w.length > 4);
-        const matches = secKeywords.filter((w: string) => normFact.includes(w));
-        if (secKeywords.length > 0 && matches.length >= Math.min(2, secKeywords.length)) {
-          if (!suspectState.revealedFacts.includes(sec)) {
-            suspectState.revealedFacts.push(sec);
-          }
-        }
-      }
+    const reportedFact = typeof aiResponse.new_revealed_fact === 'string' ? aiResponse.new_revealed_fact : '';
+    const canonicalFacts = [...(suspectProfile.secrets || []), suspectProfile.privateKnowledge]
+      .filter((fact: unknown): fact is string => typeof fact === 'string' && Boolean(fact.trim()));
+    const canonicalReportedFact = canonicalFacts.find((fact: string) => normalizedText(fact) === normalizedText(reportedFact));
+    if (canonicalReportedFact && !suspectState.revealedFacts.includes(canonicalReportedFact)) {
+      suspectState.revealedFacts.push(canonicalReportedFact);
     }
     if (slipOfTongueDetail && !suspectState.revealedFacts.includes(slipOfTongueDetail)) {
       suspectState.revealedFacts.push(slipOfTongueDetail);
@@ -625,7 +589,7 @@ export const chatSuspect = async (req: AuthRequest, res: Response) => {
       stressLevel: suspectState.stressLevel,
       mood: suspectState.mood,
       revealedFacts: suspectState.revealedFacts,
-      newRevealedFact: aiResponse.new_revealed_fact || slipOfTongueDetail,
+      newRevealedFact: canonicalReportedFact || slipOfTongueDetail,
       brokeDown: suspectState.stressLevel >= 80,
       slippedUp: Boolean(slipOfTongueDetail),
       threwUnderTheBus: aiResponse.threw_under_the_bus || null,
@@ -801,30 +765,9 @@ export const chatOfficer = async (req: AuthRequest, res: Response) => {
         isCanvassed: (session.canvassedLocations || []).includes(l.id)
       }));
 
-    const hasMurderWeapon = unlockedEvidenceList.some((e: any) => {
-      const truthWeapon = (story.groundTruth?.weapon || '').toLowerCase();
-      const titleLower = (e.title || '').toLowerCase();
-      const subtitleLower = (e.subtitle || '').toLowerCase();
-
-      if (e.isMurderWeapon === true) return true;
-      if (truthWeapon && e.id && (e.id.toLowerCase() === truthWeapon || truthWeapon.includes(e.id.toLowerCase()))) return true;
-
-      const knownWeaponIds = [
-        'damascus_letter_opener',
-        'poison_vial_dumbwaiter',
-        'obsidian_dagger',
-        'bloody_cargo_hook',
-        'neural_disruptor',
-        'arsenic_bottle',
-        'cyanide_cocktail_glass',
-        'alchemical_elixir'
-      ];
-      if (knownWeaponIds.includes(e.id)) return true;
-
-      if (subtitleLower.includes('recovered murder weapon') || titleLower.includes('recovered murder weapon')) return true;
-
-      return false;
-    });
+    const murderWeaponId = story.groundTruth?.weapon;
+    const hasMurderWeapon = typeof murderWeaponId === 'string' &&
+      session.unlockedEvidence.includes(murderWeaponId);
 
     const caseContext = {
       caseTitle: story.title,
@@ -870,26 +813,15 @@ export const chatOfficer = async (req: AuthRequest, res: Response) => {
         location: activeLocation ? { id: activeLocation.id, title: activeLocation.title, subtitle: activeLocation.subtitle, notes: activeLocation.notes, witnesses: activeLocation.witnesses, canvassReport: activeLocation.canvassReport } : null
       },
       {
-        locations: lockedLocations.map((l: any) => ({ id: l.id, title: l.title, subtitle: l.subtitle, notes: l.notes })),
-        suspects: lockedSuspects.map((s: any) => ({ id: s.id, name: s.name, role: s.role })),
-        evidence: lockedEvidence.map((e: any) => ({ id: e.id, title: e.title, subtitle: e.subtitle, details: e.details }))
+        locations: [],
+        suspects: [],
+        evidence: []
       },
       caseContext,
       session.officerChatHistory
     );
 
-    // Dynamic role/name hallucination correction (prevents LLM default fallback tropes)
-    const techSuspect = (story.suspects || []).find((s: any) => /cto|chief technology officer|tech/i.test(s.role || ''));
-    if (techSuspect) {
-      evalResult.dialogue = evalResult.dialogue.replace(/\bthe CFO\b/gi, `${techSuspect.name}, our ${techSuspect.role}`);
-      evalResult.dialogue = evalResult.dialogue.replace(/\bCFO\b/g, techSuspect.role);
-      evalResult.dialogue = evalResult.dialogue.replace(/\bjulian thorne\b/gi, techSuspect.name);
-    } else {
-      evalResult.dialogue = evalResult.dialogue.replace(/\bthe CFO\b/gi, 'our suspect');
-      evalResult.dialogue = evalResult.dialogue.replace(/\bjulian thorne\b/gi, story.victimProfile?.name || 'the suspect');
-    }
-
-    // Eliminate phantom room numbers (e.g. Room 2, Room 4, Interrogation Room 2)
+    // Normalize numbered room references that do not exist in the case data.
     evalResult.dialogue = evalResult.dialogue.replace(/\b(?:interrogation\s+)?room\s+\d+\b/gi, 'the interrogation room');
 
     let newlyUnlocked: { type: 'location' | 'evidence' | 'character'; id: string; name: string } | null = null;
@@ -948,16 +880,15 @@ export const chatOfficer = async (req: AuthRequest, res: Response) => {
     const validNomination = requested?.id
       ? eligibleUnlocks.find(item => item.type === requested.type && item.id === requested.id)
       : undefined;
-    const authorizedUnlock = validNomination || (eligibleUnlocks.length === 1 ? eligibleUnlocks[0] : undefined);
+    const authorizedUnlock = validNomination || (!requested?.id && eligibleUnlocks.length === 1 ? eligibleUnlocks[0] : undefined);
+    const unlockRequested = interrogationRequest || locationRequest || subpoenaRequest;
 
-    if (requested?.id && !authorizedUnlock) {
-      evalResult.dialogue = `I can't authorize that dispatch on a hunch, Detective. Cite a recorded statement or evidence that directly connects the person, place, or record to this case.`;
-    } else if (!requested?.id && eligibleUnlocks.length === 1) {
-      evalResult.dialogue = `The cited material gives us grounds to proceed. I've authorized ${eligibleUnlocks[0].name} for the case file, Detective.`;
-    } else if (eligibleUnlocks.length > 1 && (!validNomination || !requested?.id)) {
+    if (eligibleUnlocks.length > 1 && (!validNomination || !requested?.id)) {
       evalResult.dialogue = `Your cited material points to more than one lead. Name the specific person, place, or record you want me to pursue.`;
-    } else if (!authorizedUnlock && /\b(dispatched|subpoenaed|pulled|authorized|bringing .* in)\b/i.test(evalResult.dialogue)) {
-      evalResult.dialogue = `I can't authorize a dispatch or subpoena without a specific lead in the case file, Detective.`;
+    } else if (authorizedUnlock) {
+      evalResult.dialogue = `I've approved ${authorizedUnlock.name} for the investigation, Detective. The lead is now in the case file.`;
+    } else if (requested?.id || unlockRequested) {
+      evalResult.dialogue = `I can't authorize that request yet. Attach a recorded statement or evidence that directly supports the specific person, place, or record.`;
     }
     evalResult.authorizedUnlock = authorizedUnlock || null;
 
@@ -1068,7 +999,7 @@ export const submitDeduction = async (req: AuthRequest, res: Response) => {
 
 export const submitWarrant = async (req: AuthRequest, res: Response) => {
   try {
-    const { sessionId, suspect, motive, weapon, keyContradiction } = req.body;
+    const { sessionId, suspect, suspects: suspectInput, motive, weapon, keyContradiction } = req.body;
     const session = await GameSession.findById(sessionId).select('+guestAccessTokenHash');
     if (!session) return res.status(404).json({ error: 'Session not found' });
     if (!ownsSession(req, res, session)) return;
@@ -1077,7 +1008,15 @@ export const submitWarrant = async (req: AuthRequest, res: Response) => {
     const story = await Story.findById(session.storyId);
     if (!story) return res.status(404).json({ error: 'Story not found' });
 
-    if (typeof suspect !== 'string' || !session.unlockedSuspects.includes(suspect)) {
+    const rawSuspectIds = Array.isArray(suspectInput)
+      ? suspectInput
+      : typeof suspect === 'string' ? suspect.split(',') : [];
+    if (rawSuspectIds.some((id: unknown) => typeof id !== 'string' || !id.trim())) {
+      return res.status(400).json({ error: 'Select one or more suspects for the warrant.' });
+    }
+    const suspectIds = [...new Set(rawSuspectIds.map((id: string) => id.trim()))];
+    if (!suspectIds.length || suspectIds.length > (story.suspects || []).length ||
+        suspectIds.some(id => !session.unlockedSuspects.includes(id))) {
       return res.status(403).json({ error: 'The accused must be a person cleared for this investigation.' });
     }
     const weaponEvidence = (story.evidence || []).find((item: any) => item.id === weapon);
@@ -1087,24 +1026,40 @@ export const submitWarrant = async (req: AuthRequest, res: Response) => {
     const isUnlockedEvidenceContradiction = (story.evidence || []).some((item: any) =>
       item.id === keyContradiction && session.unlockedEvidence.includes(item.id)
     );
-    const isRecordedClueContradiction = (session.recordedClues || []).some((clue: any) => clue.statement === keyContradiction);
-    if (!isUnlockedEvidenceContradiction && !isRecordedClueContradiction) {
+    const recordedClue = (session.recordedClues || []).find((clue: any) =>
+      clue.id === keyContradiction || clue.statement === keyContradiction
+    );
+    if (!isUnlockedEvidenceContradiction && !recordedClue) {
       return res.status(403).json({ error: 'The contradiction must come from unlocked evidence or a recorded statement.' });
     }
     if (typeof motive !== 'string' || !motive.trim() || motive.length > 2000) {
       return res.status(400).json({ error: 'Provide a motive of no more than 2,000 characters.' });
     }
 
-    session.warrantAttemptsCount = (session.warrantAttemptsCount || 0) + 1;
+    const progressFingerprint = warrantProgressFingerprint(session);
+    if ((session.warrantAttemptsCount || 0) > 0 &&
+        session.warrantAttemptProgressSignature === progressFingerprint) {
+      return res.status(409).json({
+        error: 'Develop a new lead, canvass a scene, or record a new statement before submitting another warrant.'
+      });
+    }
 
-    const warrant = { suspect, motive, weapon, keyContradiction };
-    const verdict = scoreWarrant(warrant, story.groundTruth, story as unknown as IStory);
+    const normalizedContradiction = recordedClue?.id || keyContradiction;
+    const warrant = { suspect: suspectIds.join(','), motive, weapon, keyContradiction: normalizedContradiction };
+    const verdict = scoreWarrant(
+      warrant,
+      story.groundTruth,
+      story as unknown as IStory,
+      (session.recordedClues || []).map((clue: any) => ({ id: clue.id, statement: clue.statement }))
+    );
+    session.warrantAttemptsCount = (session.warrantAttemptsCount || 0) + 1;
+    session.warrantAttemptProgressSignature = progressFingerprint;
     const epilogue = await LLMService.generateWarrantEpilogue(warrant, verdict, story as unknown as IStory);
 
     const isConvicted = verdict.outcome === 'perfect';
     session.status = isConvicted ? 'solved' : 'active';
     session.verdict = {
-      suspect,
+      suspect: warrant.suspect,
       motive,
       weapon,
       keyContradiction,
@@ -1214,11 +1169,10 @@ export const submitWarrant = async (req: AuthRequest, res: Response) => {
     }
 
     res.status(200).json({
-      outcome: verdict.outcome,
-      score: verdict.score,
-      verdictTitle: verdict.verdictTitle,
+      outcome: isConvicted ? verdict.outcome : 'weak_case',
+      ...(isConvicted ? { score: verdict.score, criteria: verdict.criteria } : {}),
+      verdictTitle: isConvicted ? verdict.verdictTitle : 'CASE REMAINS OPEN',
       epilogue,
-      criteria: verdict.criteria,
       userRank,
       newBadges: newlyUnlockedBadges,
       userStats

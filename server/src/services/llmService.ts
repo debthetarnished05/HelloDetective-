@@ -307,7 +307,7 @@ You MUST reply with ONLY valid JSON with exactly these keys:
   "dialogue": "Your spoken words to the detective (1 to 4 sentences in character, realistic dialogue)",
   "trust_delta": -5, // Integer between -20 and +20
   "stress_delta": 10, // Integer between -15 and +35
-  "new_revealed_fact": "Brief sentence summarizing any NEW admission or slip-up made in this turn, or null if none",
+  "new_revealed_fact": "Exact text of a secret or private fact from your case file that you admitted this turn, or null",
   "threw_under_the_bus": "Name of other suspect accused if blame was shifted, or null",
   "mood": "composed" | "defensive" | "nervous" | "broken_down"
 }`;
@@ -339,17 +339,39 @@ You MUST reply with ONLY valid JSON with exactly these keys:
       });
 
       const parsed = JSON.parse(cleanJsonString(completion.choices[0]?.message?.content || '{}'));
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) ||
+          typeof parsed.dialogue !== 'string' || !parsed.dialogue.trim()) {
+        throw new Error('Suspect response did not match the expected schema');
+      }
       const rawBlame = typeof parsed.threw_under_the_bus === 'string' ? parsed.threw_under_the_bus.trim() : null;
-      const isInvalidBlame = !rawBlame || /^(none|null|n\/a|nobody|false)$/i.test(rawBlame);
+      const blamedSuspect = rawBlame
+        ? (extraOptions?.otherSuspects || []).find(s => s.name.toLowerCase() === rawBlame.toLowerCase())
+        : undefined;
+      const trustDelta = typeof parsed.trust_delta === 'number' && Number.isFinite(parsed.trust_delta)
+        ? Math.round(parsed.trust_delta)
+        : 0;
+      const stressDelta = typeof parsed.stress_delta === 'number' && Number.isFinite(parsed.stress_delta)
+        ? Math.round(parsed.stress_delta)
+        : 0;
+      const reportedFact = typeof parsed.new_revealed_fact === 'string' && parsed.new_revealed_fact.trim().length <= 500
+        ? parsed.new_revealed_fact.trim()
+        : '';
+      const canonicalFacts = [...(suspectProfile.secrets || []), suspectProfile.privateKnowledge]
+        .filter((fact): fact is string => typeof fact === 'string' && Boolean(fact.trim()));
+      const revealedFact = canonicalFacts.find(fact =>
+        fact.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim() ===
+        reportedFact.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
+      ) || null;
 
       return {
-        dialogue: parsed.dialogue || "I have nothing further to say to you without my lawyer.",
-        trust_delta: Math.max(-20, Math.min(20, typeof parsed.trust_delta === 'number' ? parsed.trust_delta : 0)),
-        stress_delta: Math.max(-15, Math.min(35, typeof parsed.stress_delta === 'number' ? parsed.stress_delta : 0)),
-        new_revealed_fact: parsed.new_revealed_fact || null,
-        threw_under_the_bus: isInvalidBlame ? null : rawBlame,
+        dialogue: parsed.dialogue.trim().slice(0, 2000),
+        trust_delta: Math.max(-20, Math.min(20, trustDelta)),
+        stress_delta: Math.max(-15, Math.min(35, stressDelta)),
+        new_revealed_fact: revealedFact,
+        threw_under_the_bus: blamedSuspect?.name || null,
         mood: (['composed', 'defensive', 'nervous', 'broken_down'].includes(parsed.mood) ? parsed.mood : 'composed') as any,
-        broke_down: suspectState.stressLevel >= breakdownThreshold
+        broke_down: suspectState.stressLevel >= breakdownThreshold,
+        modelSucceeded: true
       };
     } catch (e: any) {
       console.warn('Groq suspect interrogation error or json failure, retrying plain text fallback:', e?.message);
@@ -369,13 +391,14 @@ You MUST reply with ONLY valid JSON with exactly these keys:
         });
         const fallbackText = fallback.choices[0]?.message?.content?.trim();
         return {
-          dialogue: fallbackText || "I have nothing further to say to you without my lawyer present.",
+          dialogue: (fallbackText || "I have nothing further to say to you without my lawyer present.").slice(0, 2000),
           trust_delta: -2,
           stress_delta: 3,
           new_revealed_fact: null,
           threw_under_the_bus: null,
           mood: 'defensive',
-          broke_down: false
+          broke_down: false,
+          modelSucceeded: false
         };
       } catch (fallbackErr) {
         return {
@@ -385,7 +408,8 @@ You MUST reply with ONLY valid JSON with exactly these keys:
           new_revealed_fact: null,
           threw_under_the_bus: null,
           mood: 'defensive',
-          broke_down: false
+          broke_down: false,
+          modelSucceeded: false
         };
       }
     }
@@ -508,7 +532,7 @@ When the detective asks common precinct questions, give authoritative, case-spec
 2. "Review our physical forensic evidence with me" (or any review of evidence):
    - You MUST ONLY summarize the EXACT items listed under "EVIDENCE RECOVERED IN LOCKER".
    - Explicitly name the real items you hold: ${(caseContext.unlockedEvidenceDetails || []).map(e => `"${e.title}"`).join(', ') || 'No evidence recovered yet'}.
-   - NEVER invent or hallucinate fictional evidence items (NEVER make up "shattered phone", "blood-spattered tie", "server room key", "bullet casings", or any items not in the locker)!
+    - Do not invent or mention evidence items that are not listed in the locker.
    - If the locker currently holds only documents, autopsy reports, or photos, explicitly clarify: "We have no physical murder weapon or tangible forensic objects secured yet, Detective—only documentary and photographic records: [list items]."
    - Accurately report murder weapon status: ${caseContext.hasMurderWeapon ? 'The murder weapon has been recovered in our locker.' : 'The physical murder weapon has NOT yet been found (it is still missing).'}.
 
@@ -521,32 +545,32 @@ When the detective asks common precinct questions, give authoritative, case-spec
 
 4. "Davis, what's our current case status & tally?":
    - State internal tally: Evidence (${caseContext.unlockedEvidence}/${caseContext.totalEvidence}), Scenes Canvassed (${caseContext.canvassedLocations}/${caseContext.totalLocations}), Suspects in Custody (${caseContext.unlockedSuspects} detained).
-   - NEVER volunteer or mention the total count of hidden suspects in the case file (e.g. do NOT say "out of 6 suspects")! Only mention the number currently detained in holding.
+   - Never volunteer the total count of hidden suspects in the case file. Mention current custody counts only when the detective asks for a tally.
    - Add a 1-sentence tactical bottom line on where the case stands.
 
 === STRICT ANTI-SPOILER & COUNT PRIVACY RULES (CRITICAL) ===
 - NEVER reveal or volunteer total counts of suspects, locked files, or locations UNPROMPTED!
-- NEVER say "I've got six people locked in the file", "There are 4 locations", or mention how many people are in the case file!
-- ONLY provide exact numbers if the detective specifically asks for a count/tally (e.g., "what's our current case status & tally?").
+- Do not volunteer the number of hidden people, files, or locations.
+- Provide exact counts only when the detective asks for a case tally.
 - In all other dialogue, refer naturally to "our suspects", "persons of interest", or "leads on the board", keeping the total number of characters mysterious and atmospheric.
 
 === STRICT CANONICAL NAMES & EVIDENCE INTEGRITY (CRITICAL) ===
 - ABSOLUTE PROHIBITION ON INVENTING OR FABRICATING EVIDENCE OR CHARACTERS:
   * You MUST ONLY refer to evidence items that ACTUALLY exist in "EVIDENCE RECOVERED IN LOCKER".
-  * It is a critical error to invent fictional items like "shattered phone", "blood-spattered tie", "server room key", or items from standard TV tropes.
+  * Do not invent physical evidence, records, people, or roles that are absent from this case context.
   * You MUST ONLY refer to suspects and persons that explicitly exist in this case file:
     - Deceased Victim: "${caseContext.victimName}"
     - Active Suspects in Custody: ${(caseContext.unlockedSuspectsDetails || []).map(s => `"${s.name}" (${s.role})`).join(', ') || 'None yet'}
     - Locked Persons of Interest: ${(lockedEntities.suspects || []).map(s => `"${s.name}" (${s.role})`).join(', ') || 'None'}
-  * NEVER invent, blend, or hallucinate names or roles! (e.g., NEVER say "Julian Thorne", "the CFO", "CFO", "Inspector Thorne", or any name/role not in the lists above).
+  * Never invent, blend, or hallucinate names or roles. Use only names and roles listed in this case context.
   * Only use the real names and titles listed above.
-  * NO PHANTOM ROOM NUMBERS: Never invent numbered rooms (e.g. DO NOT say "Room 2", "Room 4", "Cell 3"). Refer simply to "the interrogation room", "the interview room", or "precinct holding".
+  * Do not invent numbered rooms or other locations absent from the case context.
 
 === ATTACHED EVIDENCE RESOLUTION & PRONOUN RULES (CRITICAL) ===
 - PRIORITY RULE: Attached evidence ALWAYS takes precedence over ambiguous or imprecise pronouns ("him", "her", "them") AND over previous conversation threads!
-- Detectives frequently use imprecise pronouns ("him", "her", "them", "this guy") casually. If the attached evidence implicates a female suspect (such as Diana Wilkins), NEVER let the word "him" redirect you to a male suspect! The evidence ALWAYS determines who to bring in, not the casual pronoun.
+- Resolve imprecise pronouns only from the attached evidence or clue. Do not infer a person's identity from unrelated earlier turns.
 - EVIDENCE THAT NAMES A SUSPECT:
-  * If the cited evidence names or implicates a specific person (e.g., security logs, signed contracts, email transcripts):
+  * If the cited evidence names or implicates a specific person:
   * Resolve any pronouns ("him", "her", "them", "this person") to THAT IMPLICATED PERSON from the cited evidence, NOT from previous conversation messages.
   * If that implicated person is currently in "CURRENTLY LOCKED ENTITIES -> LOCKED PERSONS / SUSPECTS":
     - You MUST authorize bringing them in: set "authorizedUnlock": { "type": "character", "id": "<EXACT_ID_FROM_LOCKED_LIST>", "name": "<EXACT_NAME_FROM_LOCKED_LIST>" }.
@@ -574,8 +598,8 @@ When the detective asks common precinct questions, give authoritative, case-spec
   * If your previous message asked "Who are you trying to pull in for questioning?" and the detective replies with a person's name, connect this directly to their summons request and authorize the unlock!
 
 - SEMANTIC COMPREHENSION ONLY (STRICT):
-  * Anatomy / Medical terminology (e.g., "forearms", "rear thorax", "punctured ventricle", "abrasions") from autopsy or medical reports are forensic biological descriptions of wounds. They NEVER refer to physical locations and must NEVER authorize unlocking an alley, sewer, storm drain, or any location (e.g. "Rear Service Alley").
-  * A witness naming an individual person (e.g., "Marcus made me do it" or "I saw Marcus") only refers to that PERSON. It does NOT authorize searching a hardware lab, warehouse, or offsite facility unless the lab/facility/address itself was specifically named or described in the statement!
+  * Medical terminology from an autopsy or medical report describes the victim's injuries. It does not identify a location and must not authorize a location search.
+  * A witness naming a person refers to that person. It does not authorize searching a facility unless the statement also identifies that facility or its address.
   * Subpoenas for bank/phone records require an explicit mention of accounts, calls, transactions, or financial records in a clue or evidence.
 - AUTHORIZATION CRITERIA:
   * Only authorize an unlock if the detective's transmission (message + attached clue/evidence) provides genuine probable cause or direct naming of one of the LOCKED entities above.
@@ -630,45 +654,38 @@ Return your response in valid JSON:
       });
 
       const parsed = JSON.parse(cleanJsonString(completion.choices[0]?.message?.content || '{}'));
-      const dialogue = parsed.dialogue || "Keep shaking the tree, Detective. Someone's bound to slip up.";
-      let authorizedUnlock = null;
-      if (parsed.authorizedUnlock && parsed.authorizedUnlock.id && parsed.authorizedUnlock.type) {
-        authorizedUnlock = {
-          type: parsed.authorizedUnlock.type,
-          id: String(parsed.authorizedUnlock.id).trim(),
-          name: String(parsed.authorizedUnlock.name || parsed.authorizedUnlock.id).trim()
-        };
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) ||
+          typeof parsed.dialogue !== 'string' || !parsed.dialogue.trim()) {
+        throw new Error('Officer response did not match the expected schema');
       }
+      const dialogue = parsed.dialogue.trim().slice(0, 2000);
+      const candidate = parsed.authorizedUnlock;
+      const allowedTypes = ['location', 'character', 'evidence'];
+      const authorizedUnlock = candidate && typeof candidate === 'object' &&
+        allowedTypes.includes(candidate.type) && typeof candidate.id === 'string' && candidate.id.trim().length <= 200
+        ? {
+            type: candidate.type as 'location' | 'character' | 'evidence',
+            id: candidate.id.trim(),
+            name: typeof candidate.name === 'string' && candidate.name.trim().length <= 200
+              ? candidate.name.trim()
+              : candidate.id.trim()
+          }
+        : null;
+      const rejectionReason = typeof parsed.rejectionReason === 'string'
+        ? parsed.rejectionReason.trim().slice(0, 500) || null
+        : null;
       return {
         dialogue,
         authorizedUnlock,
-        rejectionReason: parsed.rejectionReason || null
+        rejectionReason
       };
     } catch (err) {
-      console.warn('Groq json_object mode in chatWithOfficerAdvisor failed, retrying plain text:', err);
-      try {
-        const fallbackCompletion = await groq.chat.completions.create({
-          model: MODEL_NAME,
-          messages: [
-            { role: 'system', content: `You are Officer Davis, a gritty noir desk officer assisting the detective in "${caseContext.caseTitle}". Advise concisely (1-2 sentences). Internal tally: Evidence: ${caseContext.unlockedEvidence}/${caseContext.totalEvidence}, Locations: ${caseContext.canvassedLocations}/${caseContext.totalLocations}, Suspects: ${caseContext.unlockedSuspects} in custody. Never volunteer total hidden suspect counts. Do NOT output JSON.` },
-            ...historyMessages,
-            { role: 'user', content: userPromptContent }
-          ],
-          temperature: 0.6,
-          max_tokens: 250
-        });
-        return {
-          dialogue: fallbackCompletion.choices[0]?.message?.content?.trim() || "Keep shaking the tree, Detective. Someone's bound to slip up.",
-          authorizedUnlock: null,
-          rejectionReason: null
-        };
-      } catch (fallbackErr) {
-        return {
-          dialogue: "I'm holding down the precinct desk, Detective. What's your play?",
-          authorizedUnlock: null,
-          rejectionReason: null
-        };
-      }
+      console.warn('Officer advisor response failed validation:', err);
+      return {
+        dialogue: 'I cannot verify this lead right now. Please try again shortly.',
+        authorizedUnlock: null,
+        rejectionReason: null
+      };
     }
   }
 
@@ -678,22 +695,17 @@ Return your response in valid JSON:
     result: IWarrantScore,
     story: IStory
   ): Promise<string> {
-    const accused = story.suspects.find(suspect => suspect.id === warrant.suspect)?.name || 'the accused';
-    const killers = (story.groundTruth.killer || '').split(',').map(id => id.trim()).filter(Boolean)
-      .map(id => story.suspects.find(suspect => suspect.id === id)?.name || id).join(' and ');
+    const accusedIds = Array.isArray(warrant.suspect) ? warrant.suspect : warrant.suspect.split(',');
+    const accused = [...new Set(accusedIds.map(id => id.trim()).filter(Boolean))]
+      .map(id => story.suspects.find(suspect => suspect.id === id)?.name || id)
+      .join(' and ') || 'the accused';
     const weapon = story.evidence.find(item => item.id === warrant.weapon)?.title || 'the selected evidence';
     const trueWeapon = story.evidence.find(item => item.id === story.groundTruth.weapon)?.title || 'the decisive evidence';
-    const checks = [
-      `suspect ${result.criteria.suspect ? 'correct' : 'incorrect'}`,
-      `motive ${result.criteria.motive ? 'supported' : 'unsupported'}`,
-      `weapon ${result.criteria.weapon ? 'matched' : 'did not match'}`,
-      `contradiction ${result.criteria.contradiction ? 'supported' : 'unsupported'}`
-    ].join(', ');
-    const fallback = result.outcome === 'perfect'
-      ? `${accused} was convicted after the jury reviewed ${weapon} and the evidence establishing the true murder weapon, ${trueWeapon}. The case file showed a supported motive and a contradiction that broke the killer's account. The verdict closed the investigation with all four warrant elements established.`
-      : result.outcome === 'wrong_suspect'
-        ? `The court rejected the murder charge against ${accused}. The evidence did not identify the true perpetrator, ${killers || 'the killer'}, and the submitted warrant established only: ${checks}. The investigation remains unresolved.`
-        : `The court found the evidence against ${accused} insufficient for conviction. The jury reviewed ${weapon}, but the submitted warrant established only: ${checks}. The prosecution could not close the remaining gaps beyond reasonable doubt.`;
+    if (result.outcome !== 'perfect') {
+      return 'The court declines to issue an arrest warrant on the current submission. The investigation remains open. Continue gathering and connecting admissible evidence before returning to court.';
+    }
+
+    const fallback = `${accused} was convicted after the jury reviewed ${weapon} and the evidence establishing the true murder weapon, ${trueWeapon}. The case file established the motive and the contradiction that broke the killer's account. The verdict closed the investigation.`;
 
     try {
       const groq = getGroqClient();
@@ -702,14 +714,15 @@ Return your response in valid JSON:
         messages: [
           {
             role: 'system',
-            content: `Write a concise, vivid 2-paragraph noir courtroom epilogue for "${story.title}". The verdict is fixed: ${result.verdictTitle}; score ${result.score}/100; outcome ${result.outcome}. These values are authoritative and must not be changed or contradicted. Use real character and evidence names, not database IDs. The submitted warrant checks are: ${checks}. Ground truth summary: ${story.groundTruth.timelineSummary}.`
+            content: `Write a concise, vivid 2-paragraph noir courtroom epilogue for "${story.title}". The verdict is final and successful. The accused are ${accused}. The evidence selected was ${weapon}. Use these case facts for the closing narrative: ${story.groundTruth.timelineSummary}. Do not introduce characters, evidence, or events that are not in the case.`
           },
-          { role: 'user', content: `The detective accused ${accused}, named motive "${warrant.motive}", selected "${weapon}", and cited "${warrant.keyContradiction}". Write the court's epilogue consistent with the fixed verdict.` }
+          { role: 'user', content: `Write the court's closing narrative for the successful verdict in "${story.title}".` }
         ],
         temperature: 0.5,
         max_tokens: 700
       });
-      return completion.choices[0]?.message?.content?.trim() || fallback;
+      const epilogue = completion.choices[0]?.message?.content?.trim();
+      return epilogue && epilogue.length <= 5000 ? epilogue : fallback;
     } catch {
       return fallback;
     }

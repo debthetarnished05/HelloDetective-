@@ -1,7 +1,8 @@
-import type { IGroundTruth, IStory } from '../types/index.js';
+import type { IGroundTruth, IRecordedClue, IStory } from '../types/index.js';
+import { createHash } from 'node:crypto';
 
 export interface IWarrantSubmission {
-  suspect: string;
+  suspect: string | string[];
   motive: string;
   weapon: string;
   keyContradiction: string;
@@ -19,6 +20,23 @@ export interface IWarrantScore {
   score: number;
   verdictTitle: string;
   criteria: IWarrantCriteria;
+}
+
+export function warrantProgressFingerprint(session: any): string {
+  const suspectStates: [string, any][] = session.suspects && typeof session.suspects.entries === 'function'
+    ? Array.from(session.suspects.entries())
+    : Object.entries(session.suspects || {}) as [string, any][];
+  const progress = {
+    evidence: [...(session.unlockedEvidence || [])].sort(),
+    locations: [...(session.unlockedLocations || [])].sort(),
+    canvassedLocations: [...(session.canvassedLocations || [])].sort(),
+    suspects: [...(session.unlockedSuspects || [])].sort(),
+    recordedClues: (session.recordedClues || []).map((clue: IRecordedClue) => clue.id).sort(),
+    revealedFacts: suspectStates.flatMap(([id, state]) =>
+      (state.revealedFacts || []).map((fact: string) => id + ':' + fact)
+    ).sort()
+  };
+  return createHash('sha256').update(JSON.stringify(progress)).digest('hex');
 }
 
 const STOP_WORDS = new Set([
@@ -60,30 +78,41 @@ function matchesText(expected: string, submitted: string, minExpectedCoverage = 
   return sharedCount / expectedTokens.size >= minExpectedCoverage;
 }
 
-function resolveContradictionText(story: IStory, contradiction: string): string {
+function resolveContradictionText(
+  story: IStory,
+  contradiction: string,
+  recordedClues: Pick<IRecordedClue, 'id' | 'statement'>[]
+): string {
   const evidence = story.evidence.find(item => item.id === contradiction);
   if (evidence) return `${evidence.id} ${evidence.title} ${evidence.subtitle} ${evidence.details}`;
 
-  const clue = (story as IStory & { recordedClues?: Array<{ statement: string }> }).recordedClues
-    ?.find(item => item.statement === contradiction);
-  return clue?.statement || contradiction;
+  const clue = recordedClues.find(item => item.id === contradiction || item.statement === contradiction);
+  return clue?.statement || '';
 }
 
 export function scoreWarrant(
   warrant: IWarrantSubmission,
   groundTruth: IGroundTruth,
-  story: IStory
+  story: IStory,
+  recordedClues: Pick<IRecordedClue, 'id' | 'statement'>[] = []
 ): IWarrantScore {
-  const killerIds = (groundTruth.killer || '').split(',').map(id => id.trim()).filter(Boolean);
-  const truthContradiction = resolveContradictionText(story, groundTruth.keyContradiction || '');
-  const submittedContradiction = resolveContradictionText(story, warrant.keyContradiction || '');
+  const killerIds = [...new Set((groundTruth.killer || '').split(',').map(id => id.trim()).filter(Boolean))];
+  const accusedIds = [...new Set((Array.isArray(warrant.suspect) ? warrant.suspect : warrant.suspect.split(','))
+    .map(id => id.trim()).filter(Boolean))];
+  const truthContradiction = resolveContradictionText(story, groundTruth.keyContradiction || '', recordedClues);
+  const exactGroundTruthEvidence = story.evidence.some(item => item.id === groundTruth.keyContradiction);
+  const submittedEvidence = story.evidence.some(item => item.id === warrant.keyContradiction);
+  const submittedClue = recordedClues.find(item => item.id === warrant.keyContradiction);
+  const contradictionMatches =
+    (exactGroundTruthEvidence && submittedEvidence && warrant.keyContradiction === groundTruth.keyContradiction) ||
+    (exactGroundTruthEvidence && submittedClue !== undefined &&
+      matchesText(truthContradiction, submittedClue.statement, 0.65));
 
   const criteria: IWarrantCriteria = {
-    suspect: killerIds.includes(warrant.suspect),
+    suspect: accusedIds.length === killerIds.length && killerIds.every(id => accusedIds.includes(id)),
     motive: matchesText(groundTruth.motive || '', warrant.motive || ''),
     weapon: Boolean(groundTruth.weapon) && warrant.weapon === groundTruth.weapon,
-    contradiction: warrant.keyContradiction === groundTruth.keyContradiction ||
-      matchesText(truthContradiction, submittedContradiction, 0.4)
+    contradiction: contradictionMatches
   };
 
   const rawScore = (criteria.suspect ? 40 : 0) +

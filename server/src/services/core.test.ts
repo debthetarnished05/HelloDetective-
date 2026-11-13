@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { IStory } from '../types/index.js';
-import { scoreWarrant } from './warrantScoring.js';
+import { scoreWarrant, warrantProgressFingerprint } from './warrantScoring.js';
+import { LLMService } from './llmService.js';
 import { validateGeneratedStory } from './storyValidation.js';
 import { isSessionVersionConflict, trimSessionHistories } from './sessionSafeguards.js';
 import { canAccessGameSession } from './sessionAuthorization.js';
@@ -79,12 +80,81 @@ test('matches a natural motive explanation to slugged ground-truth terms', () =>
   assert.equal(result.criteria.motive, true);
 });
 
-test('matches a decisive evidence item to a descriptive contradiction phrase', () => {
+test('scores only the exact configured contradiction evidence item', () => {
   const story = validGeneratedStory();
-  story.groundTruth.keyContradiction = 'coffee_shop_alibi_vs_parkade_log';
+  story.groundTruth.keyContradiction = 'keycard';
   story.evidence.find(item => item.id === 'keycard')!.title = 'Parkade Security Log';
   const result = scoreWarrant({ ...correctWarrant, keyContradiction: 'keycard' }, story.groundTruth, story);
   assert.equal(result.criteria.contradiction, true);
+
+  const unrelatedEvidence = scoreWarrant(
+    { ...correctWarrant, keyContradiction: 'fiber' },
+    story.groundTruth,
+    story
+  );
+  assert.equal(unrelatedEvidence.criteria.contradiction, false);
+});
+
+test('resolves recorded contradiction clues by their session ID', () => {
+  const story = validGeneratedStory();
+  const result = scoreWarrant(
+    { ...correctWarrant, keyContradiction: 'clue_1' },
+    story.groundTruth,
+    story,
+    [{ id: 'clue_1', statement: 'The access record shows the suspect entered at 9:20 PM, contradicting the alibi.' }]
+  );
+  assert.equal(result.criteria.contradiction, true);
+});
+
+test('a joint-killer warrant must name the complete killer set', () => {
+  const story = validGeneratedStory();
+  story.groundTruth.killer = 'curator,guard';
+
+  const partial = scoreWarrant({ ...correctWarrant, suspect: 'curator' }, story.groundTruth, story);
+  assert.equal(partial.criteria.suspect, false);
+  assert.equal(partial.outcome, 'wrong_suspect');
+
+  const complete = scoreWarrant({ ...correctWarrant, suspect: ['curator', 'guard'] }, story.groundTruth, story);
+  assert.equal(complete.criteria.suspect, true);
+  assert.equal(complete.outcome, 'perfect');
+});
+
+test('failed warrant epilogues do not disclose ground-truth names or timeline', async () => {
+  const story = validGeneratedStory();
+  story.groundTruth.timelineSummary = 'Hidden timeline detail: Iris placed the vial at 9:17 PM.';
+  const verdict = scoreWarrant({ ...correctWarrant, suspect: 'guard' }, story.groundTruth, story);
+  const epilogue = await LLMService.generateWarrantEpilogue(
+    { ...correctWarrant, suspect: 'guard' },
+    verdict,
+    story
+  );
+
+  assert.doesNotMatch(epilogue, /Iris Vale|curator|Hidden timeline detail/i);
+  assert.match(epilogue, /investigation remains open/i);
+});
+
+test('warrant progress fingerprint changes only when investigation progress changes', () => {
+  const session: {
+    unlockedEvidence: string[];
+    unlockedLocations: string[];
+    canvassedLocations: string[];
+    unlockedSuspects: string[];
+    recordedClues: Array<{ id: string }>;
+    suspects: Map<string, { stressLevel: number; revealedFacts: string[] }>;
+  } = {
+    unlockedEvidence: ['vial'],
+    unlockedLocations: ['gallery'],
+    canvassedLocations: [],
+    unlockedSuspects: ['curator'],
+    recordedClues: [],
+    suspects: new Map([['curator', { trustScore: 50, stressLevel: 20, revealedFacts: [] }]])
+  };
+  const initial = warrantProgressFingerprint(session);
+  session.suspects.get('curator')!.stressLevel = 70;
+  assert.equal(warrantProgressFingerprint(session), initial);
+
+  session.recordedClues.push({ id: 'clue_1' });
+  assert.notEqual(warrantProgressFingerprint(session), initial);
 });
 
 test('accepts a generated story with valid counts, unlocks, and solution references', () => {

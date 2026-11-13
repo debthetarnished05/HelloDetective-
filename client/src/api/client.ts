@@ -222,7 +222,7 @@ export const gameApi = {
 
   submitWarrant: async (
     sessionId: string,
-    warrant: { suspect: string; motive: string; weapon: string; keyContradiction: string }
+    warrant: { suspects: string[]; motive: string; weapon: string; keyContradiction: string }
   ) => {
     const response = await apiClient.post('/game/warrant', {
       sessionId,

@@ -9,6 +9,7 @@ export interface IGameSession extends Document {
   leadDetectiveName: string;
   evidencePresentedCount: number;
   warrantAttemptsCount: number;
+  warrantAttemptProgressSignature?: string;
   currentStage?: number;
   unlockedEvidence: string[];
   unlockedLocations: string[];
@@ -114,6 +115,7 @@ const GameSessionSchema = new Schema<IGameSession>({
   leadDetectiveName: { type: String, default: 'Guest Detective' },
   evidencePresentedCount: { type: Number, default: 0 },
   warrantAttemptsCount: { type: Number, default: 0 },
+  warrantAttemptProgressSignature: { type: String, default: '' },
   currentStage: { type: Number, default: 1 },
   unlockedEvidence: [{ type: String }],
   unlockedLocations: [{ type: String }],

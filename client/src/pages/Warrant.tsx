@@ -7,14 +7,15 @@ export default function Warrant() {
   const { sessionId, story, unlockedEvidence, recordedClues, caseClosingTriggered, remainingClosingQuestions, interrogationLocked, unlockedSuspects } = useGameStore();
   const { isGuest, openAuthModal, updateUserStatsAndBadges } = useAuthStore();
 
-  const [suspect, setSuspect] = useState('');
+  const [suspectIds, setSuspectIds] = useState<string[]>([]);
   const [motive, setMotive] = useState('');
   const [weapon, setWeapon] = useState('');
   const [keyContradiction, setKeyContradiction] = useState('');
   const [loading, setLoading] = useState(false);
+  const [submissionError, setSubmissionError] = useState('');
   const [verdict, setVerdict] = useState<{
     outcome: string;
-    score: number;
+    score?: number;
     verdictTitle: string;
     epilogue: string;
     criteria?: { suspect: boolean; motive: boolean; weapon: boolean; contradiction: boolean };
@@ -28,12 +29,13 @@ export default function Warrant() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!suspect || !motive || !weapon || !keyContradiction || !sessionId) return;
+    if (!suspectIds.length || !motive || !weapon || !keyContradiction || !sessionId) return;
 
+    setSubmissionError('');
     setLoading(true);
     try {
       const result = await gameApi.submitWarrant(sessionId, {
-        suspect,
+        suspects: suspectIds,
         motive,
         weapon,
         keyContradiction
@@ -48,7 +50,8 @@ export default function Warrant() {
       }
     } catch (error) {
       console.error('Failed to submit warrant:', error);
-      alert('Court proceedings failed due to server error. Please retry.');
+      const message = (error as any)?.response?.data?.error;
+      setSubmissionError(typeof message === 'string' ? message : 'Court proceedings failed. Please retry.');
     } finally {
       setLoading(false);
     }
@@ -66,7 +69,7 @@ export default function Warrant() {
             <div style={{ textAlign: 'center', borderBottom: '2px solid rgba(0,0,0,0.15)', paddingBottom: '15px', marginBottom: '20px' }}>
               <span
                 style={{
-                  backgroundColor: isConvicted ? '#2e7d32' : verdict.outcome === 'wrong_suspect' ? '#b71c1c' : '#e65100',
+                  backgroundColor: isConvicted ? '#2e7d32' : '#e65100',
                   color: 'white',
                   fontFamily: 'monospace',
                   fontSize: '0.9rem',
@@ -76,7 +79,7 @@ export default function Warrant() {
                   textTransform: 'uppercase'
                 }}
               >
-                {verdict.verdictTitle} · CASE SCORE: {verdict.score}/100
+                {verdict.verdictTitle}{verdict.score !== undefined ? ` · CASE SCORE: ${verdict.score}/100` : ''}
               </span>
             <h2 className="handwritten" style={{ fontSize: 'clamp(1.8rem, 5vw, 3rem)', margin: '10px 0 0 0', color: '#2c3e50' }}>
               Supreme Court Judicial Epilogue
@@ -243,23 +246,38 @@ export default function Warrant() {
             </div>
           ) : null}
 
+          {submissionError && (
+            <div role="alert" style={{
+              backgroundColor: '#fee2e2',
+              border: '1px solid #f87171',
+              borderRadius: '4px',
+              padding: '10px 14px',
+              marginBottom: '16px',
+              fontFamily: 'monospace',
+              color: '#991b1b'
+            }}>
+              {submissionError}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
-            {/* 1. Primary Suspect Dropdown */}
+            {/* 1. Accused suspect selection */}
             <div style={styles.inputGroup}>
-              <label style={styles.label}>1. The Accused Perpetrator:</label>
-              <select
-                value={suspect}
-                onChange={(e) => setSuspect(e.target.value)}
-                style={styles.select}
-                required
-              >
-                <option value="">-- Select Person of Interest --</option>
+              <label style={styles.label}>1. The Accused Perpetrator(s):</label>
+              <div style={{ display: 'grid', gap: '8px', marginTop: '8px' }}>
                 {suspects.map(s => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} ({s.role})
-                  </option>
+                  <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '9px', color: '#333' }}>
+                    <input
+                      type="checkbox"
+                      checked={suspectIds.includes(s.id)}
+                      onChange={() => setSuspectIds(current => current.includes(s.id)
+                        ? current.filter(id => id !== s.id)
+                        : [...current, s.id])}
+                    />
+                    <span>{s.name} ({s.role})</span>
+                  </label>
                 ))}
-              </select>
+              </div>
             </div>
 
             {/* 2. Motive Input / Select */}
@@ -309,7 +327,7 @@ export default function Warrant() {
                   </option>
                 ))}
                 {recordedClues.map(c => (
-                  <option key={c.id} value={c.statement}>
+                  <option key={c.id} value={c.id}>
                     Admission: {c.suspectName} - "{c.statement.slice(0, 45)}..."
                   </option>
                 ))}
@@ -320,7 +338,7 @@ export default function Warrant() {
               type="submit"
               className="action-button"
               style={styles.submitBtn}
-              disabled={loading || !suspect || !motive || !weapon || !keyContradiction}
+              disabled={loading || !suspectIds.length || !motive || !weapon || !keyContradiction}
             >
               {loading ? 'The Grand Jury & Judge Are Deliberating...' : 'Submit Warrant to District Attorney & Court'}
             </button>
