@@ -189,8 +189,8 @@ export default function LeadBoard() {
 
   const nodesByKey = useMemo(() => new Map(nodes.map(node => [referenceKey(node), node])), [nodes]);
   const cardsByKey = useMemo(() => new Map(placedCards.map(card => [referenceKey(card), card])), [placedCards]);
-  const canvasWidth = Math.max(window.innerWidth - 32, ...placedCards.map(card => card.x + CARD_WIDTH + 100));
-  const canvasHeight = Math.max(window.innerHeight - 175, 700, ...placedCards.map(card => card.y + CARD_HEIGHT + 100));
+  const canvasWidth = Math.max(window.innerWidth, ...placedCards.map(card => card.x + CARD_WIDTH + 100));
+  const canvasHeight = Math.max(window.innerHeight - 75, 700, ...placedCards.map(card => card.y + CARD_HEIGHT + 100));
   const groups = LEAD_GROUPS.map(group => ({
     ...group,
     nodes: nodes.filter(node => group.types.includes(node.type))

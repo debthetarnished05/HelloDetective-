@@ -603,29 +603,39 @@
 
 /* Full-page mode: the site's wood texture is the board surface. */
 .lead-board-page {
+  position: relative;
   align-items: stretch;
   width: 100%;
   max-width: none;
   height: calc(100vh - 75px);
   min-height: 420px;
   margin: 0;
-  padding: 5px 16px 14px;
+  padding: 0;
 }
 
 .lead-board-header {
-  flex: 0 0 auto;
-  margin: 0 auto 8px;
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  z-index: 6;
+  margin: 0;
+  transform: translateX(-50%);
+  pointer-events: none;
 }
 
 .lead-board-header .taped-title {
   margin: 0;
+  padding: 8px 28px;
+  pointer-events: auto;
 }
 
 .lead-board-workspace {
-  position: relative;
-  flex: 1 1 auto;
+  position: absolute;
+  inset: 0;
+  flex: none;
   min-height: 0;
   width: 100%;
+  height: 100%;
   overflow: visible;
   border: 0;
   border-radius: 0;
@@ -762,8 +772,17 @@ body:has(.lead-board-page) .detective-notepad-panel {
 
 @media (max-width: 650px) {
   .lead-board-page {
-    height: calc(100vh - 70px);
-    padding: 4px 8px 10px;
+    height: calc(100vh - 75px);
+    padding: 0;
+  }
+
+  .lead-board-header {
+    top: 5px;
+  }
+
+  .lead-board-header .taped-title {
+    padding: 6px 18px;
+    font-size: 1.2rem;
   }
 
   .lead-board-link-editor {
