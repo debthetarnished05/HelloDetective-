@@ -9,6 +9,7 @@ import { toPlayerSession, toPlayerStory } from './playerProjection.js';
 import { createGuestSessionToken, hashGuestSessionToken } from '../utils/guestSession.js';
 import GameSession from '../models/GameSession.js';
 import Story from '../models/StoryData.js';
+import { isReadyToStartClosing } from './caseProgress.js';
 
 function validGeneratedStory(): IStory {
   return {
@@ -203,4 +204,22 @@ test('persists evidence security flags and enables optimistic concurrency on gam
   assert.equal(storyDocument.evidence[0]?.isMurderWeapon, true);
   assert.equal(storyDocument.evidence[0]?.allowSubpoena, true);
   assert.equal(GameSession.schema.options.optimisticConcurrency, true);
+});
+
+test('starts the closing phase only after all locations, evidence, and suspects are unlocked', () => {
+  const story = {
+    locations: [{ id: 'scene-a' }, { id: 'scene-b' }],
+    evidence: [{ id: 'clue-a' }, { id: 'clue-b' }],
+    suspects: [{ id: 'suspect-a' }, { id: 'suspect-b' }]
+  };
+  const complete = {
+    unlockedLocations: ['scene-a', 'scene-b'],
+    unlockedEvidence: ['clue-a', 'clue-b'],
+    unlockedSuspects: ['suspect-a', 'suspect-b']
+  };
+
+  assert.equal(isReadyToStartClosing(complete, story), true);
+  assert.equal(isReadyToStartClosing({ ...complete, unlockedLocations: ['scene-a'] }, story), false);
+  assert.equal(isReadyToStartClosing({ ...complete, unlockedEvidence: ['clue-a'] }, story), false);
+  assert.equal(isReadyToStartClosing({ ...complete, unlockedSuspects: ['suspect-a'] }, story), false);
 });

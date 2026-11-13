@@ -20,6 +20,7 @@ import { scoreWarrant } from '../services/warrantScoring.js';
 import { isSessionVersionConflict, trimSessionHistories } from '../services/sessionSafeguards.js';
 import { canAccessGameSession } from '../services/sessionAuthorization.js';
 import { toPlayerSession, toPlayerStory } from '../services/playerProjection.js';
+import { isReadyToStartClosing } from '../services/caseProgress.js';
 import { IStory, ISuspectRuntimeState } from '../types/index.js';
 import { createGuestSessionToken, hashGuestSessionToken } from '../utils/guestSession.js';
 import { randomUUID } from 'node:crypto';
@@ -249,6 +250,7 @@ export const startNewGame = async (req: AuthRequest, res: Response) => {
       status: 'active'
     });
 
+    checkAndTriggerClosing(session, story);
     await session.save();
 
     const storyObj = story.toObject ? story.toObject() : { ...story };
@@ -354,22 +356,14 @@ export const getSessionState = async (req: AuthRequest, res: Response) => {
 };
 
 function checkAndTriggerClosing(session: any, story: any): boolean {
-  const totalLocations = (story.locations || []).length;
-  const totalEvidence = (story.evidence || []).length;
-  const canvassedCount = (session.canvassedLocations || []).length;
-  const evidenceCount = (session.unlockedEvidence || []).length;
-
-  const allLocationsCanvassed = totalLocations > 0 && canvassedCount >= totalLocations;
-  const allEvidenceRecovered = totalEvidence > 0 && evidenceCount >= totalEvidence;
-
-  if ((allLocationsCanvassed || allEvidenceRecovered) && !session.caseClosingTriggered) {
+  if (isReadyToStartClosing(session, story) && !session.caseClosingTriggered) {
     session.caseClosingTriggered = true;
     session.remainingClosingQuestions = 12;
     session.closingNotificationSent = true;
 
     session.officerChatHistory.push({
       role: 'assistant',
-      content: `🚨 URGENT DISPATCH FROM OFFICER DAVIS: Detective! Forensics has finished processing every known crime scene, and all leads in town have been canvassed. The District Attorney is demanding our final indictment. You have 12 questions remaining across your suspects before interrogations are locked and we must take our Arrest Warrant to the Judge. Make every question count!`,
+      content: `🚨 URGENT DISPATCH FROM OFFICER DAVIS: Detective! Every location, evidence item, and suspect is now in the case file. The District Attorney is demanding our final indictment. You have 12 questions remaining across your suspects before interrogations are locked and we must take our Arrest Warrant to the Judge. Make every question count!`,
       timestamp: new Date()
     });
     return true;
