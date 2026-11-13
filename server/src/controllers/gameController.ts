@@ -1302,7 +1302,6 @@ export const recordClue = async (req: AuthRequest, res: Response) => {
 
 export const listStories = async (req: AuthRequest, res: Response) => {
   try {
-    await seedDefaultStories();
     const storiesDocs = await Story.find();
     const leadDetectiveName = req.user ? `Detective ${req.user.username}` : 'Guest Detective';
     const solvedIds = new Set((req.user?.casesSolved || []).map(id => String(id)));
